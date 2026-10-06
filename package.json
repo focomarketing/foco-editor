@@ -1,0 +1,39 @@
+{
+  "name": "foco-editor",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "oxlint",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:e2e": "node scripts/e2e.mjs",
+    "test:e2e:ai": "node scripts/e2e-ai.mjs",
+    "test:e2e:fx": "node scripts/e2e-fx.mjs",
+    "test:e2e:chat": "node scripts/e2e-chat.mjs",
+    "test:e2e:phase1": "node scripts/e2e-phase1.mjs",
+    "test:e2e:phase2": "node scripts/e2e-phase2.mjs",
+    "test:load": "node scripts/load.mjs t1,t2,t3,t4,t5,t6,t7"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.131.0",
+    "@huggingface/transformers": "^4.3.0",
+    "lucide-react": "^1.52.0",
+    "mediabunny": "^1.61.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "oxlint": "^1.81.0",
+    "playwright-core": "^1.63.0",
+    "typescript": "~6.0.2",
+    "vite": "^8.3.0",
+    "vitest": "^5.0.3"
+  }
+}

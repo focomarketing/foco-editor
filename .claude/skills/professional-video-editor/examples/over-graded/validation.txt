@@ -1,0 +1,18 @@
+BEFORE / AFTER VALIDATION
+
+Exposure           0/100
+Skin Tone          0/100
+Shadow Detail      0/100
+Highlight Detail   100/100
+Saturation         0/100
+Contrast           100/100
+Naturalness        13/100
+Mudança medida     44%
+Verdict            OVER-GRADED
+  FALHA: ficou 38% mais escuro sem justificativa
+  FALHA: pretos perderam detalhe (+21.3 pp esmagados, textura -22%)
+  FALHA: pele mudou demais (luz -8%, matiz 1°, saturação -73%)
+  FALHA: original já estava bom e a mudança foi grande (44%)
+  FALHA: naturalidade baixa (13/100)
+
+Deltas: {"luma_mean_rel": -0.3846, "crushed_pp": 21.2942, "shadow_detail_rel": -0.2171, "clipped_pp": -0.0772, "spread": -0.0634, "sat_rel": -0.6593, "green_strength_rel": -0.4786, "skin_luma_rel": -0.0818, "skin_hue_deg": 0.7836, "skin_sat_rel": -0.7315}

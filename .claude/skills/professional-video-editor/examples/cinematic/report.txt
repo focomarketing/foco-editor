@@ -1,0 +1,33 @@
+AI COLOR REPORT
+
+Profile            talking-head-cinematic
+Confidence         0.90
+Exposure           +0.00 EV
+Contrast           +5%
+Highlights         -6%
+Shadows            +1%
+Saturation         -6%
+Vibrance           +0%
+Temperature        +0.01
+Tint               +0.00
+Vignette           0.06
+LUT                None
+Overall Treatment  4%  (mudança média medida)
+Protections        skin ON, shadows ON, highlights ON, saturation ON
+Issues             verde do fundo muito intenso (sem HSL no motor: redução global mínima)
+Reasons            45% do quadro é verde saturado
+
+QUALITY SCORE
+Exposure           79/100
+Skin Tone          98/100
+Shadow Detail      58/100
+Highlight Detail   100/100
+Saturation         98/100
+Contrast           100/100
+Naturalness        70/100
+Verdict            NATURAL
+
+Intensidade reduzida automaticamente para 50% da decisão original:
+  100%: OVER-GRADED, OVER-GRADED, OVER-GRADED, OVER-GRADED, OVER-GRADED — naturalidade baixa (50/100); naturalidade baixa (56/100); naturalidade baixa (58/100); naturalidade baixa (59/100); pretos perderam detalhe (+3.3 pp esmagados, textura -10%); pretos perderam detalhe (+3.3 pp esmagados, textura -6%); pretos perderam detalhe (+3.4 pp esmagados, textura -8%); pretos perderam detalhe (+3.6 pp esmagados, textura -4%); pretos perderam detalhe (+4.1 pp esmagados, textura -1%)
+   75%: NATURAL, NATURAL, NATURAL, OVER-GRADED, NATURAL — naturalidade baixa (59/100); pretos perderam detalhe (+3.3 pp esmagados, textura -1%)
+   50%: NATURAL, NATURAL, NATURAL, NATURAL, NATURAL

@@ -1,0 +1,28 @@
+AI COLOR REPORT
+
+Profile            professional-natural
+Confidence         0.90
+Exposure           +0.00 EV
+Contrast           +2%
+Highlights         -2%
+Shadows            +0%
+Saturation         -8%
+Vibrance           +0%
+Temperature        +0.00
+Tint               +0.00
+Vignette           0.00
+LUT                None
+Overall Treatment  3%  (mudança média medida)
+Protections        skin ON, shadows ON, highlights ON, saturation ON
+Issues             verde do fundo muito intenso (sem HSL no motor: redução global mínima)
+Reasons            45% do quadro é verde saturado
+
+QUALITY SCORE
+Exposure           95/100
+Skin Tone          87/100
+Shadow Detail      78/100
+Highlight Detail   100/100
+Saturation         100/100
+Contrast           97/100
+Naturalness        84/100
+Verdict            NATURAL

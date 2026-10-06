@@ -1,0 +1,49 @@
+{
+  "date": "2026-10-05T12:58:55.457Z",
+  "machine": {
+    "cpus": 8,
+    "cpuModel": "Intel(R) Core(TM) i3-10105F CPU @ 3.70GHz",
+    "ramGB": 17
+  },
+  "tests": {
+    "t6": {
+      "label": "timeline com 500 clipes",
+      "build": {
+        "executeAndPaintMs": 81,
+        "domClips": 41
+      },
+      "scroll": {
+        "medianFrameMs": 16.7,
+        "p95FrameMs": 22.9,
+        "worstFrameMs": 24.5,
+        "longTasks": 0
+      },
+      "zoomAndEdit": {
+        "zoom5StepsMs": 79,
+        "moveMs": 17,
+        "undoMs": 17
+      },
+      "heapMB": 28
+    },
+    "t7": {
+      "label": "timeline com 1000 clipes",
+      "build": {
+        "executeAndPaintMs": 131,
+        "domClips": 8
+      },
+      "scroll": {
+        "medianFrameMs": 16.6,
+        "p95FrameMs": 25.4,
+        "worstFrameMs": 32.6,
+        "longTasks": 0
+      },
+      "zoomAndEdit": {
+        "zoom5StepsMs": 103,
+        "moveMs": 22,
+        "undoMs": 20
+      },
+      "heapMB": 34
+    }
+  },
+  "pageErrors": []
+}

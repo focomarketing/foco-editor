@@ -1,0 +1,54 @@
+{
+  "date": "2026-10-05T14:03:24.176Z",
+  "machine": {
+    "cpus": 8,
+    "cpuModel": "Intel(R) Core(TM) i3-10105F CPU @ 3.70GHz",
+    "ramGB": 17
+  },
+  "tests": {
+    "t1": {
+      "label": "1080p · 10 min",
+      "error": "Error: page.evaluate: Execution context was destroyed, most likely because of a navigation."
+    },
+    "t2": {
+      "label": "4K · 20 min",
+      "error": "Error: page.evaluate: Execution context was destroyed, most likely because of a navigation"
+    },
+    "t3": {
+      "label": "4K · 60 min",
+      "error": "Error: page.evaluate: TypeError: Cannot read properties of undefined (reading 'actions')\n    at eval (eval at evaluate (:311:30), <anonymous>:2:25)\n    at UtilityScript.evaluate (<anonymous>:313:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)"
+    },
+    "t4": {
+      "label": "4K · 2 h",
+      "error": "Error: page.evaluate: TypeError: Cannot read properties of undefined (reading 'actions')\n    at eval (eval at evaluate (:311:30), <anonymous>:2:25)\n    at UtilityScript.evaluate (<anonymous>:313:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)"
+    },
+    "t5": {
+      "label": "10 vídeos 1080p · 3 min cada",
+      "error": "Error: page.evaluate: TypeError: Cannot read properties of undefined (reading 'actions')\n    at eval (eval at evaluate (:311:30), <anonymous>:2:25)\n    at UtilityScript.evaluate (<anonymous>:313:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)"
+    },
+    "t6": {
+      "label": "timeline com 500 clipes",
+      "error": "Error: page.evaluate: TypeError: Cannot read properties of undefined (reading 'actions')\n    at eval (eval at evaluate (:311:30), <anonymous>:2:25)\n    at UtilityScript.evaluate (<anonymous>:313:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)"
+    },
+    "t7": {
+      "label": "timeline com 1000 clipes",
+      "build": {
+        "executeAndPaintMs": 350,
+        "domClips": 46
+      },
+      "scroll": {
+        "medianFrameMs": 16.9,
+        "p95FrameMs": 49.4,
+        "worstFrameMs": 52.8,
+        "longTasks": 0
+      },
+      "zoomAndEdit": {
+        "zoom5StepsMs": 142,
+        "moveMs": 14,
+        "undoMs": 16
+      },
+      "heapMB": 43
+    }
+  },
+  "pageErrors": []
+}

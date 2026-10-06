@@ -1,0 +1,78 @@
+{
+  "profile": "professional-natural",
+  "confidence": 0.9,
+  "intensity": 0.25,
+  "issues": [
+    "verde do fundo muito intenso (sem HSL no motor: redução global mínima)"
+  ],
+  "reasons": [
+    "45% do quadro é verde saturado"
+  ],
+  "adjustments": {
+    "exposure": 0.0,
+    "contrast": 0.015,
+    "highlights": -0.015,
+    "shadows": 0.0,
+    "saturation": -0.08,
+    "vibrance": 0.0,
+    "temperature": 0.0,
+    "tint": 0.0,
+    "vignette": 0.0
+  },
+  "unsupported": {
+    "whites": null,
+    "blacks": null,
+    "sharpen": null,
+    "noise_reduction": null,
+    "hsl_green": null,
+    "lut": null
+  },
+  "lut": null,
+  "lut_intensity": 0,
+  "protections": {
+    "skin": true,
+    "shadows": true,
+    "highlights": true,
+    "saturation": true
+  },
+  "no_change": false,
+  "note": "",
+  "metrics_median": {
+    "luma_mean": 0.2809,
+    "luma_p01": 0.0,
+    "luma_p05": 0.0031,
+    "luma_median": 0.219,
+    "luma_p95": 0.6696,
+    "luma_p99": 0.7226,
+    "spread": 0.6666,
+    "crushed_pct": 14.6454,
+    "shadow_pct": 31.8603,
+    "shadow_detail": 8.094,
+    "clipped_pct": 0.0538,
+    "wb_cast_rb": 0.0749,
+    "wb_cast_g": 0.0342,
+    "wb_confidence": 0.4228,
+    "sat_mean": 0.6431,
+    "green_pct": 44.876,
+    "green_strength": 0.7784,
+    "skin_pct": 4.4994,
+    "skin_luma": 0.4949,
+    "skin_hue": 24.5455,
+    "skin_sat": 0.3951
+  },
+  "applied_factor": 1.0,
+  "intensity_effective": 0.25,
+  "attempts": [
+    {
+      "factor": 1.0,
+      "verdicts": [
+        "NATURAL",
+        "NATURAL",
+        "NATURAL",
+        "NATURAL",
+        "NATURAL"
+      ],
+      "failures": []
+    }
+  ]
+}

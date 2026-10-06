@@ -1,0 +1,113 @@
+{
+  "profile": "talking-head-cinematic",
+  "confidence": 0.9,
+  "intensity": 0.45,
+  "issues": [
+    "verde do fundo muito intenso (sem HSL no motor: redução global mínima)"
+  ],
+  "reasons": [
+    "45% do quadro é verde saturado"
+  ],
+  "adjustments": {
+    "exposure": 0.0,
+    "contrast": 0.05,
+    "highlights": -0.057,
+    "shadows": 0.009,
+    "saturation": -0.062,
+    "vibrance": 0.0,
+    "temperature": 0.013,
+    "tint": 0.0,
+    "vignette": 0.057
+  },
+  "unsupported": {
+    "whites": null,
+    "blacks": null,
+    "sharpen": null,
+    "noise_reduction": null,
+    "hsl_green": null,
+    "lut": null
+  },
+  "lut": null,
+  "lut_intensity": 0,
+  "protections": {
+    "skin": true,
+    "shadows": true,
+    "highlights": true,
+    "saturation": true
+  },
+  "no_change": false,
+  "note": "",
+  "metrics_median": {
+    "luma_mean": 0.2809,
+    "luma_p01": 0.0,
+    "luma_p05": 0.0031,
+    "luma_median": 0.219,
+    "luma_p95": 0.6696,
+    "luma_p99": 0.7226,
+    "spread": 0.6666,
+    "crushed_pct": 14.6454,
+    "shadow_pct": 31.8603,
+    "shadow_detail": 8.094,
+    "clipped_pct": 0.0538,
+    "wb_cast_rb": 0.0749,
+    "wb_cast_g": 0.0342,
+    "wb_confidence": 0.4228,
+    "sat_mean": 0.6431,
+    "green_pct": 44.876,
+    "green_strength": 0.7784,
+    "skin_pct": 4.4994,
+    "skin_luma": 0.4949,
+    "skin_hue": 24.5455,
+    "skin_sat": 0.3951
+  },
+  "applied_factor": 0.5,
+  "intensity_effective": 0.225,
+  "attempts": [
+    {
+      "factor": 1.0,
+      "verdicts": [
+        "OVER-GRADED",
+        "OVER-GRADED",
+        "OVER-GRADED",
+        "OVER-GRADED",
+        "OVER-GRADED"
+      ],
+      "failures": [
+        "naturalidade baixa (50/100)",
+        "naturalidade baixa (56/100)",
+        "naturalidade baixa (58/100)",
+        "naturalidade baixa (59/100)",
+        "pretos perderam detalhe (+3.3 pp esmagados, textura -10%)",
+        "pretos perderam detalhe (+3.3 pp esmagados, textura -6%)",
+        "pretos perderam detalhe (+3.4 pp esmagados, textura -8%)",
+        "pretos perderam detalhe (+3.6 pp esmagados, textura -4%)",
+        "pretos perderam detalhe (+4.1 pp esmagados, textura -1%)"
+      ]
+    },
+    {
+      "factor": 0.75,
+      "verdicts": [
+        "NATURAL",
+        "NATURAL",
+        "NATURAL",
+        "OVER-GRADED",
+        "NATURAL"
+      ],
+      "failures": [
+        "naturalidade baixa (59/100)",
+        "pretos perderam detalhe (+3.3 pp esmagados, textura -1%)"
+      ]
+    },
+    {
+      "factor": 0.5,
+      "verdicts": [
+        "NATURAL",
+        "NATURAL",
+        "NATURAL",
+        "NATURAL",
+        "NATURAL"
+      ],
+      "failures": []
+    }
+  ]
+}

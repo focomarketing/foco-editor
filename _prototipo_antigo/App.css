@@ -1,0 +1,363 @@
+:root {
+  --bg-darker: #0d0d0f;
+  --bg-dark: #141417;
+  --bg-panel: #1a1a1e;
+  --bg-light: #242429;
+  --bg-hover: #2f2f36;
+  
+  --accent: #5e43f3;
+  --accent-hover: #7259f5;
+  --ai-gradient: linear-gradient(135deg, #7c3aed, #db2777, #f59e0b);
+  
+  --text-main: #f3f4f6;
+  --text-muted: #9ca3af;
+  
+  --border: #2d2d34;
+  --track-bg: #111113;
+  --video-clip: #3b82f6;
+  --audio-clip: #10b981;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--bg-darker);
+  color: var(--text-main);
+  overflow: hidden;
+}
+
+/* CONTAINER */
+.editor-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* HEADER */
+.editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 20px;
+  height: 56px;
+  background-color: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+}
+
+.logo {
+  font-weight: 800;
+  font-size: 16px;
+  letter-spacing: 1px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+}
+
+/* BUTTONS */
+.btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.btn-icon {
+  padding: 6px;
+  background: transparent;
+  color: var(--text-muted);
+}
+.btn-icon:hover {
+  background: var(--bg-hover);
+  color: var(--text-main);
+}
+
+.btn-secondary {
+  background-color: var(--bg-light);
+  color: var(--text-main);
+  border: 1px solid var(--border);
+}
+.btn-secondary:hover {
+  background-color: var(--bg-hover);
+}
+
+.btn-primary {
+  background-color: var(--accent);
+  color: white;
+}
+.btn-primary:hover {
+  background-color: var(--accent-hover);
+}
+
+.btn-ai {
+  background: var(--ai-gradient);
+  color: white;
+  font-weight: 700;
+}
+.btn-ai:hover {
+  opacity: 0.9;
+}
+
+/* WORKSPACE */
+.editor-workspace {
+  display: flex;
+  flex: 1;
+  height: calc(100vh - 56px - 300px); /* leaving 300px for timeline */
+}
+
+/* MEDIA BIN */
+.media-bin {
+  width: 320px;
+  background-color: var(--bg-dark);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.panel-header h3 {
+  font-size: 12px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+
+.media-grid {
+  padding: 16px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  overflow-y: auto;
+}
+
+.media-item {
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+}
+.media-item:hover {
+  border-color: var(--text-muted);
+}
+
+.media-item.import-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 80px;
+  background-color: transparent;
+  border: 1px dashed var(--border);
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.media-item.import-placeholder:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.media-item .thumbnail {
+  height: 64px;
+  background-color: var(--bg-light);
+}
+
+.media-item span {
+  font-size: 11px;
+  padding: 6px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* PLAYER */
+.player-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-darker);
+  padding: 24px;
+  align-items: center;
+  justify-content: center;
+}
+
+.player-container {
+  width: 100%;
+  max-width: 800px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.video-placeholder {
+  aspect-ratio: 16/9;
+  background-color: #000;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  border: 1px solid #222;
+}
+
+.mock-video {
+  color: var(--text-muted);
+  font-family: monospace;
+}
+
+.player-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+
+.timecode {
+  font-family: monospace;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+/* TIMELINE */
+.timeline-section {
+  height: 320px;
+  background-color: var(--bg-panel);
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+}
+
+.timeline-toolbar {
+  height: 40px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 16px;
+}
+
+.tools-left {
+  display: flex;
+  gap: 8px;
+}
+
+.zoom-slider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+}
+.zoom-slider input {
+  width: 100px;
+}
+
+.timeline-tracks {
+  flex: 1;
+  background-color: var(--track-bg);
+  position: relative;
+  overflow-y: auto;
+  overflow-x: auto;
+}
+
+.playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 200px;
+  width: 2px;
+  background-color: #ef4444;
+  z-index: 10;
+  pointer-events: none;
+}
+.playhead::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -5px;
+  width: 12px;
+  height: 12px;
+  background-color: #ef4444;
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+}
+
+.track {
+  display: flex;
+  height: 60px;
+  border-bottom: 1px solid var(--border);
+}
+
+.track-header {
+  width: 80px;
+  background-color: var(--bg-panel);
+  border-right: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  position: sticky;
+  left: 0;
+  z-index: 5;
+}
+
+.track-content {
+  flex: 1;
+  position: relative;
+  background-color: var(--bg-darker);
+}
+
+.clip {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  font-size: 11px;
+  overflow: hidden;
+  cursor: grab;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.video-clip {
+  background-color: var(--video-clip);
+  color: white;
+}
+
+.audio-clip {
+  background-color: var(--audio-clip);
+  color: #000;
+}
+
+.clip-name {
+  white-space: nowrap;
+}
+
+.waveform {
+  width: 100%;
+  height: 50%;
+  background: repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(0,0,0,0.2) 2px, rgba(0,0,0,0.2) 4px);
+}

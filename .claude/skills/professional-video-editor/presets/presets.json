@@ -1,0 +1,97 @@
+{
+  "$comment": "Presets da skill professional-video-editor. Valores de 'look' são o look a 100%; o que entra no vídeo é look × intensity. 'caps' são as proteções finais (nunca ultrapassadas). Todos os parâmetros são os do ColorSettings do FOCO Editor.",
+  "default_profile": "professional-natural",
+  "intensity_steps": [1.0, 0.75, 0.5, 0.25, 0.0],
+  "validation": {
+    "darker_fail": 0.10,
+    "crushed_fail_pp": 3.0,
+    "shadow_detail_fail": 0.15,
+    "clipped_fail_pp": 1.0,
+    "skin_luma_fail": 0.10,
+    "skin_hue_fail": 6.0,
+    "skin_sat_fail": 0.20,
+    "green_fail": 0.10,
+    "spread_fail": 0.12,
+    "good_original_max_change": 12.0,
+    "natural_max_change": 8.0,
+    "naturalness_fail": 60
+  },
+  "base_tolerances": {
+    "skin_luma": [0.40, 0.68],
+    "median_luma": [0.15, 0.60],
+    "skin_hue": [8, 40],
+    "skin_sat_min": 0.25,
+    "skin_sat_max": 0.50,
+    "sat_min": 0.15,
+    "clipped_pct": 1.0,
+    "crushed_pct": 20.0,
+    "spread": [0.45, 0.92],
+    "wb_cast": 0.08,
+    "green_pct": 25.0,
+    "green_strength": 0.60
+  },
+  "presets": {
+    "professional-natural": {
+      "label": "Professional Natural (padrão talking head)",
+      "description": "Corrige só o que está errado. Look quase imperceptível. Padrão para qualquer vídeo de pessoa falando.",
+      "intensity": 0.25,
+      "technical_strength": 1.0,
+      "look": { "contrast": 0.06, "highlights": -0.06 },
+      "caps": { "exposure": [-0.3, 0.6], "contrast": [-0.08, 0.10], "highlights": [-0.30, 0.0], "shadows": [0.0, 0.25], "saturation": [-0.10, 0.08], "vibrance": [-0.05, 0.12], "temperature": [-0.25, 0.25], "tint": [-0.25, 0.25], "vignette": [0.0, 0.0] },
+      "protections": { "skin": true, "shadows": true, "highlights": true, "saturation": true },
+      "tolerances": "base"
+    },
+    "talking-head-natural": { "alias": "professional-natural" },
+    "talking-head-cinematic": {
+      "label": "Talking Head Cinematic",
+      "description": "Mais contraste e separação, altas luzes suaves, leve calor. Sombras preservadas; nunca esmaga pretos.",
+      "intensity": 0.45,
+      "technical_strength": 1.0,
+      "look": { "contrast": 0.22, "highlights": -0.25, "shadows": 0.04, "saturation": -0.10, "temperature": 0.06, "vignette": 0.25 },
+      "caps": { "exposure": [-0.3, 0.6], "contrast": [-0.08, 0.15], "highlights": [-0.35, 0.0], "shadows": [0.0, 0.25], "saturation": [-0.14, 0.06], "vibrance": [-0.05, 0.10], "temperature": [-0.25, 0.25], "tint": [-0.25, 0.25], "vignette": [0.0, 0.15] },
+      "protections": { "skin": true, "shadows": true, "highlights": true, "saturation": true },
+      "tolerances": "base"
+    },
+    "cinematic": { "alias": "talking-head-cinematic" },
+    "podcast-clean": {
+      "label": "Podcast Clean",
+      "description": "Imagem limpa e neutra para cenários de estúdio; contraste mínimo, pele em primeiro lugar.",
+      "intensity": 0.2,
+      "technical_strength": 1.0,
+      "look": { "contrast": 0.05, "highlights": -0.08, "shadows": 0.05, "vibrance": 0.05 },
+      "caps": { "exposure": [-0.3, 0.6], "contrast": [-0.08, 0.08], "highlights": [-0.30, 0.0], "shadows": [0.0, 0.25], "saturation": [-0.10, 0.06], "vibrance": [-0.05, 0.10], "temperature": [-0.2, 0.2], "tint": [-0.2, 0.2], "vignette": [0.0, 0.0] },
+      "protections": { "skin": true, "shadows": true, "highlights": true, "saturation": true },
+      "tolerances": "base"
+    },
+    "youtube-professional": {
+      "label": "YouTube Professional",
+      "description": "Um pouco mais de presença (contraste e vibrance leves) sem parecer filtro.",
+      "intensity": 0.3,
+      "technical_strength": 1.0,
+      "look": { "contrast": 0.12, "highlights": -0.10, "shadows": 0.05, "vibrance": 0.12 },
+      "caps": { "exposure": [-0.3, 0.6], "contrast": [-0.08, 0.12], "highlights": [-0.30, 0.0], "shadows": [0.0, 0.25], "saturation": [-0.10, 0.08], "vibrance": [-0.05, 0.12], "temperature": [-0.25, 0.25], "tint": [-0.25, 0.25], "vignette": [0.0, 0.05] },
+      "protections": { "skin": true, "shadows": true, "highlights": true, "saturation": true },
+      "tolerances": "base"
+    },
+    "social-clean": {
+      "label": "Social Clean",
+      "description": "Para Reels/Shorts/TikTok: limpo e um pouco mais vivo, sem saturar pele nem verdes.",
+      "intensity": 0.3,
+      "technical_strength": 1.0,
+      "look": { "exposure": 0.05, "contrast": 0.10, "highlights": -0.08, "vibrance": 0.15 },
+      "caps": { "exposure": [-0.3, 0.6], "contrast": [-0.08, 0.12], "highlights": [-0.30, 0.0], "shadows": [0.0, 0.25], "saturation": [-0.10, 0.08], "vibrance": [-0.05, 0.12], "temperature": [-0.25, 0.25], "tint": [-0.25, 0.25], "vignette": [0.0, 0.0] },
+      "protections": { "skin": true, "shadows": true, "highlights": true, "saturation": true },
+      "tolerances": "base"
+    },
+    "documentary": {
+      "label": "Documentary",
+      "description": "Ensaio/documentário: levemente dessaturado e suave nas altas luzes, sem escurecer o rosto.",
+      "intensity": 0.35,
+      "technical_strength": 1.0,
+      "look": { "contrast": 0.10, "highlights": -0.20, "shadows": 0.06, "saturation": -0.15, "temperature": 0.03, "vignette": 0.15 },
+      "caps": { "exposure": [-0.3, 0.6], "contrast": [-0.08, 0.12], "highlights": [-0.35, 0.0], "shadows": [0.0, 0.25], "saturation": [-0.14, 0.04], "vibrance": [-0.05, 0.08], "temperature": [-0.2, 0.2], "tint": [-0.2, 0.2], "vignette": [0.0, 0.08] },
+      "protections": { "skin": true, "shadows": true, "highlights": true, "saturation": true },
+      "tolerances": "base"
+    }
+  }
+}

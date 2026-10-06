@@ -1,0 +1,153 @@
+{
+  "date": "2026-10-05T14:56:26.969Z",
+  "machine": {
+    "cpus": 8,
+    "cpuModel": "Intel(R) Core(TM) i3-10105F CPU @ 3.70GHz",
+    "ramGB": 17
+  },
+  "tests": {
+    "t4": {
+      "label": "4K · 2 h",
+      "generateSec": 3.732,
+      "fileGB": 0.475424485,
+      "importMs": 117,
+      "totalAnalysisMs": 37212,
+      "probeMs": 25,
+      "thumbnailMs": 4812,
+      "previewThumbsMs": 15243,
+      "waveformMs": 37097,
+      "longTasks": 1,
+      "longTaskMs": 60,
+      "maxLongTaskMs": 60,
+      "meta": "3840x2160 30fps avc/aac 7200s",
+      "ingestGpu": {
+        "avgUtil": 19,
+        "peakUtil": 59,
+        "peakMemMB": 5653
+      },
+      "ingestMainThreadBusySec": 28.01,
+      "heapAfterImport": 48,
+      "proxy": {
+        "ms": 1466601,
+        "speedX": 4.9,
+        "sizeMB": 2322,
+        "status": "ready",
+        "longTasks": 2,
+        "maxLongTaskMs": 111
+      },
+      "seek": {
+        "medianMs": 36,
+        "p90Ms": 36,
+        "maxMs": 36
+      },
+      "playback": {
+        "fps": 56,
+        "droppedFrames": 0,
+        "longTasks": 1,
+        "maxLongTaskMs": 64
+      },
+      "export30s": {
+        "ms": 7054,
+        "fps": 127.6,
+        "ok": true,
+        "gpu": {
+          "avgUtil": 25,
+          "peakUtil": 32,
+          "peakMemMB": 2000
+        }
+      },
+      "heapEnd": 30
+    },
+    "t5": {
+      "label": "10 vídeos 1080p · 3 min cada",
+      "generateSec": 5.734,
+      "fileGB": 0.321535854,
+      "importMs": 615,
+      "totalAnalysisMs": 16521,
+      "probeMs": 82,
+      "thumbnailMs": 1055,
+      "previewThumbsMs": 1414,
+      "waveformMs": 2325,
+      "longTasks": 1,
+      "longTaskMs": 56,
+      "maxLongTaskMs": 56,
+      "meta": "1920x1080 30fps avc/aac 181s",
+      "ingestGpu": {
+        "avgUtil": 9,
+        "peakUtil": 28,
+        "peakMemMB": 2058
+      },
+      "ingestMainThreadBusySec": 13.63,
+      "heapAfterImport": 36,
+      "proxy": {
+        "ms": 54995,
+        "speedX": 3.3,
+        "sizeMB": 42,
+        "status": "ready",
+        "longTasks": 1,
+        "maxLongTaskMs": 53
+      },
+      "seek": {
+        "medianMs": 35,
+        "p90Ms": 38,
+        "maxMs": 56
+      },
+      "playback": {
+        "fps": 56.8,
+        "droppedFrames": 0,
+        "longTasks": 0,
+        "maxLongTaskMs": 0
+      },
+      "export30s": {
+        "ms": 4229,
+        "fps": 212.8,
+        "ok": true,
+        "gpu": {
+          "avgUtil": 22,
+          "peakUtil": 25,
+          "peakMemMB": 1618
+        }
+      },
+      "heapEnd": 32
+    },
+    "t6": {
+      "label": "timeline com 500 clipes",
+      "build": {
+        "executeAndPaintMs": 80,
+        "domClips": 38
+      },
+      "scroll": {
+        "medianFrameMs": 18.5,
+        "p95FrameMs": 42.6,
+        "worstFrameMs": 50.5,
+        "longTasks": 0
+      },
+      "zoomAndEdit": {
+        "zoom5StepsMs": 73,
+        "moveMs": 19,
+        "undoMs": 18
+      },
+      "heapMB": 32
+    },
+    "t7": {
+      "label": "timeline com 1000 clipes",
+      "build": {
+        "executeAndPaintMs": 178,
+        "domClips": 8
+      },
+      "scroll": {
+        "medianFrameMs": 18.1,
+        "p95FrameMs": 26.3,
+        "worstFrameMs": 29.6,
+        "longTasks": 0
+      },
+      "zoomAndEdit": {
+        "zoom5StepsMs": 85,
+        "moveMs": 18,
+        "undoMs": 18
+      },
+      "heapMB": 51
+    }
+  },
+  "pageErrors": []
+}

@@ -1,0 +1,13 @@
+BEFORE / AFTER VALIDATION
+
+Exposure           100/100
+Skin Tone          98/100
+Shadow Detail      100/100
+Highlight Detail   100/100
+Saturation         100/100
+Contrast           94/100
+Naturalness        96/100
+Mudança medida     2%
+Verdict            UNDER-GRADED
+
+Deltas: {"luma_mean_rel": 0.0271, "crushed_pp": 0.001, "shadow_detail_rel": 0.0119, "clipped_pp": 0.0, "spread": 0.0138, "sat_rel": -0.0046, "green_strength_rel": -0.0036, "skin_luma_rel": 0.0, "skin_hue_deg": 0.1905, "skin_sat_rel": -0.0073}

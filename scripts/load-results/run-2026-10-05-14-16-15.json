@@ -1,0 +1,63 @@
+{
+  "date": "2026-10-05T14:16:15.807Z",
+  "machine": {
+    "cpus": 8,
+    "cpuModel": "Intel(R) Core(TM) i3-10105F CPU @ 3.70GHz",
+    "ramGB": 17
+  },
+  "tests": {
+    "t1": {
+      "label": "1080p · 10 min",
+      "generateSec": 0.848,
+      "fileGB": 0.103243333,
+      "importMs": 89,
+      "totalAnalysisMs": 3647,
+      "probeMs": 10,
+      "thumbnailMs": 764,
+      "previewThumbsMs": 2001,
+      "waveformMs": 3496,
+      "longTasks": 0,
+      "longTaskMs": 0,
+      "maxLongTaskMs": 0,
+      "meta": "1920x1080 30fps avc/aac 600s",
+      "ingestGpu": {
+        "avgUtil": 8,
+        "peakUtil": 19,
+        "peakMemMB": 2180
+      },
+      "ingestMainThreadBusySec": 2.81,
+      "heapAfterImport": 32,
+      "proxy": {
+        "ms": 83221,
+        "speedX": 7.2,
+        "sizeMB": 147,
+        "status": "ready",
+        "longTasks": 1,
+        "maxLongTaskMs": 50
+      },
+      "seek": {
+        "medianMs": 33,
+        "p90Ms": 34,
+        "maxMs": 34
+      },
+      "playback": {
+        "fps": 59.6,
+        "droppedFrames": 0,
+        "longTasks": 1,
+        "maxLongTaskMs": 55
+      },
+      "export30s": {
+        "ms": 4222,
+        "fps": 213.2,
+        "ok": true,
+        "gpu": {
+          "avgUtil": 20,
+          "peakUtil": 24,
+          "peakMemMB": 1682
+        }
+      },
+      "heapEnd": 28
+    }
+  },
+  "pageErrors": []
+}

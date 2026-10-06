@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "professional-video-editor/validation",
+  "title": "Validação ORIGINAL x EDITADO (por quadro)",
+  "type": "object",
+  "required": ["scores", "deltas", "failures", "warnings", "verdict", "change_pct"],
+  "properties": {
+    "scores": {
+      "type": "object",
+      "description": "0–100; 100 = sem desvio indesejado em relação ao original.",
+      "properties": {
+        "exposure": { "type": "integer" }, "skin_tone": { "type": "integer" }, "shadow_detail": { "type": "integer" },
+        "highlight_detail": { "type": "integer" }, "saturation": { "type": "integer" }, "contrast": { "type": "integer" },
+        "naturalness": { "type": "integer" }
+      }
+    },
+    "deltas": {
+      "type": "object",
+      "properties": {
+        "luma_mean_rel": { "type": "number" }, "crushed_pp": { "type": "number" }, "shadow_detail_rel": { "type": "number" },
+        "clipped_pp": { "type": "number" }, "spread": { "type": "number" }, "sat_rel": { "type": "number" },
+        "green_strength_rel": { "type": "number" }, "skin_luma_rel": { "type": "number" }, "skin_hue_deg": { "type": "number" },
+        "skin_sat_rel": { "type": "number" }
+      }
+    },
+    "failures": { "type": "array", "items": { "type": "string" } },
+    "warnings": { "type": "array", "items": { "type": "string" } },
+    "verdict": { "type": "string", "enum": ["NO-CHANGE", "NATURAL", "GOOD", "UNDER-GRADED", "OVER-GRADED"] },
+    "change_pct": { "type": "number", "description": "Mudança média medida por pixel (25% de diferença média = 100%)." }
+  }
+}

@@ -1,0 +1,15 @@
+import { useSyncExternalStore } from 'react';
+import { media, playback, store, transcripts } from '../app/editor';
+import { toastStore } from '../app/notify';
+import { analysisStore } from '../app/analysis';
+import { aiStore } from '../app/aiEditor';
+import { prefsStore } from '../app/prefs';
+
+export const useEditor = () => useSyncExternalStore(store.subscribe, store.getState);
+export const usePlayback = () => useSyncExternalStore(playback.subscribe, playback.getSnapshot);
+export const useMediaVersion = () => useSyncExternalStore(media.subscribe, media.getVersion);
+export const useTranscriptsVersion = () => useSyncExternalStore(transcripts.subscribe, transcripts.getVersion);
+export const useAnalysis = () => useSyncExternalStore(analysisStore.subscribe, analysisStore.get);
+export const useToasts = () => useSyncExternalStore(toastStore.subscribe, toastStore.get);
+export const useAI = () => useSyncExternalStore(aiStore.subscribe, aiStore.get);
+export const usePrefs = () => useSyncExternalStore(prefsStore.subscribe, prefsStore.get);

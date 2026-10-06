@@ -1,0 +1,99 @@
+{
+  "date": "2026-10-04T20:12:34.771Z",
+  "machine": {
+    "cpus": 8,
+    "cpuModel": "Intel(R) Core(TM) i3-10105F CPU @ 3.70GHz",
+    "ramGB": 17
+  },
+  "tests": {
+    "t2": {
+      "label": "4K · 20 min",
+      "generateSec": 2.16,
+      "fileGB": 0.331969517,
+      "importMs": 37,
+      "totalAnalysisMs": 5093,
+      "probeMs": 16,
+      "thumbnailMs": 1681,
+      "waveformMs": 5001,
+      "longTasks": 2,
+      "longTaskMs": 152,
+      "maxLongTaskMs": 86,
+      "meta": "3840x2160 30fps avc/aac 1200s",
+      "ingestGpu": {
+        "avgUtil": 3,
+        "peakUtil": 12,
+        "peakMemMB": 2017
+      },
+      "ingestCpuSec": null,
+      "heapAfterImport": 33,
+      "proxy": "n/d",
+      "seek": {
+        "medianMs": 133,
+        "p90Ms": 217,
+        "maxMs": 233
+      },
+      "playback": {
+        "fps": 59.6,
+        "droppedFrames": 0,
+        "longTasks": 1,
+        "maxLongTaskMs": 52
+      },
+      "export30s": {
+        "ms": 6904,
+        "fps": 130.4,
+        "ok": true,
+        "gpu": {
+          "avgUtil": 25,
+          "peakUtil": 33,
+          "peakMemMB": 1948
+        }
+      },
+      "heapEnd": 27
+    },
+    "t4": {
+      "label": "4K · 2 h",
+      "generateSec": 3.207,
+      "fileGB": 0.465704485,
+      "importMs": 39,
+      "totalAnalysisMs": 26867,
+      "probeMs": 19,
+      "thumbnailMs": 1681,
+      "waveformMs": 26797,
+      "longTasks": 2,
+      "longTaskMs": 156,
+      "maxLongTaskMs": 80,
+      "meta": "3840x2160 30fps avc/aac 7200s",
+      "ingestGpu": {
+        "avgUtil": 1,
+        "peakUtil": 13,
+        "peakMemMB": 2105
+      },
+      "ingestCpuSec": null,
+      "heapAfterImport": 39,
+      "proxy": "n/d",
+      "seek": {
+        "medianMs": 133,
+        "p90Ms": 217,
+        "maxMs": 317
+      },
+      "playback": {
+        "fps": 59.8,
+        "droppedFrames": 0,
+        "longTasks": 0,
+        "maxLongTaskMs": 0
+      },
+      "export30s": {
+        "ms": 6719,
+        "fps": 133.9,
+        "ok": true,
+        "gpu": {
+          "avgUtil": 25,
+          "peakUtil": 33,
+          "peakMemMB": 1945
+        }
+      },
+      "heapEnd": 30
+    }
+  },
+  "pageErrors": []
+}

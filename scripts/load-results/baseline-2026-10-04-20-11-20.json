@@ -1,0 +1,93 @@
+{
+  "date": "2026-10-04T20:11:20.240Z",
+  "machine": {
+    "cpus": 8,
+    "cpuModel": "Intel(R) Core(TM) i3-10105F CPU @ 3.70GHz",
+    "ramGB": 17
+  },
+  "tests": {
+    "t1": {
+      "label": "1080p · 10 min",
+      "generateSec": 1.197,
+      "fileGB": 0.103243333,
+      "importMs": 44,
+      "totalAnalysisMs": 2701,
+      "probeMs": 12,
+      "thumbnailMs": 643,
+      "waveformMs": 2643,
+      "longTasks": 1,
+      "longTaskMs": 65,
+      "maxLongTaskMs": 65,
+      "meta": "1920x1080 30fps avc/aac 600s",
+      "ingestGpu": {
+        "avgUtil": 1,
+        "peakUtil": 7,
+        "peakMemMB": 1564
+      },
+      "ingestCpuSec": null,
+      "heapAfterImport": 33,
+      "proxy": "n/d",
+      "seek": {
+        "medianMs": 34,
+        "p90Ms": 50,
+        "maxMs": 71
+      },
+      "playback": {
+        "fps": 59.8,
+        "droppedFrames": 0,
+        "longTasks": 1,
+        "maxLongTaskMs": 51
+      },
+      "export30s": {
+        "ms": 4134,
+        "fps": 217.7,
+        "ok": true,
+        "gpu": {
+          "avgUtil": 20,
+          "peakUtil": 23,
+          "peakMemMB": 1302
+        }
+      },
+      "heapEnd": 27
+    },
+    "t6": {
+      "label": "timeline com 500 clipes",
+      "build": {
+        "executeAndPaintMs": 206,
+        "domClips": 500
+      },
+      "scroll": {
+        "medianFrameMs": 43.2,
+        "p95FrameMs": 123.5,
+        "worstFrameMs": 165.1,
+        "longTasks": 7
+      },
+      "zoomAndEdit": {
+        "zoom5StepsMs": 234,
+        "moveMs": 64,
+        "undoMs": 56
+      },
+      "heapMB": 72
+    },
+    "t7": {
+      "label": "timeline com 1000 clipes",
+      "build": {
+        "executeAndPaintMs": 385,
+        "domClips": 1000
+      },
+      "scroll": {
+        "medianFrameMs": 65.4,
+        "p95FrameMs": 189.4,
+        "worstFrameMs": 222.8,
+        "longTasks": 41
+      },
+      "zoomAndEdit": {
+        "zoom5StepsMs": 774,
+        "moveMs": 105,
+        "undoMs": 225
+      },
+      "heapMB": 79
+    }
+  },
+  "pageErrors": []
+}
