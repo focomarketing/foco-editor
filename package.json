@@ -23,7 +23,8 @@
       {
         "provider": "github",
         "owner": "focomarketing",
-        "repo": "foco-editor"
+        "repo": "foco-editor",
+        "releaseType": "release"
       }
     ],
     "files": [
