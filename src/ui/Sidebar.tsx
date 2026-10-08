@@ -2,15 +2,17 @@
 // desativadas com a fase em que chegam — nada de botão falso.
 
 import { useState } from 'react';
-import { AudioLines, Blend, Captions, Film, LayoutTemplate, Shapes, Sparkles, Type, Wand } from 'lucide-react';
+import { AudioLines, Blend, Captions, Film, LayoutTemplate, Scissors, Shapes, Sparkles, Type, Wand } from 'lucide-react';
 import { MediaBin } from './MediaBin';
 import { AIPanel } from './AIPanel';
 import { TextPanel } from './TextPanel';
+import { CutPanel } from './CutPanel';
 
-type ToolId = 'media' | 'audio' | 'text' | 'captions' | 'ai';
+type ToolId = 'media' | 'cut' | 'audio' | 'text' | 'captions' | 'ai';
 
 const TOOLS: { id: ToolId | null; label: string; icon: typeof Film; phase?: string }[] = [
   { id: 'media', label: 'Mídia', icon: Film },
+  { id: 'cut', label: 'Corte', icon: Scissors },
   { id: 'audio', label: 'Áudio', icon: AudioLines },
   { id: 'text', label: 'Texto', icon: Type },
   { id: 'captions', label: 'Legendas', icon: Captions },
@@ -62,6 +64,12 @@ export function Sidebar() {
       </nav>
       <div className="side-panel">
         {tool === 'media' && <MediaBin />}
+        {tool === 'cut' && (
+          <section className="panel">
+            <div className="panel-head"><span className="panel-title">Corte</span></div>
+            <div className="panel-body"><CutPanel /></div>
+          </section>
+        )}
         {tool === 'audio' && <MediaBin only={['audio']} title="Áudio" />}
         {tool === 'text' && <TextPanel />}
         {tool === 'captions' && (

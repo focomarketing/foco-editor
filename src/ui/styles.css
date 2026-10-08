@@ -211,6 +211,9 @@ button, input, select { font: inherit; color: inherit; }
 .chip.k-stutter { background: rgba(255,92,92,.25); }
 .chip.k-repeat { background: rgba(190,110,255,.28); }
 .chip.k-hesitation { background: rgba(62,207,142,.22); }
+.chip.k-pause { background: rgba(79,140,255,.22); }
+.chip.k-falseStart { background: rgba(255,140,70,.28); }
+.chip.k-retake { background: rgba(190,110,255,.28); }
 .cut-list { max-height: 260px; overflow: auto; border: 1px solid var(--line); border-radius: 6px; }
 .cut-row { display: flex; align-items: center; gap: 4px; padding: 0 0 0 6px; border-bottom: 1px solid var(--line); opacity: .55; }
 .cut-row.on { opacity: 1; }

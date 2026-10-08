@@ -21,6 +21,7 @@ import { prefsStore } from '../app/prefs';
 import { projectFile } from '../app/editor';
 import { serialize, deserialize } from '../engine/project/ProjectEngine';
 import { exportProject } from '../engine/export/ExportEngine';
+import * as smartCut from '../app/smartCut';
 
 /** Gera um MP4 H.264+AAC com contador de quadros e um tom senoidal. */
 async function makeTestVideo(opts: { name: string; seconds: number; width: number; height: number; fps: number; hue: number; freq: number }) {
@@ -155,4 +156,4 @@ async function exportAndProbe(settings: { width: number; height: number; fps: nu
   return result;
 }
 
-Object.assign(window, { __foco: { store, media, playback, actions, transcripts, analysisStore, toSRT, ai, insert, ops, anim, commands, Cmd, createdIds, prefsStore, projectFile, serialize, deserialize, makeTestVideo, makeTestAudio, exportAndProbe, playExported, exportedPixel, makeLongVideo, clearLoadFiles, metrics, measureSeek, jobs, cache, probeBlob } });
+Object.assign(window, { __foco: { store, media, playback, actions, transcripts, analysisStore, toSRT, ai, insert, ops, anim, commands, Cmd, createdIds, prefsStore, projectFile, serialize, deserialize, makeTestVideo, makeTestAudio, exportAndProbe, playExported, exportedPixel, makeLongVideo, clearLoadFiles, metrics, measureSeek, jobs, cache, probeBlob, smartCut } });
