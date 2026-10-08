@@ -1,0 +1,38 @@
+{
+  "id": "beat-zoom",
+  "name": "Beat zoom",
+  "category": "social",
+  "platforms": [
+    "shorts",
+    "reels",
+    "tiktok"
+  ],
+  "description": "Zoom seco na batida da música.",
+  "useCases": [
+    "corte na batida",
+    "montagem rápida"
+  ],
+  "duration": {
+    "min": 0.12,
+    "recommended": 0.2,
+    "max": 0.35
+  },
+  "parameters": {
+    "intensity": 0.65,
+    "easing": "snappy",
+    "scale": 0.22
+  },
+  "render": "zoom",
+  "align": "center",
+  "level": 3,
+  "reference": "beat sync zoom",
+  "requirements": {
+    "compatibleAspectRatios": [
+      "16:9",
+      "9:16",
+      "1:1",
+      "4:5"
+    ],
+    "beatSync": true
+  }
+}

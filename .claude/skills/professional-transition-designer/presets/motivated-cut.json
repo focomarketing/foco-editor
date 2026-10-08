@@ -1,0 +1,36 @@
+{
+  "id": "motivated-cut",
+  "name": "Corte motivado",
+  "category": "interview",
+  "platforms": [
+    "interview",
+    "youtube",
+    "commercial"
+  ],
+  "description": "Corte seco puxado por um olhar, gesto ou som.",
+  "useCases": [
+    "reação",
+    "troca de câmera"
+  ],
+  "duration": {
+    "min": 0,
+    "recommended": 0,
+    "max": 0
+  },
+  "render": "none",
+  "align": "center",
+  "level": 1,
+  "reference": "motivated cut",
+  "parameters": {
+    "intensity": 0.5,
+    "easing": "smooth"
+  },
+  "requirements": {
+    "compatibleAspectRatios": [
+      "16:9",
+      "9:16",
+      "1:1",
+      "4:5"
+    ]
+  }
+}

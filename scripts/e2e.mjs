@@ -144,8 +144,10 @@ try {
   await page.waitForFunction(() => Object.keys(window.__foco.store.getState().project.clips).length > 0, null, { polling: 200, timeout: 10000 }).catch(() => {});
   const restored = await page.evaluate(() => Object.keys(window.__foco.store.getState().project.clips).length);
   check(restored === 2, 'projeto restaurado do autosave após recarregar', restored);
-  const banner = await page.locator('.banner').textContent().catch(() => '');
-  check(/offline/.test(banner ?? ''), 'mídia sem handle aparece como offline com opção de localizar', banner?.slice(0, 60));
+  // mídia sem vínculo com o disco foi gravada na pasta de mídia do FOCO ao importar: volta sozinha
+  await page.waitForFunction(() => Object.values(window.__foco.store.getState().project.assets).every((a) => window.__foco.media.get(a.id)?.status === 'ready'), null, { timeout: 15000 }).catch(() => {});
+  const statuses = await page.evaluate(() => Object.values(window.__foco.store.getState().project.assets).map((a) => window.__foco.media.get(a.id)?.status));
+  check(statuses.length > 0 && statuses.every((s) => s === 'ready'), 'mídia sem vínculo volta do disco do PC ao recarregar (sem "offline")', statuses.join(','));
 
   check(errors.length === 0, 'sem erros no console', errors.join(' | ').slice(0, 300));
 } finally {

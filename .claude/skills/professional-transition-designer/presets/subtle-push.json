@@ -1,0 +1,37 @@
+{
+  "id": "subtle-push",
+  "name": "Subtle push",
+  "category": "youtube",
+  "platforms": [
+    "youtube",
+    "interview",
+    "commercial"
+  ],
+  "description": "Push curto e suave (desloca pouco).",
+  "useCases": [
+    "troca de exemplo",
+    "antes e depois"
+  ],
+  "duration": {
+    "min": 0.25,
+    "recommended": 0.4,
+    "max": 0.7
+  },
+  "parameters": {
+    "intensity": 0.3,
+    "easing": "smooth",
+    "direction": "left"
+  },
+  "render": "push",
+  "align": "in",
+  "level": 1,
+  "reference": "push",
+  "requirements": {
+    "compatibleAspectRatios": [
+      "16:9",
+      "9:16",
+      "1:1",
+      "4:5"
+    ]
+  }
+}

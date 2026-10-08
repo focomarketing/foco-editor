@@ -1,0 +1,40 @@
+{
+  "id": "whip-transition",
+  "name": "Whip",
+  "category": "social",
+  "platforms": [
+    "shorts",
+    "reels",
+    "tiktok"
+  ],
+  "description": "Chicote rápido com rastro de movimento.",
+  "useCases": [
+    "troca de cena",
+    "mudança de lugar"
+  ],
+  "duration": {
+    "min": 0.18,
+    "recommended": 0.28,
+    "max": 0.45
+  },
+  "parameters": {
+    "intensity": 0.75,
+    "easing": "smooth",
+    "blur": 0.04,
+    "direction": "left",
+    "motionBlur": true
+  },
+  "render": "whip",
+  "align": "center",
+  "level": 3,
+  "reference": "whip pan / swish",
+  "requirements": {
+    "compatibleAspectRatios": [
+      "16:9",
+      "9:16",
+      "1:1",
+      "4:5"
+    ],
+    "motionMatch": true
+  }
+}

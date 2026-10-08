@@ -5,6 +5,7 @@ import { media } from '../../app/editor';
 import { WAVEFORM_RATE } from '../../engine/media/MediaEngine';
 import type { Filmstrip as FilmstripData } from '../../engine/media/MediaEngine';
 import { captionText } from '../../engine/captions/captions';
+import { presetFor } from '../../video-editor/transitions/library';
 import { keyframeTimes } from '../../core/animation';
 import { sourceEnd, speedOf, toSource, toTimeline } from '../../core/clipTime';
 
@@ -37,6 +38,14 @@ export const ClipView = memo(function ClipView({ clip, asset, zoom, view, select
       onPointerDown={(e) => onPointerDown(e, clip, 'body')}
     >
       <span className="clip-label">{label}</span>
+      {clip.transitionIn && presetFor(clip.transitionIn.type)?.render !== 'none' && (
+        <span
+          className={`tr-badge${clip.transitionIn.by === 'ai' ? ' ai' : ''}`}
+          style={{ width: Math.max(6, Math.min(width / 2, (presetFor(clip.transitionIn.type)?.align === 'hold' ? 0.4 : clip.transitionIn.duration) * zoom)) }}
+          title={`Transição: ${presetFor(clip.transitionIn.type)?.name ?? clip.transitionIn.type}${clip.transitionIn.by === 'ai' ? ' (IA)' : ''}`}
+          data-testid="transition-badge"
+        />
+      )}
       {kfs.map((t) => (
         <span key={t} className="kf-dot" style={{ left: (toTimeline(clip, t) - clip.start) * zoom }} />
       ))}

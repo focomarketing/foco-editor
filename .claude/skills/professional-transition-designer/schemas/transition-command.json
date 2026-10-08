@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "foco/professional-transition-designer/transition-command.json",
+  "title": "Comando de transição (add_transition)",
+  "type": "object",
+  "required": ["type", "transitionId", "clipBeforeId", "clipAfterId", "start", "duration", "createdBy", "skill", "confidence", "reason"],
+  "additionalProperties": false,
+  "properties": {
+    "type": { "const": "add_transition" },
+    "transitionId": { "type": "string", "description": "id de um preset (presets/<id>.json)" },
+    "clipBeforeId": { "type": "string" },
+    "clipAfterId": { "type": "string", "description": "clipe que entra: a transição fica no começo dele (transitionIn)" },
+    "start": { "type": "number", "minimum": 0, "description": "início da janela na timeline (s)" },
+    "duration": { "type": "number", "minimum": 0, "description": "entre duration.min e duration.max do preset; ≤ metade de cada clipe" },
+    "intensity": { "type": "number", "minimum": 0, "maximum": 1 },
+    "easing": { "enum": ["linear", "smooth", "snappy", "elastic"] },
+    "offset": { "type": "number", "description": "deslocamento do centro da janela em relação ao corte (s), p.ex. para cair na batida; |offset| ≤ duration/2" },
+    "params": {
+      "type": "object",
+      "properties": {
+        "direction": { "enum": ["left", "right", "up", "down"] },
+        "color": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+        "scale": { "type": "number" },
+        "blur": { "type": "number" },
+        "rotation": { "type": "number" }
+      }
+    },
+    "decision": { "enum": ["corte-seco", "corte-por-acao", "match-cut", "movimento", "objeto", "mascara", "audio", "estilizada", "nenhuma"] },
+    "createdBy": { "enum": ["ai", "user"] },
+    "skill": { "const": "professional-transition-designer" },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1, "description": "abaixo de 0,6 fica para revisão (não é aplicada sozinha)" },
+    "reason": { "type": "string", "minLength": 3 }
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "id": "product-reveal",
+  "name": "Product reveal",
+  "category": "commercial",
+  "platforms": [
+    "commercial",
+    "reels",
+    "shorts",
+    "tiktok"
+  ],
+  "description": "Círculo que abre do centro revelando o produto.",
+  "useCases": [
+    "produto",
+    "resultado"
+  ],
+  "duration": {
+    "min": 0.35,
+    "recommended": 0.55,
+    "max": 0.9
+  },
+  "parameters": {
+    "intensity": 0.6,
+    "easing": "smooth",
+    "shape": "circle"
+  },
+  "render": "mask",
+  "align": "in",
+  "level": 2,
+  "reference": "iris reveal",
+  "requirements": {
+    "compatibleAspectRatios": [
+      "16:9",
+      "9:16",
+      "1:1",
+      "4:5"
+    ]
+  }
+}

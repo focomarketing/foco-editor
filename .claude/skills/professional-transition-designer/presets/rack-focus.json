@@ -1,0 +1,38 @@
+{
+  "id": "rack-focus",
+  "name": "Rack focus",
+  "category": "clean",
+  "platforms": [
+    "youtube",
+    "commercial",
+    "interview"
+  ],
+  "description": "O foco sai do plano e volta no seguinte.",
+  "useCases": [
+    "reflexão",
+    "passagem de tempo curta"
+  ],
+  "duration": {
+    "min": 0.4,
+    "recommended": 0.7,
+    "max": 1.2
+  },
+  "parameters": {
+    "intensity": 0.45,
+    "easing": "smooth",
+    "blur": 0.025,
+    "scale": 0.03
+  },
+  "render": "blur",
+  "align": "center",
+  "level": 1,
+  "reference": "rack focus / pull focus",
+  "requirements": {
+    "compatibleAspectRatios": [
+      "16:9",
+      "9:16",
+      "1:1",
+      "4:5"
+    ]
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "id": "flash-cut",
+  "name": "Flash cut",
+  "category": "social",
+  "platforms": [
+    "shorts",
+    "reels",
+    "tiktok",
+    "youtube"
+  ],
+  "description": "Clarão branco de 2 a 4 quadros no corte.",
+  "useCases": [
+    "batida",
+    "foto",
+    "virada"
+  ],
+  "duration": {
+    "min": 0.08,
+    "recommended": 0.15,
+    "max": 0.3
+  },
+  "parameters": {
+    "intensity": 0.7,
+    "easing": "smooth",
+    "color": "#ffffff"
+  },
+  "render": "flash",
+  "align": "center",
+  "level": 2,
+  "reference": "flash frame",
+  "requirements": {
+    "compatibleAspectRatios": [
+      "16:9",
+      "9:16",
+      "1:1",
+      "4:5"
+    ],
+    "beatSync": true
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "id": "motion-cut",
+  "name": "Corte por movimento",
+  "category": "clean",
+  "platforms": [
+    "youtube",
+    "shorts",
+    "reels",
+    "tiktok",
+    "commercial"
+  ],
+  "description": "Dois planos com o mesmo movimento de câmera: o corte some.",
+  "useCases": [
+    "câmera em movimento",
+    "drone",
+    "travelling"
+  ],
+  "duration": {
+    "min": 0,
+    "recommended": 0,
+    "max": 0
+  },
+  "render": "none",
+  "align": "center",
+  "level": 1,
+  "reference": "motion-matched cut",
+  "requirements": {
+    "compatibleAspectRatios": [
+      "16:9",
+      "9:16",
+      "1:1",
+      "4:5"
+    ],
+    "motionMatch": true
+  },
+  "parameters": {
+    "intensity": 0.5,
+    "easing": "smooth"
+  }
+}

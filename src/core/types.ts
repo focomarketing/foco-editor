@@ -285,13 +285,26 @@ export interface Clip {
   transitionIn?: TransitionSpec;
 }
 
-export type TransitionType = 'cut' | 'fade' | 'dissolve' | 'dip-black' | 'zoom' | 'slide' | 'push' | 'blur' | 'flash' | 'whip';
+/** Id de um preset da biblioteca de transições (video-editor/transitions/library.ts). */
+export type TransitionType = string;
 
-/** Preset de transição: não é renderizada no arquivo; o compositor desenha no preview e no export. */
+/**
+ * Transição de entrada de um clipe (preset parametrizado). Não altera a mídia: o compositor
+ * desenha no preview e no export a partir do clipe anterior da mesma faixa.
+ */
 export interface TransitionSpec {
   type: TransitionType;
   /** Segundos. */
   duration: number;
+  /** 0..1 (padrão: o do preset). */
+  intensity?: number;
+  easing?: 'linear' | 'smooth' | 'snappy' | 'elastic';
+  /** Desloca o centro da janela em relação ao corte (s) — p.ex. para cair na batida. */
+  offset?: number;
+  /** Parâmetros do preset sobrescritos (direção, cor, escala...). */
+  params?: Record<string, number | string | boolean>;
+  /** Quem escolheu: a IA nunca substitui uma transição escolhida pelo usuário. */
+  by?: 'ai' | 'user';
 }
 
 /** Proveniência de um clipe: criado pela IA (skill/operação) ou protegido pelo usuário. */

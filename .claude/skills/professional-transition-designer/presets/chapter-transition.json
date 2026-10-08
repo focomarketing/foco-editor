@@ -1,0 +1,36 @@
+{
+  "id": "chapter-transition",
+  "name": "Chapter transition",
+  "category": "youtube",
+  "platforms": [
+    "youtube"
+  ],
+  "description": "Escurece com leve aproximação: marca troca de capítulo.",
+  "useCases": [
+    "novo capítulo",
+    "novo tópico"
+  ],
+  "duration": {
+    "min": 0.8,
+    "recommended": 1.2,
+    "max": 2
+  },
+  "parameters": {
+    "intensity": 1,
+    "easing": "smooth",
+    "color": "#000000",
+    "scale": 0.04
+  },
+  "render": "dip",
+  "align": "center",
+  "level": 1,
+  "reference": "chapter break (fade + scale)",
+  "requirements": {
+    "compatibleAspectRatios": [
+      "16:9",
+      "9:16",
+      "1:1",
+      "4:5"
+    ]
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "id": "spin",
+  "name": "Spin",
+  "category": "social",
+  "platforms": [
+    "shorts",
+    "reels",
+    "tiktok"
+  ],
+  "description": "Giro com zoom e rastro.",
+  "useCases": [
+    "viagem",
+    "virada",
+    "humor"
+  ],
+  "duration": {
+    "min": 0.25,
+    "recommended": 0.4,
+    "max": 0.6
+  },
+  "parameters": {
+    "intensity": 0.6,
+    "easing": "smooth",
+    "rotation": 180,
+    "scale": 0.2,
+    "blur": 0.02
+  },
+  "render": "spin",
+  "align": "center",
+  "level": 3,
+  "reference": "spin transition",
+  "requirements": {
+    "compatibleAspectRatios": [
+      "16:9",
+      "9:16",
+      "1:1",
+      "4:5"
+    ]
+  }
+}

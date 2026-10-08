@@ -23,7 +23,7 @@ export interface PhaseDef {
 export const PHASES: PhaseDef[] = [
   { id: 'cut', label: 'Corte', hint: 'pausas, erros e melhor tomada', ready: true },
   { id: 'images', label: 'Imagens', hint: 'imagens e B-roll na fala certa', ready: true },
-  { id: 'transitions', label: 'Transições', hint: 'só onde o assunto muda', ready: false },
+  { id: 'transitions', label: 'Transições', hint: 'só onde o assunto muda', ready: true },
   { id: 'motion', label: 'Efeitos e motion', hint: 'zoom, textos animados, motion', ready: true },
   { id: 'audio', label: 'Música e efeitos', hint: 'trilha e efeitos sonoros', ready: false },
   { id: 'captions', label: 'Legenda', hint: 'legenda e estilo', ready: false },
@@ -154,6 +154,13 @@ export function readWorkflow(metadata: Record<string, unknown> | undefined): Wor
       const pr = presetById(t.template);
       return { ...w, template: t.template, mode: pr.defaultMode, enabledSkills: w.enabledSkills ?? [...pr.enabledSkills] };
     }
+  }
+  // Skills que entraram no preset depois que o projeto foi criado (ainda não há tela para
+  // desligar skills, então somar não desfaz nenhuma escolha da pessoa).
+  if (w.template && w.enabledSkills) {
+    const pr = PROJECT_PRESETS.find((x) => x.id === w.template);
+    const missing = pr?.enabledSkills.filter((s) => !w.enabledSkills!.includes(s)) ?? [];
+    if (missing.length) return { ...w, enabledSkills: [...w.enabledSkills, ...missing] };
   }
   return w;
 }

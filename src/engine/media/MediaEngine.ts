@@ -179,14 +179,13 @@ export class MediaEngine {
     const skipped: Asset[] = [];
     const errors: { name: string; message: string }[] = [];
     const seenHashes = new Map<string, Asset>();
-    await Promise.all(
-      items.map(async (item) => {
-        const r = await this.analyze(item, seenHashes).catch((e: unknown) => ({ error: e instanceof Error ? e.message : String(e) }));
-        if ('error' in r) errors.push({ name: item.file.name, message: r.error });
-        else if (r.skipped) skipped.push(r.skipped);
-        else if (r.asset) assets.push(r.asset);
-      }),
-    );
+    // analisa em paralelo, mas devolve na ordem escolhida (a sequência na timeline depende dela)
+    const results = await Promise.all(items.map((item) => this.analyze(item, seenHashes).catch((e: unknown) => ({ error: e instanceof Error ? e.message : String(e) }))));
+    results.forEach((r, i) => {
+      if ('error' in r) errors.push({ name: items[i].file.name, message: r.error });
+      else if (r.skipped) skipped.push(r.skipped);
+      else if (r.asset) assets.push(r.asset);
+    });
     return { assets, errors, skipped };
   }
 

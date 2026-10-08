@@ -1,0 +1,40 @@
+{
+  "id": "zoom-clean",
+  "name": "Zoom clean",
+  "category": "clean",
+  "platforms": [
+    "youtube",
+    "commercial",
+    "reels",
+    "tiktok",
+    "shorts"
+  ],
+  "description": "Aproxima saindo e chega no plano novo, com desfoque leve.",
+  "useCases": [
+    "entrar num detalhe",
+    "virada de assunto"
+  ],
+  "duration": {
+    "min": 0.25,
+    "recommended": 0.4,
+    "max": 0.7
+  },
+  "parameters": {
+    "intensity": 0.4,
+    "easing": "smooth",
+    "scale": 0.25,
+    "blur": 0.01
+  },
+  "render": "zoom",
+  "align": "center",
+  "level": 2,
+  "reference": "zoom transition",
+  "requirements": {
+    "compatibleAspectRatios": [
+      "16:9",
+      "9:16",
+      "1:1",
+      "4:5"
+    ]
+  }
+}

@@ -20,7 +20,7 @@ import type { InputAudioTrack, StreamTargetChunk, WrappedCanvas } from 'mediabun
 import type { Asset, Clip, Project, Transform } from '../../core/types';
 import type { MediaEngine } from '../media/MediaEngine';
 import { clipEnd, isStill, projectDuration } from '../timeline/operations';
-import { audibleClips, composite, graphicLayer, mediaTransform, visualLayersAt } from '../render/Compositor';
+import { applyTransitions, audibleClips, composite, graphicLayer, mediaTransform, visualLayersAt } from '../render/Compositor';
 import type { DrawLayer } from '../render/Compositor';
 import { buildChain, prepareContext } from '../audio/audioFx';
 import { timeStretch } from '../audio/timeStretch';
@@ -160,9 +160,11 @@ export async function exportProject(
             continue;
           }
           const layer = await frames.layerFor(active.clip, active.asset, i, mediaTransform(active));
-          if (layer) layers.push(layer);
+          if (layer?.kind === 'media') layers.push({ ...layer, clipId: active.clip.id });
+          else if (layer) layers.push(layer);
         }
-        composite(ctx, W, H, layers);
+        // mesmas transições do preview (o export é sequencial: a cauda sempre foi capturada)
+        composite(ctx, W, H, applyTransitions(p, t, layers));
         await videoSource.add(t, 1 / fps);
         await frames.releaseFinished(i);
 

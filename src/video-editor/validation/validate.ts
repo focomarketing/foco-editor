@@ -1,8 +1,10 @@
 // Validação de comandos da IA contra o projeto atual. Nada chega à timeline sem passar aqui:
 // mídia existente, tempos válidos, faixas e clipes bloqueados respeitados, sem sobreposição.
 
-import type { Clip, Project } from '../../core/types';
+import type { Clip, Project, TransitionSpec } from '../../core/types';
 import { clipEnd } from '../../engine/timeline/operations';
+import { transitionWindow } from '../../engine/render/transitions';
+import { presetFor } from '../transitions/library';
 import type { EditCommand } from '../commands/types';
 
 const EPS = 1e-3;
@@ -63,7 +65,11 @@ export function validateCommand(cmd: EditCommand, p: Project, occupied: Map<stri
       if (cmd.type === 'trim_clip' && (!num(pl.time) || (pl.edge !== 'start' && pl.edge !== 'end'))) return 'aparo inválido';
       if (cmd.type === 'split_clip' && (!num(pl.time) || pl.time! <= c.start + EPS || pl.time! >= clipEnd(c) - EPS)) return 'corte fora do clipe';
       if (cmd.type === 'move_clip' && (!num(pl.to) || pl.to! < 0)) return 'destino inválido';
-      if (cmd.type === 'add_transition' && (!pl.transition || !num(pl.transition.duration) || pl.transition.duration <= 0 || pl.transition.duration > Math.min(2, c.duration / 2))) return 'transição inválida';
+      if (cmd.type === 'add_transition') {
+        const err = validateTransition(p, c, pl.transition);
+        if (err) return err;
+        if (c.transitionIn && c.transitionIn.by !== 'ai') return 'transição escolhida por você: a IA não substitui';
+      }
       if (cmd.type === 'apply_lut' && !pl.color) return 'cor ausente';
       return null;
     }
@@ -74,6 +80,30 @@ export function validateCommand(cmd: EditCommand, p: Project, occupied: Map<stri
       return null;
     }
   }
+}
+
+/**
+ * Transição de entrada válida para o clipe? Preset existente, duração entre o mínimo e o máximo
+ * do preset, cabendo na metade do clipe (e do anterior) e sem invadir a transição do clipe
+ * anterior. Também usado pela interface ao editar à mão.
+ */
+export function validateTransition(p: Project, c: Clip, spec: TransitionSpec | undefined): string | null {
+  if (!spec || typeof spec.type !== 'string') return 'transição ausente';
+  const preset = presetFor(spec.type);
+  if (!preset) return `transição desconhecida: ${spec.type}`;
+  if (preset.render === 'none' || preset.align === 'hold') return null;
+  const d = spec.duration;
+  if (typeof d !== 'number' || !Number.isFinite(d) || d < preset.duration.min - EPS || d > preset.duration.max + EPS) return `duração fora do limite do preset (${preset.duration.min}–${preset.duration.max} s)`;
+  if (spec.intensity !== undefined && (spec.intensity < 0 || spec.intensity > 1)) return 'intensidade fora de 0–1';
+  if (d > c.duration / 2 + EPS) return 'transição maior que metade do clipe';
+  const prev = Object.values(p.clips).find((x) => x.trackId === c.trackId && x.id !== c.id && Math.abs(clipEnd(x) - c.start) < 0.02);
+  if (prev) {
+    const half = preset.align === 'center' ? d / 2 + Math.abs(spec.offset ?? 0) : 0;
+    if (half > prev.duration / 2 + EPS) return 'transição maior que metade do clipe anterior';
+    const pw = transitionWindow(prev);
+    if (pw && pw[1] > c.start - half + EPS) return 'sobreposição com a transição do clipe anterior';
+  }
+  return null;
 }
 
 /** Ocupação atual de cada faixa (para checar conflitos de novos itens). */

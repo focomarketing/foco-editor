@@ -1,0 +1,36 @@
+{
+  "id": "card-3d",
+  "name": "3D card",
+  "category": "commercial",
+  "platforms": [
+    "commercial",
+    "reels",
+    "shorts"
+  ],
+  "description": "O plano vira como um cartão e revela o seguinte.",
+  "useCases": [
+    "comparação",
+    "catálogo"
+  ],
+  "duration": {
+    "min": 0.4,
+    "recommended": 0.6,
+    "max": 1
+  },
+  "parameters": {
+    "intensity": 0.6,
+    "easing": "smooth"
+  },
+  "render": "card",
+  "align": "in",
+  "level": 3,
+  "reference": "card flip",
+  "requirements": {
+    "compatibleAspectRatios": [
+      "16:9",
+      "9:16",
+      "1:1",
+      "4:5"
+    ]
+  }
+}

@@ -3,19 +3,20 @@
 
 import { useEffect, useState } from 'react';
 import { ArrowRight, SkipForward } from 'lucide-react';
-import { useEditor } from './hooks';
+import { useEditor, usePhaseRun } from './hooks';
 import { phaseDef, readWorkflow } from '../core/workflow';
 import type { Workflow } from '../core/workflow';
 import { finishPhase, markRan, setPhase } from '../app/workflow';
-import { AUTO_PHASES, phaseRunStore, runPhase } from '../app/phases';
+import { AUTO_PHASES, runPhase } from '../app/phases';
 import { PhaseRunCard } from './PhaseRun';
+import { TransitionLibrary } from './TransitionsPanel';
 import { AudioLines, Blend, Captions, Film, LayoutTemplate, Scissors, Shapes, Sparkles, Type, Wand } from 'lucide-react';
 import { MediaBin, MediaReconnectBanner } from './MediaBin';
 import { AIPanel } from './AIPanel';
 import { TextPanel } from './TextPanel';
 import { CutPanel } from './CutPanel';
 
-type ToolId = 'media' | 'cut' | 'audio' | 'text' | 'captions' | 'ai';
+type ToolId = 'media' | 'cut' | 'audio' | 'text' | 'captions' | 'transitions' | 'ai';
 
 const TOOLS: { id: ToolId | null; label: string; icon: typeof Film; phase?: string }[] = [
   { id: 'media', label: 'Mídia', icon: Film },
@@ -23,7 +24,7 @@ const TOOLS: { id: ToolId | null; label: string; icon: typeof Film; phase?: stri
   { id: 'audio', label: 'Áudio', icon: AudioLines },
   { id: 'text', label: 'Texto', icon: Type },
   { id: 'captions', label: 'Legendas', icon: Captions },
-  { id: null, label: 'Transições', icon: Blend, phase: 'Fase 6' },
+  { id: 'transitions', label: 'Transições', icon: Blend },
   { id: null, label: 'Efeitos', icon: Wand, phase: 'Fase 6' },
   { id: null, label: 'Elementos', icon: Shapes, phase: 'Fase 5' },
   { id: null, label: 'Templates', icon: LayoutTemplate, phase: 'Fase 11' },
@@ -43,12 +44,14 @@ function PhasePanel({ wf }: { wf: Workflow }) {
   const { project } = useEditor();
   const hasMedia = Object.keys(project.clips).length > 0;
   const auto = AUTO_PHASES.includes(wf.current);
-  // Entrou numa fase automática pela primeira vez (e há vídeo): a IA começa sozinha.
+  const busy = !!usePhaseRun()?.running;
+  // Entrou numa fase automática pela primeira vez (e há vídeo): a IA começa sozinha. Se a
+  // fase anterior ainda está rodando (a pessoa avançou antes de acabar), espera ela terminar.
   useEffect(() => {
-    if (!auto || !hasMedia || wf.ran?.[wf.current] || phaseRunStore.get()?.running) return;
+    if (!auto || !hasMedia || busy || wf.ran?.[wf.current]) return;
     markRan(wf.current);
     void runPhase(wf.current);
-  }, [auto, hasMedia, wf.current, wf.ran]);
+  }, [auto, hasMedia, busy, wf.current, wf.ran]);
   const last = wf.phases.indexOf(wf.current) === wf.phases.length - 2; // a próxima é o Editor
   return (
     <section className="panel phase-panel" data-testid={`phase-panel-${wf.current}`}>
@@ -58,6 +61,7 @@ function PhasePanel({ wf }: { wf: Workflow }) {
       <div className="panel-body">
         <MediaReconnectBanner />
         {auto && <PhaseRunCard phase={wf.current} />}
+        {wf.current === 'transitions' && <TransitionLibrary />}
         {wf.current === 'cut' ? (
           <CutPanel />
         ) : def.ready ? null : (
@@ -136,6 +140,15 @@ function ToolSidebar() {
           <section className="panel">
             <div className="panel-head"><span className="panel-title">Legendas</span></div>
             <div className="panel-body"><AIPanel mode="captions" /></div>
+          </section>
+        )}
+        {tool === 'transitions' && (
+          <section className="panel">
+            <div className="panel-head"><span className="panel-title">Transições</span></div>
+            <div className="panel-body">
+              <PhaseRunCard phase="transitions" />
+              <TransitionLibrary />
+            </div>
           </section>
         )}
         {tool === 'ai' && (

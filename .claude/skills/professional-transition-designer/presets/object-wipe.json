@@ -1,0 +1,40 @@
+{
+  "id": "object-wipe",
+  "name": "Object wipe",
+  "category": "social",
+  "platforms": [
+    "shorts",
+    "reels",
+    "tiktok",
+    "commercial"
+  ],
+  "description": "Uma faixa escura passa pela tela e troca o plano (simula objeto passando).",
+  "useCases": [
+    "passagem de objeto",
+    "troca de roupa/lugar"
+  ],
+  "duration": {
+    "min": 0.25,
+    "recommended": 0.4,
+    "max": 0.6
+  },
+  "parameters": {
+    "intensity": 0.6,
+    "easing": "smooth",
+    "shape": "band",
+    "direction": "left",
+    "color": "#0b0b0d"
+  },
+  "render": "mask",
+  "align": "in",
+  "level": 2,
+  "reference": "object wipe (objeto em primeiro plano)",
+  "requirements": {
+    "compatibleAspectRatios": [
+      "16:9",
+      "9:16",
+      "1:1",
+      "4:5"
+    ]
+  }
+}

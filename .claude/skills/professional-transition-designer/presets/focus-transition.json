@@ -1,0 +1,37 @@
+{
+  "id": "focus-transition",
+  "name": "Focus transition",
+  "category": "youtube",
+  "platforms": [
+    "youtube",
+    "interview"
+  ],
+  "description": "Desfoca com leve aproximação e reabre no plano novo.",
+  "useCases": [
+    "reflexão",
+    "detalhe"
+  ],
+  "duration": {
+    "min": 0.4,
+    "recommended": 0.6,
+    "max": 1
+  },
+  "parameters": {
+    "intensity": 0.4,
+    "easing": "smooth",
+    "blur": 0.02,
+    "scale": 0.05
+  },
+  "render": "blur",
+  "align": "center",
+  "level": 1,
+  "reference": "focus pull",
+  "requirements": {
+    "compatibleAspectRatios": [
+      "16:9",
+      "9:16",
+      "1:1",
+      "4:5"
+    ]
+  }
+}

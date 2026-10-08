@@ -1,0 +1,40 @@
+{
+  "id": "whip-pan-soft",
+  "name": "Whip pan suave",
+  "category": "clean",
+  "platforms": [
+    "youtube",
+    "commercial",
+    "reels"
+  ],
+  "description": "Chicote de câmera curto e com pouco desfoque.",
+  "useCases": [
+    "mudança de lugar",
+    "movimento lateral"
+  ],
+  "duration": {
+    "min": 0.2,
+    "recommended": 0.32,
+    "max": 0.5
+  },
+  "parameters": {
+    "intensity": 0.4,
+    "easing": "smooth",
+    "blur": 0.02,
+    "direction": "left",
+    "motionBlur": true
+  },
+  "render": "whip",
+  "align": "center",
+  "level": 2,
+  "reference": "whip pan (swish pan)",
+  "requirements": {
+    "compatibleAspectRatios": [
+      "16:9",
+      "9:16",
+      "1:1",
+      "4:5"
+    ],
+    "motionMatch": true
+  }
+}

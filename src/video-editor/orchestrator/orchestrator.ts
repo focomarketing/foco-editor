@@ -34,6 +34,8 @@ export interface SkillServices {
   levels(assetId: string): Promise<Float32Array | null>;
   /** Quadros JPEG (base64) de uma mídia nos tempos pedidos (para a IA enxergar o take). */
   frames?(assetId: string, times: number[]): Promise<string[]>;
+  /** Pixels RGBA de um quadro (largura pedida): análise de movimento e cor das transições. */
+  pixels?(assetId: string, time: number, width: number): Promise<{ data: Uint8ClampedArray; width: number; height: number } | null>;
 }
 
 export interface SkillOutput {

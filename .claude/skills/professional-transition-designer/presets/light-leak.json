@@ -1,0 +1,39 @@
+{
+  "id": "light-leak",
+  "name": "Light leak",
+  "category": "commercial",
+  "platforms": [
+    "commercial",
+    "youtube",
+    "reels",
+    "tiktok"
+  ],
+  "description": "Vazamento de luz quente e orgânico.",
+  "useCases": [
+    "lifestyle",
+    "memória",
+    "casamento"
+  ],
+  "duration": {
+    "min": 0.4,
+    "recommended": 0.7,
+    "max": 1.4
+  },
+  "parameters": {
+    "intensity": 0.55,
+    "easing": "smooth",
+    "color": "#ff9a3c"
+  },
+  "render": "light",
+  "align": "center",
+  "level": 2,
+  "reference": "film light leak",
+  "requirements": {
+    "compatibleAspectRatios": [
+      "16:9",
+      "9:16",
+      "1:1",
+      "4:5"
+    ]
+  }
+}

@@ -42,7 +42,7 @@ export const PROJECT_PRESETS: ProjectPreset[] = [
     defaultMode: 'audio-led',
     enabledSkills: [
       'media-analysis', 'transcription', 'editorial-director', 'edit-interview-with-broll', 'edit-script-to-video',
-      'broll-selector', 'motion-graphics-designer', 'audio-designer', 'caption-designer', 'chapter-generator', 'quality-control',
+      'broll-selector', 'professional-transition-designer', 'motion-graphics-designer', 'audio-designer', 'caption-designer', 'chapter-generator', 'quality-control',
     ],
     defaultSettings: { pacing: 'natural', captionStyle: 'youtube', musicLevel: 0.12, cutStyle: 'dynamic' },
   },
@@ -56,7 +56,7 @@ export const PROJECT_PRESETS: ProjectPreset[] = [
     defaultMode: 'audio-led',
     enabledSkills: [
       'media-analysis', 'transcription', 'hook-generator', 'aggressive-cut', 'edit-interview-with-broll',
-      'edit-script-to-video', 'broll-selector', 'caption-designer', 'motion-graphics-designer', 'trend-adapter',
+      'edit-script-to-video', 'broll-selector', 'professional-transition-designer', 'caption-designer', 'motion-graphics-designer', 'trend-adapter',
       'audio-designer', 'platform-adapter', 'quality-control',
     ],
     defaultSettings: { pacing: 'fast', captionStyle: 'shorts', musicLevel: 0.22, cutStyle: 'dry' },
@@ -80,7 +80,7 @@ export const PROJECT_PRESETS: ProjectPreset[] = [
     aspectRatio: 'custom',
     modes: ['manual-assisted'],
     defaultMode: 'manual-assisted',
-    enabledSkills: ['caption-designer', 'aggressive-cut', 'broll-selector', 'audio-designer', 'motion-graphics-designer', 'platform-adapter', 'quality-control'],
+    enabledSkills: ['caption-designer', 'aggressive-cut', 'broll-selector', 'professional-transition-designer', 'audio-designer', 'motion-graphics-designer', 'platform-adapter', 'quality-control'],
     defaultSettings: { pacing: 'natural', captionStyle: 'minimal', musicLevel: 0.15, cutStyle: 'natural' },
   },
 ];

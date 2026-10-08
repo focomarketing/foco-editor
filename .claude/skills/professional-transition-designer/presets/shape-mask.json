@@ -1,0 +1,37 @@
+{
+  "id": "shape-mask",
+  "name": "Shape mask",
+  "category": "commercial",
+  "platforms": [
+    "commercial",
+    "reels",
+    "shorts"
+  ],
+  "description": "Losango que cresce e revela o plano novo.",
+  "useCases": [
+    "marca",
+    "seção"
+  ],
+  "duration": {
+    "min": 0.35,
+    "recommended": 0.5,
+    "max": 0.9
+  },
+  "parameters": {
+    "intensity": 0.6,
+    "easing": "smooth",
+    "shape": "diamond"
+  },
+  "render": "mask",
+  "align": "in",
+  "level": 2,
+  "reference": "shape transition",
+  "requirements": {
+    "compatibleAspectRatios": [
+      "16:9",
+      "9:16",
+      "1:1",
+      "4:5"
+    ]
+  }
+}

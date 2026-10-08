@@ -113,9 +113,12 @@ try {
   if (shots) await page.screenshot({ path: path.join(shots, 'skills-1-imagens.png') });
 
   console.log('Fase 4 · Efeitos e motion');
-  await page.locator('[data-testid="phase-done"]').click(); // → transições (manual por enquanto)
+  await page.locator('[data-testid="phase-done"]').click(); // → transições (automática)
   await page.waitForFunction(() => window.__foco.workflow.currentWorkflow()?.current === 'transitions', null, { timeout: 30_000 });
+  await page.waitForFunction(() => window.__foco.phases.phaseRunStore.get()?.phase === 'transitions', null, { timeout: 30_000 });
+  // avança sem esperar a análise acabar: a fase seguinte tem de esperar e rodar mesmo assim
   await page.locator('[data-testid="phase-done"]').click(); // → motion (automática)
+  await waitPhase(page, 'transitions', 15 * 60_000).catch(() => {});
   await page.waitForFunction(() => window.__foco.phases.phaseRunStore.get()?.phase === 'motion', null, { timeout: 30_000 });
   await waitPhase(page, 'motion', 15 * 60_000);
   const mo = await opInfo(page);

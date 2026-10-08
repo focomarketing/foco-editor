@@ -1,0 +1,39 @@
+{
+  "id": "punch-in",
+  "name": "Punch-in",
+  "category": "interview",
+  "platforms": [
+    "interview",
+    "youtube",
+    "shorts",
+    "reels",
+    "tiktok"
+  ],
+  "description": "Enquadramento mais fechado no trecho seguinte: disfarça o corte de salto.",
+  "useCases": [
+    "corte de salto",
+    "ênfase"
+  ],
+  "duration": {
+    "min": 0,
+    "recommended": 0,
+    "max": 0
+  },
+  "parameters": {
+    "intensity": 0.5,
+    "easing": "smooth",
+    "scale": 0.12
+  },
+  "render": "punch",
+  "align": "hold",
+  "level": 1,
+  "reference": "punch-in (digital zoom on jump cut)",
+  "requirements": {
+    "compatibleAspectRatios": [
+      "16:9",
+      "9:16",
+      "1:1",
+      "4:5"
+    ]
+  }
+}

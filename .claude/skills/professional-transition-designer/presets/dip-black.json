@@ -1,0 +1,37 @@
+{
+  "id": "dip-black",
+  "name": "Dip to black",
+  "category": "youtube",
+  "platforms": [
+    "youtube",
+    "commercial",
+    "interview"
+  ],
+  "description": "Escurece e volta: fim de bloco, passagem de tempo.",
+  "useCases": [
+    "mudança de capítulo",
+    "final"
+  ],
+  "duration": {
+    "min": 0.4,
+    "recommended": 0.8,
+    "max": 1.6
+  },
+  "parameters": {
+    "intensity": 1,
+    "easing": "smooth",
+    "color": "#000000"
+  },
+  "render": "dip",
+  "align": "center",
+  "level": 1,
+  "reference": "fade through black",
+  "requirements": {
+    "compatibleAspectRatios": [
+      "16:9",
+      "9:16",
+      "1:1",
+      "4:5"
+    ]
+  }
+}

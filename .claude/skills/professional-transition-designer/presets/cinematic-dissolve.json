@@ -1,0 +1,37 @@
+{
+  "id": "cinematic-dissolve",
+  "name": "Cinematic dissolve",
+  "category": "youtube",
+  "platforms": [
+    "youtube",
+    "commercial"
+  ],
+  "description": "Fusão longa com leve aproximação, para ensaios e documentários.",
+  "useCases": [
+    "documentário",
+    "ensaio",
+    "abertura"
+  ],
+  "duration": {
+    "min": 0.8,
+    "recommended": 1.2,
+    "max": 2.5
+  },
+  "parameters": {
+    "intensity": 1,
+    "easing": "smooth",
+    "scale": 0.04
+  },
+  "render": "dissolve",
+  "align": "in",
+  "level": 1,
+  "reference": "film dissolve",
+  "requirements": {
+    "compatibleAspectRatios": [
+      "16:9",
+      "9:16",
+      "1:1",
+      "4:5"
+    ]
+  }
+}

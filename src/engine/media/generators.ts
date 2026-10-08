@@ -40,6 +40,26 @@ export async function grabFramesBase64(track: InputVideoTrack, times: number[], 
   return out;
 }
 
+const pixelSinks = new WeakMap<InputVideoTrack, Map<number, CanvasSink>>();
+
+/** Pixels RGBA de um quadro em baixa resolução (análise de movimento/cor). */
+export async function framePixels(track: InputVideoTrack, time: number, width = 64): Promise<ImageData | null> {
+  let byWidth = pixelSinks.get(track);
+  if (!byWidth) pixelSinks.set(track, (byWidth = new Map()));
+  let sink = byWidth.get(width);
+  if (!sink) {
+    const w = await track.getDisplayWidth();
+    const h = await track.getDisplayHeight();
+    sink = new CanvasSink(track, { width, height: Math.max(2, Math.round((width * h) / Math.max(1, w))), fit: 'fill', poolSize: 1 });
+    byWidth.set(width, sink);
+  }
+  const wrapped = await sink.getCanvas(time).catch(() => null);
+  if (!wrapped) return null;
+  const c = wrapped.canvas;
+  const g = c.getContext('2d') as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null;
+  return g ? g.getImageData(0, 0, c.width, c.height) : null;
+}
+
 export async function blobToBase64(b: Blob): Promise<string> {
   const bytes = new Uint8Array(await b.arrayBuffer());
   let bin = '';

@@ -1,0 +1,39 @@
+{
+  "id": "branded-wipe",
+  "name": "Branded wipe",
+  "category": "commercial",
+  "platforms": [
+    "commercial",
+    "youtube",
+    "reels"
+  ],
+  "description": "Faixa na cor da marca varre a tela.",
+  "useCases": [
+    "identidade visual",
+    "seção"
+  ],
+  "duration": {
+    "min": 0.35,
+    "recommended": 0.5,
+    "max": 0.8
+  },
+  "parameters": {
+    "intensity": 0.7,
+    "easing": "smooth",
+    "shape": "band",
+    "direction": "right",
+    "color": "#4f8cff"
+  },
+  "render": "mask",
+  "align": "in",
+  "level": 2,
+  "reference": "brand wipe",
+  "requirements": {
+    "compatibleAspectRatios": [
+      "16:9",
+      "9:16",
+      "1:1",
+      "4:5"
+    ]
+  }
+}

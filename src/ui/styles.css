@@ -281,6 +281,21 @@ button, input, select { font: inherit; color: inherit; }
 
 /* ---------- timeline: gráficos e keyframes ---------- */
 .clip.title { background: #2f6b6b; border-color: #4fb3b3; }
+/* transição de entrada: rampa no começo do clipe (azul = sua, violeta = da IA) */
+.tr-badge { position: absolute; left: 0; top: 0; bottom: 0; z-index: 1; pointer-events: none; background: linear-gradient(90deg, rgba(79,140,255,.55), rgba(79,140,255,0)); border-left: 2px solid #4f8cff; }
+.tr-badge.ai { background: linear-gradient(90deg, rgba(167,110,255,.55), rgba(167,110,255,0)); border-left-color: #a76eff; }
+/* biblioteca de transições */
+.tr-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+.tr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; }
+.tr-card { display: flex; flex-direction: column; gap: 3px; padding: 5px; border: 1px solid var(--line, #2a2d33); border-radius: 6px; background: var(--panel2, #16181c); cursor: pointer; text-align: left; color: inherit; font: inherit; }
+.tr-card:hover, .tr-card:focus-visible { border-color: #4f8cff; }
+.tr-card canvas { width: 100%; aspect-ratio: 16 / 9; border-radius: 4px; background: #000; display: block; }
+.tr-card.vertical canvas { aspect-ratio: 9 / 16; max-height: 120px; object-fit: contain; }
+.tr-card b { font-size: 11.5px; font-weight: 600; }
+.tr-card small { font-size: 10.5px; opacity: .7; }
+.tr-level { font-size: 10px; padding: 0 5px; border-radius: 8px; background: rgba(255,255,255,.08); align-self: flex-start; }
+.tr-level.l3 { background: rgba(255,120,80,.25); }
+.tr-level.l2 { background: rgba(255,212,0,.18); }
 .kf-dot { position: absolute; bottom: 3px; width: 7px; height: 7px; margin-left: -3.5px; background: #ffd400; transform: rotate(45deg); z-index: 1; pointer-events: none; box-shadow: 0 0 0 1px rgba(0,0,0,.5); }
 
 /* ---------- barra lateral ---------- */

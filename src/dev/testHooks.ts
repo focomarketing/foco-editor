@@ -112,6 +112,21 @@ async function playExported(): Promise<{ played: boolean; duration: number; widt
 }
 
 /** Lê o quadro do arquivo exportado no tempo t (cor média do centro). */
+/** Pixel do último export num ponto do quadro (fx, fy em fração). */
+async function exportedPixelAt(t: number, fx: number, fy: number) {
+  if (!lastExport) return null;
+  const input = new Input({ source: new BlobSource(lastExport), formats: ALL_FORMATS });
+  const track = await input.getPrimaryVideoTrack();
+  if (!track) return null;
+  const { CanvasSink } = await import('mediabunny');
+  const sink = new CanvasSink(track, { width: 64, height: 36, fit: 'fill' });
+  const w = await sink.getCanvas(t);
+  const c = w!.canvas as OffscreenCanvas;
+  const d = (c.getContext('2d') as OffscreenCanvasRenderingContext2D).getImageData(Math.round(63 * fx), Math.round(35 * fy), 1, 1).data;
+  input.dispose();
+  return [d[0], d[1], d[2]];
+}
+
 async function exportedPixel(t: number) {
   if (!lastExport) return null;
   const input = new Input({ source: new BlobSource(lastExport), formats: ALL_FORMATS });
@@ -159,4 +174,4 @@ async function exportAndProbe(settings: { width: number; height: number; fps: nu
   return result;
 }
 
-Object.assign(window, { __foco: { store, media, playback, actions, transcripts, analysisStore, toSRT, ai, insert, ops, anim, commands, Cmd, createdIds, prefsStore, projectFile, serialize, deserialize, makeTestVideo, makeTestAudio, exportAndProbe, playExported, exportedPixel, makeLongVideo, clearLoadFiles, metrics, measureSeek, jobs, cache, probeBlob, smartCut, workflow, viewStore, phases } });
+Object.assign(window, { __foco: { store, media, playback, actions, transcripts, analysisStore, toSRT, ai, insert, ops, anim, commands, Cmd, createdIds, prefsStore, projectFile, serialize, deserialize, makeTestVideo, makeTestAudio, exportAndProbe, playExported, exportedPixel, exportedPixelAt, makeLongVideo, clearLoadFiles, metrics, measureSeek, jobs, cache, probeBlob, smartCut, workflow, viewStore, phases } });

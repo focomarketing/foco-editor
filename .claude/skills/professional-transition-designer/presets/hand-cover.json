@@ -1,0 +1,39 @@
+{
+  "id": "hand-cover",
+  "name": "Hand cover",
+  "category": "social",
+  "platforms": [
+    "shorts",
+    "reels",
+    "tiktok"
+  ],
+  "description": "A tela escurece como se uma mão cobrisse a lente e reabre no plano novo.",
+  "useCases": [
+    "transformação",
+    "troca de look"
+  ],
+  "duration": {
+    "min": 0.2,
+    "recommended": 0.35,
+    "max": 0.5
+  },
+  "parameters": {
+    "intensity": 0.7,
+    "easing": "smooth",
+    "shape": "band",
+    "direction": "up",
+    "color": "#120d0b"
+  },
+  "render": "mask",
+  "align": "in",
+  "level": 2,
+  "reference": "hand cover transition",
+  "requirements": {
+    "compatibleAspectRatios": [
+      "16:9",
+      "9:16",
+      "1:1",
+      "4:5"
+    ]
+  }
+}

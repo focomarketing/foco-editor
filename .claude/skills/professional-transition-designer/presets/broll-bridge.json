@@ -1,0 +1,35 @@
+{
+  "id": "broll-bridge",
+  "name": "B-roll bridge",
+  "category": "youtube",
+  "platforms": [
+    "youtube",
+    "interview",
+    "commercial"
+  ],
+  "description": "Fusão curta para entrar/sair de B-roll sem pulo.",
+  "useCases": [
+    "B-roll sobre a fala"
+  ],
+  "duration": {
+    "min": 0.2,
+    "recommended": 0.35,
+    "max": 0.6
+  },
+  "parameters": {
+    "intensity": 1,
+    "easing": "smooth"
+  },
+  "render": "dissolve",
+  "align": "in",
+  "level": 1,
+  "reference": "B-roll bridge dissolve",
+  "requirements": {
+    "compatibleAspectRatios": [
+      "16:9",
+      "9:16",
+      "1:1",
+      "4:5"
+    ]
+  }
+}

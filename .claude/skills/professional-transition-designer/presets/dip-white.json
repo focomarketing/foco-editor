@@ -1,0 +1,36 @@
+{
+  "id": "dip-white",
+  "name": "Dip to white",
+  "category": "youtube",
+  "platforms": [
+    "youtube",
+    "commercial"
+  ],
+  "description": "Clareia e volta: memória, sonho, virada positiva.",
+  "useCases": [
+    "lembrança",
+    "revelação"
+  ],
+  "duration": {
+    "min": 0.3,
+    "recommended": 0.6,
+    "max": 1.2
+  },
+  "parameters": {
+    "intensity": 1,
+    "easing": "smooth",
+    "color": "#ffffff"
+  },
+  "render": "dip",
+  "align": "center",
+  "level": 2,
+  "reference": "fade through white",
+  "requirements": {
+    "compatibleAspectRatios": [
+      "16:9",
+      "9:16",
+      "1:1",
+      "4:5"
+    ]
+  }
+}

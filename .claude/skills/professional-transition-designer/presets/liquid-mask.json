@@ -1,0 +1,39 @@
+{
+  "id": "liquid-mask",
+  "name": "Liquid mask",
+  "category": "commercial",
+  "platforms": [
+    "commercial",
+    "reels",
+    "tiktok"
+  ],
+  "description": "Borda ondulada que escorre revelando o plano.",
+  "useCases": [
+    "bebida",
+    "cosmético",
+    "fluidez"
+  ],
+  "duration": {
+    "min": 0.45,
+    "recommended": 0.7,
+    "max": 1.1
+  },
+  "parameters": {
+    "intensity": 0.6,
+    "easing": "smooth",
+    "shape": "liquid",
+    "direction": "down"
+  },
+  "render": "mask",
+  "align": "in",
+  "level": 2,
+  "reference": "liquid transition",
+  "requirements": {
+    "compatibleAspectRatios": [
+      "16:9",
+      "9:16",
+      "1:1",
+      "4:5"
+    ]
+  }
+}

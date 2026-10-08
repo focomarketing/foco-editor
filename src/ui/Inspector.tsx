@@ -10,6 +10,7 @@ import { CAPTION_PRESETS, captionText, getPreset } from '../engine/captions/capt
 import { useEditor } from './hooks';
 import { FontSelect } from './FontSelect';
 import { AnimationSection, AudioSection, ColorSection, TitleInspector } from './InspectorFx';
+import { TransitionInspector } from './TransitionsPanel';
 
 export function Inspector() {
   const { project, selection } = useEditor();
@@ -304,6 +305,7 @@ function ClipInspector({ clip }: { clip: Clip }) {
           )}
         </div>
       )}
+      {visual && <TransitionInspector clip={clip} />}
       {visual && <AnimationSection clip={clip} />}
       {visual && <ColorSection clip={clip} />}
       {asset?.hasAudio && <AudioSection clip={clip} />}

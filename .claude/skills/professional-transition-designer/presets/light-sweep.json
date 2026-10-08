@@ -1,0 +1,38 @@
+{
+  "id": "light-sweep",
+  "name": "Light sweep",
+  "category": "commercial",
+  "platforms": [
+    "commercial",
+    "youtube",
+    "reels"
+  ],
+  "description": "Faixa de luz atravessa a tela no corte.",
+  "useCases": [
+    "produto premium",
+    "logo"
+  ],
+  "duration": {
+    "min": 0.3,
+    "recommended": 0.5,
+    "max": 0.9
+  },
+  "parameters": {
+    "intensity": 0.6,
+    "easing": "smooth",
+    "color": "#fff6e0",
+    "direction": "right"
+  },
+  "render": "light",
+  "align": "center",
+  "level": 2,
+  "reference": "light sweep / sheen",
+  "requirements": {
+    "compatibleAspectRatios": [
+      "16:9",
+      "9:16",
+      "1:1",
+      "4:5"
+    ]
+  }
+}

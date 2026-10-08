@@ -1,0 +1,38 @@
+{
+  "id": "blur-transition",
+  "name": "Blur transition",
+  "category": "clean",
+  "platforms": [
+    "youtube",
+    "commercial",
+    "reels",
+    "tiktok",
+    "shorts"
+  ],
+  "description": "Desfoca, troca e volta a focar.",
+  "useCases": [
+    "troca suave de cena"
+  ],
+  "duration": {
+    "min": 0.3,
+    "recommended": 0.5,
+    "max": 0.9
+  },
+  "parameters": {
+    "intensity": 0.5,
+    "easing": "smooth",
+    "blur": 0.03
+  },
+  "render": "blur",
+  "align": "center",
+  "level": 1,
+  "reference": "defocus transition",
+  "requirements": {
+    "compatibleAspectRatios": [
+      "16:9",
+      "9:16",
+      "1:1",
+      "4:5"
+    ]
+  }
+}

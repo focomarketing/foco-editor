@@ -1,0 +1,40 @@
+{
+  "id": "impact-cut",
+  "name": "Impact cut",
+  "category": "social",
+  "platforms": [
+    "shorts",
+    "reels",
+    "tiktok"
+  ],
+  "description": "Flash + tremida + zoom curto num quadro de impacto.",
+  "useCases": [
+    "frase de efeito",
+    "drop"
+  ],
+  "duration": {
+    "min": 0.15,
+    "recommended": 0.24,
+    "max": 0.4
+  },
+  "parameters": {
+    "intensity": 0.8,
+    "easing": "smooth",
+    "scale": 0.12,
+    "position": 0.02,
+    "color": "#ffffff"
+  },
+  "render": "flash",
+  "align": "center",
+  "level": 3,
+  "reference": "impact frame",
+  "requirements": {
+    "compatibleAspectRatios": [
+      "16:9",
+      "9:16",
+      "1:1",
+      "4:5"
+    ],
+    "beatSync": true
+  }
+}

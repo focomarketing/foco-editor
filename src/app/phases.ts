@@ -3,7 +3,8 @@
 // UM passo de undo e o resto fica para revisão. Progresso, regenerar e desfazer por etapa.
 
 import type { PhaseId } from '../core/workflow';
-import type { Asset } from '../core/types';
+import type { Asset, TransitionSpec } from '../core/types';
+import type { EditCommand } from '../video-editor/commands/types';
 import { WHISPER_MODELS } from '../engine/transcript/TranscriptEngine';
 import '../video-editor/skills';
 import { runStage } from '../video-editor/orchestrator/orchestrator';
@@ -18,7 +19,7 @@ import { Cmd } from '../engine/commands/commands';
 import { actions, media, store, transcripts } from './editor';
 import { notify } from './notify';
 import { timelineSpeech } from './smartCut';
-import { blobToBase64, grabFramesBase64 } from '../engine/media/generators';
+import { blobToBase64, framePixels, grabFramesBase64 } from '../engine/media/generators';
 
 export interface PhaseRun {
   phase: PhaseId;
@@ -49,7 +50,7 @@ export const phaseRunStore = {
 };
 
 /** Fases que a IA executa sozinha ao entrar nelas. */
-export const AUTO_PHASES: PhaseId[] = ['cut', 'images', 'motion'];
+export const AUTO_PHASES: PhaseId[] = ['cut', 'images', 'transitions', 'motion'];
 
 // --- ponte entre o orquestrador e o editor ----------------------------------------------------
 
@@ -112,6 +113,17 @@ const services: SkillServices = {
     }
     const track = await media.getInput(id)?.getPrimaryVideoTrack();
     return track ? grabFramesBase64(track, times) : [];
+  },
+  async pixels(id, time, width) {
+    const entry = media.get(id);
+    if (entry?.image) {
+      const c = new OffscreenCanvas(width, Math.max(2, Math.round((entry.image.height * width) / Math.max(1, entry.image.width))));
+      const g = c.getContext('2d')!;
+      g.drawImage(entry.image, 0, 0, c.width, c.height);
+      return g.getImageData(0, 0, c.width, c.height);
+    }
+    const track = await media.getInput(id)?.getPrimaryVideoTrack();
+    return track ? framePixels(track, time, width) : null;
   },
 };
 
@@ -202,6 +214,14 @@ export function undoItem(clipId: string) {
   const c = store.getState().project.clips[clipId];
   if (!c || c.origin?.by !== 'ai') return;
   store.execute(Cmd.deleteClips([clipId]), []);
+  set({});
+}
+
+/** Tira uma transição criada pela IA (volta a que havia antes, ou o corte seco). */
+export function undoTransitionItem(clipId: string, cmd: EditCommand) {
+  const c = store.getState().project.clips[clipId];
+  if (!c?.transitionIn || c.transitionIn.by !== 'ai') return;
+  store.execute(Cmd.setTransition({ [clipId]: (cmd.payload.prevTransition ?? undefined) as TransitionSpec | undefined }, 'Tirar transição'));
   set({});
 }
 

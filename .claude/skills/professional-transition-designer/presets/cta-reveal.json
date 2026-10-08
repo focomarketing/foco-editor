@@ -1,0 +1,39 @@
+{
+  "id": "cta-reveal",
+  "name": "CTA reveal",
+  "category": "commercial",
+  "platforms": [
+    "commercial",
+    "reels",
+    "shorts",
+    "tiktok"
+  ],
+  "description": "O plano final sobe de baixo para a chamada.",
+  "useCases": [
+    "chamada para ação",
+    "oferta"
+  ],
+  "duration": {
+    "min": 0.35,
+    "recommended": 0.5,
+    "max": 0.8
+  },
+  "parameters": {
+    "intensity": 0.6,
+    "easing": "smooth",
+    "shape": "linear",
+    "direction": "up"
+  },
+  "render": "mask",
+  "align": "in",
+  "level": 2,
+  "reference": "reveal from bottom",
+  "requirements": {
+    "compatibleAspectRatios": [
+      "16:9",
+      "9:16",
+      "1:1",
+      "4:5"
+    ]
+  }
+}

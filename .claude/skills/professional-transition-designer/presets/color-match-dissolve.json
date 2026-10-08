@@ -1,0 +1,35 @@
+{
+  "id": "color-match-dissolve",
+  "name": "Match color",
+  "category": "commercial",
+  "platforms": [
+    "commercial",
+    "youtube"
+  ],
+  "description": "Fusão curta entre planos de mesma paleta (continuidade de cor).",
+  "useCases": [
+    "paleta da marca",
+    "continuidade"
+  ],
+  "duration": {
+    "min": 0.2,
+    "recommended": 0.35,
+    "max": 0.6
+  },
+  "parameters": {
+    "intensity": 1,
+    "easing": "smooth"
+  },
+  "render": "dissolve",
+  "align": "in",
+  "level": 1,
+  "reference": "color match cut",
+  "requirements": {
+    "compatibleAspectRatios": [
+      "16:9",
+      "9:16",
+      "1:1",
+      "4:5"
+    ]
+  }
+}

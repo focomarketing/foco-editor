@@ -5,11 +5,11 @@
 
 import type { Clip, Project } from '../../core/types';
 import { clamp, EPS } from '../../core/time';
-import { fadeGain, speedOf, toSource } from '../../core/clipTime';
+import { fadeGain, sourceEnd, speedOf, toSource } from '../../core/clipTime';
 import type { EditorStore } from '../timeline/EditorStore';
 import { clipEnd, isStill, projectDuration } from '../timeline/operations';
 import type { MediaEngine } from '../media/MediaEngine';
-import { composite, graphicLayer, mediaTransform, visualLayersAt } from '../render/Compositor';
+import { applyTransitions, composite, graphicLayer, mediaTransform, visualLayersAt } from '../render/Compositor';
 import type { DrawLayer } from '../render/Compositor';
 import { buildChain, prepareContext } from '../audio/audioFx';
 import type { Chain } from '../audio/audioFx';
@@ -376,7 +376,7 @@ export class PlaybackEngine {
       const transform = mediaTransform(active);
       if (isStill(asset)) {
         const img = this.media.get(asset.id)?.image;
-        if (img) layers.push({ kind: 'media', source: img, width: img.width, height: img.height, transform, color: clip.color, crop: clip.crop, blendMode: clip.blendMode });
+        if (img) layers.push({ kind: 'media', source: img, width: img.width, height: img.height, transform, color: clip.color, crop: clip.crop, blendMode: clip.blendMode, clipId: clip.id });
         continue;
       }
       const el = this.pool.get(clip.id);
@@ -386,21 +386,27 @@ export class PlaybackEngine {
         // resolução); o quadro definitivo substitui assim que a decodificação termina.
         const thumb = this.scrubbing || !this.snap.playing ? this.media.previewThumb(asset.id, active.sourceTime) : null;
         if (thumb) {
-          layers.push({ kind: 'media', source: thumb, width: thumb.width, height: thumb.height, transform, color: clip.color, crop: clip.crop, blendMode: clip.blendMode });
+          layers.push({ kind: 'media', source: thumb, width: thumb.width, height: thumb.height, transform, color: clip.color, crop: clip.crop, blendMode: clip.blendMode, clipId: clip.id });
           provisional = true;
         } else {
           waiting = true;
         }
         continue;
       }
-      layers.push({ kind: 'media', source: el, width: el.videoWidth || asset.width, height: el.videoHeight || asset.height, transform, color: clip.color, crop: clip.crop, blendMode: clip.blendMode });
+      layers.push({ kind: 'media', source: el, width: el.videoWidth || asset.width, height: el.videoHeight || asset.height, transform, color: clip.color, crop: clip.crop, blendMode: clip.blendMode, clipId: clip.id });
     }
     // Enquanto um quadro carrega, mantém o anterior em vez de piscar preto.
     if (waiting) {
       this.dirty = true;
       return;
     }
-    composite(ctx, W, H, layers, { bypassColor: this.compareOriginal });
+    // transições: efeito por camada, último quadro do clipe anterior por baixo, flashes por cima
+    const withFx = applyTransitions(p, t, layers, (c) => {
+      const a = p.assets[c.assetId];
+      const img = a && isStill(a) ? this.media.get(a.id)?.image : this.media.previewThumb(c.assetId, sourceEnd(c) - 0.05);
+      return img ? { source: img, width: img.width, height: img.height } : null;
+    });
+    composite(ctx, W, H, withFx, { bypassColor: this.compareOriginal });
     metrics.frameDrawn();
     this.dirty = this.snap.playing || provisional;
   }

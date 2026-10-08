@@ -1,7 +1,7 @@
 // Histórico de operações da IA: criar (preview), escolher itens, aplicar (um passo de undo),
 // rejeitar e desfazer. Fica em project.metadata.operations (vai no .foco; fora do undo).
 
-import type { Keyframes, Project } from '../../core/types';
+import type { Keyframes, Project, TransitionSpec } from '../../core/types';
 import { newId } from '../../core/time';
 import { Cmd } from '../../engine/commands/commands';
 import type { EditCommand, EditOperation } from '../commands/types';
@@ -107,7 +107,8 @@ export function revertOperation(port: EditorPort, opId: string, opts: { includeE
   // Só adições podem ser desfeitas "tirando o que a IA criou"; cortes, aparos e movimentos só voltam pelo undo.
   const ADDS = new Set(['add_clip', 'add_overlay', 'add_music', 'add_sound_effect', 'add_caption']);
   // Efeitos que guardam os keyframes anteriores (zoom) também voltam, se ninguém mexeu depois.
-  const restorable = (c: EditCommand) => c.type === 'add_effect' && 'prevKeyframes' in c.payload && !!c.payload.keyframes;
+  // Transições guardam a anterior (ou nenhuma) e também voltam.
+  const restorable = (c: EditCommand) => (c.type === 'add_effect' && 'prevKeyframes' in c.payload && !!c.payload.keyframes) || (c.type === 'add_transition' && 'prevTransition' in c.payload);
   const destructive = op.commands.some((c) => !ADDS.has(c.type) && !restorable(c) && op.selected?.includes(c.id));
   if (destructive) return { ok: false, keptEdited: 0, message: 'Esta operação cortou ou alterou clipes e já houve edições depois: use Ctrl+Z ou o histórico de versões.' };
   const p = port.getProject();
@@ -115,7 +116,18 @@ export function revertOperation(port: EditorPort, opId: string, opts: { includeE
   const remove = opts.includeEdited ? [...untouched, ...edited] : untouched;
   const restore: Record<string, Keyframes | undefined> = {};
   let editedFx = 0;
-  for (const c of op.commands.filter((x) => restorable(x) && op.selected?.includes(x.id))) {
+  const restoreTr: Record<string, TransitionSpec | undefined> = {};
+  for (const c of op.commands.filter((x) => x.type === 'add_transition' && restorable(x) && op.selected?.includes(x.id))) {
+    const clip = p.clips[c.payload.clipId as string];
+    if (!clip) continue;
+    const mine = clip.transitionIn?.by === 'ai' && clip.transitionIn.type === c.payload.transition?.type && clip.transitionIn.duration === c.payload.transition?.duration && clip.transitionIn.intensity === c.payload.transition?.intensity;
+    if (!mine && !opts.includeEdited) {
+      editedFx++;
+      continue;
+    }
+    restoreTr[clip.id] = (c.payload.prevTransition ?? undefined) as TransitionSpec | undefined;
+  }
+  for (const c of op.commands.filter((x) => x.type === 'add_effect' && restorable(x) && op.selected?.includes(x.id))) {
     const clip = p.clips[c.payload.clipId as string];
     if (!clip) continue;
     const mine = Object.keys(c.payload.keyframes!) as (keyof Keyframes)[];
@@ -132,7 +144,7 @@ export function revertOperation(port: EditorPort, opId: string, opts: { includeE
     }
     restore[clip.id] = Object.keys(next).length ? next : undefined;
   }
-  const cmds = [...(remove.length ? [Cmd.deleteClips(remove.map((c) => c.id))] : []), ...(Object.keys(restore).length ? [Cmd.setKeyframes(restore, 'Desfazer efeito')] : [])];
+  const cmds = [...(remove.length ? [Cmd.deleteClips(remove.map((c) => c.id))] : []), ...(Object.keys(restore).length ? [Cmd.setKeyframes(restore, 'Desfazer efeito')] : []), ...(Object.keys(restoreTr).length ? [Cmd.setTransition(restoreTr, 'Desfazer transição')] : [])];
   if (cmds.length) port.execute(Cmd.batch(`Desfazer IA · ${op.skill ?? op.stage ?? ''}`, cmds, 'AI_REVERT'));
   update(port, opId, { status: 'reverted' });
   const kept = opts.includeEdited ? 0 : edited.length + editedFx;

@@ -1,0 +1,35 @@
+{
+  "id": "clean-dissolve",
+  "name": "Clean dissolve",
+  "category": "interview",
+  "platforms": [
+    "interview",
+    "youtube"
+  ],
+  "description": "Fusão curta e limpa entre respostas.",
+  "useCases": [
+    "troca de resposta",
+    "outro dia de gravação"
+  ],
+  "duration": {
+    "min": 0.2,
+    "recommended": 0.4,
+    "max": 0.8
+  },
+  "parameters": {
+    "intensity": 1,
+    "easing": "smooth"
+  },
+  "render": "dissolve",
+  "align": "in",
+  "level": 1,
+  "reference": "soft dissolve",
+  "requirements": {
+    "compatibleAspectRatios": [
+      "16:9",
+      "9:16",
+      "1:1",
+      "4:5"
+    ]
+  }
+}

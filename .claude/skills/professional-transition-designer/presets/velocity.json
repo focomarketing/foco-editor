@@ -1,0 +1,40 @@
+{
+  "id": "velocity",
+  "name": "Velocity",
+  "category": "social",
+  "platforms": [
+    "shorts",
+    "reels",
+    "tiktok"
+  ],
+  "description": "Zoom com aceleração forte e rastro (estilo edit de velocidade).",
+  "useCases": [
+    "montagem musical",
+    "energia alta"
+  ],
+  "duration": {
+    "min": 0.25,
+    "recommended": 0.4,
+    "max": 0.6
+  },
+  "parameters": {
+    "intensity": 0.8,
+    "easing": "snappy",
+    "scale": 0.35,
+    "blur": 0.035,
+    "motionBlur": true
+  },
+  "render": "zoom",
+  "align": "center",
+  "level": 3,
+  "reference": "velocity edit / speed ramp",
+  "requirements": {
+    "compatibleAspectRatios": [
+      "16:9",
+      "9:16",
+      "1:1",
+      "4:5"
+    ],
+    "beatSync": true
+  }
+}

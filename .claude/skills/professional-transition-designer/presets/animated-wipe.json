@@ -1,0 +1,38 @@
+{
+  "id": "animated-wipe",
+  "name": "Animated wipe",
+  "category": "youtube",
+  "platforms": [
+    "youtube",
+    "commercial"
+  ],
+  "description": "Cortina diagonal com borda de cor.",
+  "useCases": [
+    "lista",
+    "seção nova"
+  ],
+  "duration": {
+    "min": 0.35,
+    "recommended": 0.5,
+    "max": 0.9
+  },
+  "parameters": {
+    "intensity": 0.6,
+    "easing": "smooth",
+    "shape": "diagonal",
+    "direction": "right",
+    "color": "#4f8cff"
+  },
+  "render": "mask",
+  "align": "in",
+  "level": 2,
+  "reference": "wipe",
+  "requirements": {
+    "compatibleAspectRatios": [
+      "16:9",
+      "9:16",
+      "1:1",
+      "4:5"
+    ]
+  }
+}

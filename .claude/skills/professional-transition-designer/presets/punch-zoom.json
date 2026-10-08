@@ -1,0 +1,37 @@
+{
+  "id": "punch-zoom",
+  "name": "Punch zoom",
+  "category": "social",
+  "platforms": [
+    "shorts",
+    "reels",
+    "tiktok"
+  ],
+  "description": "Soco de zoom no rosto, sem desfoque.",
+  "useCases": [
+    "ênfase",
+    "corte de salto"
+  ],
+  "duration": {
+    "min": 0.1,
+    "recommended": 0.18,
+    "max": 0.3
+  },
+  "parameters": {
+    "intensity": 0.6,
+    "easing": "snappy",
+    "scale": 0.15
+  },
+  "render": "zoom",
+  "align": "center",
+  "level": 2,
+  "reference": "punch-in zoom (talking head)",
+  "requirements": {
+    "compatibleAspectRatios": [
+      "16:9",
+      "9:16",
+      "1:1",
+      "4:5"
+    ]
+  }
+}

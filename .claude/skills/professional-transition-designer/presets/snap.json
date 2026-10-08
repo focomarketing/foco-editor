@@ -1,0 +1,38 @@
+{
+  "id": "snap",
+  "name": "Snap",
+  "category": "social",
+  "platforms": [
+    "shorts",
+    "reels",
+    "tiktok"
+  ],
+  "description": "Deslize curtíssimo com estalo (6 quadros).",
+  "useCases": [
+    "ritmo",
+    "lista rápida"
+  ],
+  "duration": {
+    "min": 0.1,
+    "recommended": 0.16,
+    "max": 0.25
+  },
+  "parameters": {
+    "intensity": 0.7,
+    "easing": "snappy",
+    "direction": "up",
+    "blur": 0.02
+  },
+  "render": "whip",
+  "align": "center",
+  "level": 2,
+  "reference": "snap transition",
+  "requirements": {
+    "compatibleAspectRatios": [
+      "16:9",
+      "9:16",
+      "1:1",
+      "4:5"
+    ]
+  }
+}

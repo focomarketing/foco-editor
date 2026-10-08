@@ -1,0 +1,89 @@
+{
+  "generatedFrom": "src/video-editor/transitions/library.ts",
+  "total": 53,
+  "categories": [
+    {
+      "category": "clean",
+      "label": "Clean e profissionais",
+      "presets": [
+        "smart-cut",
+        "match-cut",
+        "action-cut",
+        "motion-cut",
+        "whip-pan-soft",
+        "push-slide",
+        "zoom-clean",
+        "rack-focus",
+        "blur-transition",
+        "seamless-cut",
+        "speed-ramp-cut",
+        "masked-reveal"
+      ]
+    },
+    {
+      "category": "social",
+      "label": "Reels, TikTok e Shorts",
+      "presets": [
+        "beat-zoom",
+        "punch-zoom",
+        "whip-transition",
+        "controlled-shake",
+        "snap",
+        "spin",
+        "flash-cut",
+        "velocity",
+        "object-wipe",
+        "hand-cover",
+        "shake-sync",
+        "impact-cut",
+        "frame-skip",
+        "digital-swipe",
+        "quick-blur",
+        "rgb-split"
+      ]
+    },
+    {
+      "category": "youtube",
+      "label": "YouTube",
+      "presets": [
+        "clean-cut",
+        "dip-black",
+        "dip-white",
+        "cross-dissolve",
+        "chapter-transition",
+        "broll-bridge",
+        "animated-wipe",
+        "subtle-push",
+        "focus-transition",
+        "cinematic-dissolve"
+      ]
+    },
+    {
+      "category": "commercial",
+      "label": "Comerciais",
+      "presets": [
+        "product-reveal",
+        "light-sweep",
+        "light-leak",
+        "shape-mask",
+        "liquid-mask",
+        "parallax",
+        "card-3d",
+        "color-match-dissolve",
+        "branded-wipe",
+        "cta-reveal"
+      ]
+    },
+    {
+      "category": "interview",
+      "label": "Entrevistas e depoimentos",
+      "presets": [
+        "invisible-cut",
+        "punch-in",
+        "punch-out",
+        "clean-dissolve",
+        "motivated-cut"
+      ]
+    }
+  ]
+}

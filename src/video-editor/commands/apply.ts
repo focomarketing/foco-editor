@@ -6,7 +6,6 @@ import { DEFAULT_TRANSFORM, NO_ASSET } from '../../core/types';
 import { newId } from '../../core/time';
 import { Cmd } from '../../engine/commands/commands';
 import type { EditCommand as EditorCommand } from '../../engine/commands/commands';
-import { clipPatchCommand } from '../../engine/commands/commands';
 import { clipEnd } from '../../engine/timeline/operations';
 import type { EditCommand, TrackRole } from './types';
 import { clipStamp, occupancy, validateCommand } from '../validation/validate';
@@ -112,7 +111,7 @@ export function toEditorCommands(p: Project, list: EditCommand[], operationId: s
         out.commands.push(Cmd.splitClips([pl.clipId!], pl.time!));
         break;
       case 'add_transition':
-        out.commands.push(clipPatchCommand(pl.clipId!, { transitionIn: pl.transition }, 'Transição'));
+        out.commands.push(Cmd.setTransition({ [pl.clipId!]: { ...pl.transition!, by: cmd.createdBy } }, String(pl.label ?? 'Transição')));
         break;
       case 'add_effect': {
         const c = p.clips[pl.clipId!];

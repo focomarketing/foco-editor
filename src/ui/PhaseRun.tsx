@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { Bot, Eye, EyeOff, Play, RotateCcw, Square, Trash2, Undo2 } from 'lucide-react';
-import { applyPending, cancelPhase, currentOperation, imageKeys, rejectPending, runPhase, saveImageKeys, toggleSuggestion, undoItem, undoPhase } from '../app/phases';
+import { applyPending, cancelPhase, currentOperation, imageKeys, rejectPending, runPhase, saveImageKeys, toggleSuggestion, undoItem, undoPhase, undoTransitionItem } from '../app/phases';
 import type { PhaseId } from '../core/workflow';
 import { formatTimecode } from '../core/time';
 import { playback, store } from '../app/editor';
@@ -99,19 +99,25 @@ function Suggestions({ op, fps }: { op: EditOperation; fps: number }) {
         {op.commands.map((c) => {
           const low = (c.confidence ?? 1) < MIN_AUTO_CONFIDENCE;
           const on = selected.has(c.id);
-          const clipId = c.type === 'ripple_remove' ? undefined : clipOf(c);
+          const clipId = c.type === 'ripple_remove' || c.type === 'add_transition' || c.type === 'add_effect' ? undefined : clipOf(c);
+          // transição aplicada pela IA e ainda igual: dá para desfazer só ela
+          const trClip = c.type === 'add_transition' ? project.clips[c.payload.clipId as string] : undefined;
+          const trAlive = !!trClip?.transitionIn && trClip.transitionIn.by === 'ai' && trClip.transitionIn.type === c.payload.transitionId;
           const alive = !!clipId;
           return (
             <div key={c.id} className={`cut-row${on || !preview ? ' on' : ''}`} data-testid="suggestion">
               {preview && <input type="checkbox" checked={on} onChange={() => toggleSuggestion(op.id, c.id)} title={low ? 'Confiança baixa: revise antes de aplicar' : ''} />}
               <button className="cut-main" onClick={() => c.start !== undefined && playback.seek(Math.max(0, c.start - 0.8))} title={c.reason}>
-                <span className={`chip ${low ? 'k-filler' : 'k-pause'}`}>{c.payload.title ? 'Título' : c.type === 'add_effect' && c.payload.label ? String(c.payload.label) : KIND[c.type] ?? c.type}</span>
+                <span className={`chip ${low ? 'k-filler' : 'k-pause'}`}>{c.payload.title ? 'Título' : (c.type === 'add_effect' || c.type === 'add_transition') && c.payload.label ? String(c.payload.label) : KIND[c.type] ?? c.type}</span>
                 <span className="tc">{c.start !== undefined ? formatTimecode(c.start, fps).slice(3) : ''}</span>
                 <span className="dur">IA · {c.skill} · {Math.round((c.confidence ?? 1) * 100)}%{low ? ' · revisar' : ''}</span>
                 <span className="why">{c.reason}{c.payload.license ? ` · ${c.payload.license.author ?? ''} (${c.payload.license.licenseName})` : ''}</span>
               </button>
               {!preview && alive && (
                 <button className="btn icon sm" title="Desfazer este item" onClick={() => undoItem(clipId!)}><Trash2 size={11} /></button>
+              )}
+              {!preview && trAlive && (
+                <button className="btn icon sm" title="Tirar esta transição" onClick={() => undoTransitionItem(trClip!.id, c)}><Trash2 size={11} /></button>
               )}
             </div>
           );

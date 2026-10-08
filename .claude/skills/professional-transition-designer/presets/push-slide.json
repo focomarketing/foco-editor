@@ -1,0 +1,38 @@
+{
+  "id": "push-slide",
+  "name": "Push slide",
+  "category": "clean",
+  "platforms": [
+    "youtube",
+    "commercial",
+    "reels",
+    "tiktok"
+  ],
+  "description": "O plano novo empurra o anterior para fora.",
+  "useCases": [
+    "lista de itens",
+    "antes e depois"
+  ],
+  "duration": {
+    "min": 0.25,
+    "recommended": 0.4,
+    "max": 0.8
+  },
+  "parameters": {
+    "intensity": 0.5,
+    "easing": "snappy",
+    "direction": "left"
+  },
+  "render": "push",
+  "align": "in",
+  "level": 2,
+  "reference": "push transition",
+  "requirements": {
+    "compatibleAspectRatios": [
+      "16:9",
+      "9:16",
+      "1:1",
+      "4:5"
+    ]
+  }
+}
