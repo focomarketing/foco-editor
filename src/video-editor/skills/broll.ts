@@ -61,8 +61,12 @@ export const brollSelectorSkill: Skill = {
   modes: ['audio-led', 'manual-assisted'],
   async run(ctx) {
     if (!ctx.words().length) return { commands: [], warnings: ['Sem fala transcrita: não há o que ilustrar.'] };
-    const { moments, by } = await chooseMoments(ctx);
-    if (!moments.length) return { commands: [], warnings: ['Não encontrei momentos que peçam imagem.'] };
+    const chosen = await chooseMoments(ctx);
+    const by = chosen.by;
+    // trechos que outra skill desta etapa já ocupou (ex.: takes do usuário) ficam com ela
+    const taken = ctx.planned.filter((c) => (c.type === 'add_clip' || c.type === 'add_overlay') && !c.payload.title && c.start !== undefined && c.end !== undefined);
+    const moments = chosen.moments.filter((m) => !taken.some((c) => m.start < c.end! + 1 && m.end > c.start! - 1));
+    if (!moments.length) return { commands: [], warnings: [taken.length ? 'Os takes de apoio já cobrem os momentos que pediam imagem.' : 'Não encontrei momentos que peçam imagem.'] };
     const p = ctx.project();
     const vertical = p.settings.height > p.settings.width;
     const archive = !ctx.workflow || ARCHIVE_SUBTYPES.includes(ctx.workflow.subtype ?? '');

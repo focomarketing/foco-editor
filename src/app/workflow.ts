@@ -3,7 +3,7 @@
 
 import type { Project } from '../core/types';
 import type { AspectRatio } from '../engine/ai/commands';
-import { completePhase, createWorkflow, goToPhase, readWorkflow } from '../core/workflow';
+import { completePhase, createWorkflow, goToPhase, readWorkflow, timelineAssets } from '../core/workflow';
 import type { PhaseId, TrackId, Workflow } from '../core/workflow';
 import { createProject, projectDuration } from '../engine/timeline/operations';
 import { smartCutStore } from './smartCut';
@@ -52,7 +52,10 @@ export async function createGuidedProject(opts: { name: string; track: TrackId; 
   if (items) await actions.importItems(items);
   else await actions.importMedia();
   const added = Object.values(store.getState().project.assets).filter((a) => !before.has(a.id));
-  for (const a of added) actions.addAssetToTimeline(a.id);
+  const placed = timelineAssets(added, wf.mode);
+  for (const a of placed) actions.addAssetToTimeline(a.id);
+  const support = added.length - placed.length;
+  if (support > 0) notify(wf.mode === 'script-led' ? `${support} mídia(s) ficaram na aba Mídia para a montagem pelo roteiro.` : `${support} take(s) de apoio ficaram na aba Mídia; a IA coloca por cima da fala na fase Imagens.`);
   await persist();
   if (!added.length) notify('Projeto criado. Importe os vídeos pela aba Mídia quando quiser.');
 }

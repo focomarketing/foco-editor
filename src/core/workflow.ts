@@ -2,6 +2,7 @@
 // manual) define o tipo de vídeo, o formato, os padrões de cada fase e quais fases entram.
 // Fica em project.metadata.workflow (serializável, vai no .foco). Funções puras.
 
+import type { Asset } from './types';
 import type { AspectRatio } from '../engine/ai/commands';
 import type { CutMode } from '../engine/cut/smartCut';
 import { PROJECT_PRESETS, presetById } from '../video-editor/presets';
@@ -23,7 +24,7 @@ export const PHASES: PhaseDef[] = [
   { id: 'cut', label: 'Corte', hint: 'pausas, erros e melhor tomada', ready: true },
   { id: 'images', label: 'Imagens', hint: 'imagens e B-roll na fala certa', ready: true },
   { id: 'transitions', label: 'Transições', hint: 'só onde o assunto muda', ready: false },
-  { id: 'motion', label: 'Efeitos e motion', hint: 'zoom, textos animados, motion', ready: false },
+  { id: 'motion', label: 'Efeitos e motion', hint: 'zoom, textos animados, motion', ready: true },
   { id: 'audio', label: 'Música e efeitos', hint: 'trilha e efeitos sonoros', ready: false },
   { id: 'captions', label: 'Legenda', hint: 'legenda e estilo', ready: false },
   { id: 'editor', label: 'Editor', hint: 'timeline completa para finalizar', ready: true },
@@ -175,4 +176,18 @@ export function workflowLabel(w: Workflow | null): string {
   const t = trackDef(w.track);
   const s = t.subtypes.find((x) => x.id === w.subtype);
   return s ? `${t.label.split(' · ')[0]} · ${s.label}` : t.label;
+}
+
+/**
+ * O que entra na timeline ao criar o projeto. Pela fala: o vídeo principal (o mais longo com
+ * som); os outros ficam na Mídia como takes de apoio. Pelo roteiro: só a narração (áudio);
+ * vídeos e imagens viram mídia para a montagem. Manual: tudo, em sequência.
+ */
+export function timelineAssets(added: Asset[], mode: EditMode | undefined): Asset[] {
+  if (mode === 'audio-led') {
+    const speech = added.filter((a) => a.hasAudio && (a.kind === 'video' || a.kind === 'audio')).sort((a, b) => b.duration - a.duration);
+    return speech.length && added.length > 1 ? [speech[0]] : added;
+  }
+  if (mode === 'script-led') return added.filter((a) => a.kind === 'audio');
+  return added;
 }

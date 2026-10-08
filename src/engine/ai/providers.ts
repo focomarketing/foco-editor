@@ -154,6 +154,30 @@ export async function askJson(s: AISettings, system: string, user: string, schem
   return JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1));
 }
 
+/**
+ * Pergunta estruturada com imagens (quadros de vídeo). Só o Claude enxerga imagens aqui;
+ * com o Ollama local a chamada falha e quem chama usa outra estratégia (ex.: nome do arquivo).
+ */
+export async function askJsonVision(s: AISettings, system: string, user: string, images: { base64: string; mediaType: 'image/jpeg' | 'image/png' }[], schema: Record<string, unknown>, signal?: AbortSignal): Promise<unknown> {
+  if (s.provider !== 'claude' || !s.claudeKey || !s.cloudConsent) throw new Error('Análise de imagem precisa do Claude configurado (chave e autorização).');
+  const client = new Anthropic({ apiKey: s.claudeKey, dangerouslyAllowBrowser: true, maxRetries: 2 });
+  const response = await client.beta.messages.create(
+    {
+      model: s.claudeModel,
+      max_tokens: 4000,
+      system,
+      messages: [{ role: 'user', content: [...images.map((im) => ({ type: 'image' as const, source: { type: 'base64' as const, media_type: im.mediaType, data: im.base64 } })), { type: 'text' as const, text: user }] }],
+      output_config: { effort: 'low', format: { type: 'json_schema', schema } },
+      betas: ['server-side-fallback-2026-07-01'],
+      fallbacks: 'default',
+    },
+    { signal },
+  );
+  if (response.stop_reason === 'refusal') throw new Error('O modelo recusou o pedido.');
+  const text = response.content.flatMap((b) => (b.type === 'text' ? [b.text] : [])).join('');
+  return JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1));
+}
+
 /** Modelos instalados no Ollama (para o seletor nas configurações). */
 export async function listOllamaModels(url: string): Promise<string[]> {
   const res = await fetch(`${url.replace(/\/$/, '')}/api/tags`);

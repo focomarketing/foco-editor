@@ -39,6 +39,12 @@ function phases(t: number, duration: number) {
   return { inK, outK: t > duration - OUT ? outK : 1 };
 }
 
+/** Texto longo não sai do quadro: encolhe (em volta da origem atual) até caber em `maxW`. */
+function fitWidth(ctx: Ctx2D, text: string, maxW: number) {
+  const w = ctx.measureText(text).width;
+  if (w > maxW && w > 0) ctx.scale(maxW / w, maxW / w);
+}
+
 function roundRect(ctx: Ctx2D, x: number, y: number, w: number, h: number, r: number) {
   const rr = Math.min(r, h / 2, w / 2);
   ctx.beginPath();
@@ -78,6 +84,7 @@ export function drawTitle(ctx: Ctx2D, W: number, H: number, clip: Clip, sourceTi
       const s = 0.85 + 0.15 * inK;
       ctx.scale(s, s);
       ctx.font = `900 ${size}px ${d.fontFamily}`;
+      fitWidth(ctx, d.text, W * 0.88);
       ctx.textAlign = 'center';
       ctx.shadowColor = 'rgba(0,0,0,0.55)';
       ctx.shadowBlur = size * 0.25;
@@ -106,6 +113,8 @@ export function drawTitle(ctx: Ctx2D, W: number, H: number, clip: Clip, sourceTi
       const boxH = d.subtitle ? size * 2.3 : size * 1.5;
       const slide = (1 - Math.min(inK, outK)) * -(boxW + W * 0.06);
       ctx.translate(slide, 0);
+      const k = Math.min(1, (W * 0.88) / boxW);
+      ctx.scale(k, k);
       ctx.fillStyle = 'rgba(10,12,16,0.78)';
       ctx.fillRect(0, -boxH / 2, boxW, boxH);
       ctx.fillStyle = d.accent;
@@ -128,6 +137,7 @@ export function drawTitle(ctx: Ctx2D, W: number, H: number, clip: Clip, sourceTi
       const s = Math.min(pop, outK);
       ctx.scale(s, s);
       ctx.font = `800 ${size}px ${d.fontFamily}`;
+      fitWidth(ctx, d.text, W * 0.88 - size * 1.2);
       const w = ctx.measureText(d.text).width;
       ctx.fillStyle = d.accent;
       roundRect(ctx, -w / 2 - size * 0.6, -size * 0.75, w + size * 1.2, size * 1.5, size * 0.3);
@@ -144,6 +154,7 @@ export function drawTitle(ctx: Ctx2D, W: number, H: number, clip: Clip, sourceTi
       const pulse = 1 + 0.04 * Math.sin(Math.max(0, t - IN) * Math.PI * 2);
       ctx.scale(pulse, pulse);
       ctx.font = `800 ${size}px ${d.fontFamily}`;
+      fitWidth(ctx, d.text, W * 0.88 - size * 1.8);
       const w = ctx.measureText(d.text).width;
       ctx.shadowColor = 'rgba(0,0,0,0.4)';
       ctx.shadowBlur = size * 0.4;

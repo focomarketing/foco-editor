@@ -22,6 +22,8 @@ export interface SkillContext {
   signal: AbortSignal;
   progress(step: string, done?: number, total?: number): void;
   log(msg: string): void;
+  /** Sugestões já feitas por skills anteriores desta etapa (para não disputar o mesmo trecho). */
+  planned: EditCommand[];
   /** Serviços do app que a skill pode usar (transcrever, importar mídia, níveis do áudio...). */
   services: SkillServices;
 }
@@ -30,6 +32,8 @@ export interface SkillServices {
   ensureTranscripts(progress: (step: string, done?: number, total?: number) => void): Promise<void>;
   importFiles(files: File[]): Promise<Map<string, { id: string; width: number; height: number; duration: number }>>;
   levels(assetId: string): Promise<Float32Array | null>;
+  /** Quadros JPEG (base64) de uma mídia nos tempos pedidos (para a IA enxergar o take). */
+  frames?(assetId: string, times: number[]): Promise<string[]>;
 }
 
 export interface SkillOutput {
@@ -78,7 +82,7 @@ export interface StageResult {
   messages: string[];
 }
 
-export async function runStage(port: EditorPort, stage: PhaseId, deps: Omit<SkillContext, 'project' | 'workflow' | 'mode' | 'log'> & { log?: (m: string) => void }, opts: RunOptions): Promise<StageResult> {
+export async function runStage(port: EditorPort, stage: PhaseId, deps: Omit<SkillContext, 'project' | 'workflow' | 'mode' | 'log' | 'planned'> & { log?: (m: string) => void }, opts: RunOptions): Promise<StageResult> {
   const messages: string[] = [];
   const log = (m: string) => {
     messages.push(m);
@@ -93,13 +97,13 @@ export async function runStage(port: EditorPort, stage: PhaseId, deps: Omit<Skil
     }
   }
   const wf = readWorkflow(port.getProject().metadata);
-  const ctx: SkillContext = { ...deps, project: port.getProject, workflow: wf, mode: wf?.mode ?? 'manual-assisted', log };
+  const commands: EditCommand[] = [];
+  const ctx: SkillContext = { ...deps, project: port.getProject, workflow: wf, mode: wf?.mode ?? 'manual-assisted', log, planned: commands };
   const skills = plannedSkills(stage, ctx);
   if (!skills.length) {
     log('nenhuma skill habilitada para esta etapa neste projeto');
     return { op: null, skills: [], messages };
   }
-  const commands: EditCommand[] = [];
   const notes: string[] = [];
   const warnings: string[] = [];
   for (const s of skills) {

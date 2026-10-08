@@ -59,7 +59,7 @@ function PhasePanel({ wf }: { wf: Workflow }) {
         {auto && <PhaseRunCard phase={wf.current} />}
         {wf.current === 'cut' ? (
           <CutPanel />
-        ) : wf.current === 'images' ? null : (
+        ) : def.ready ? null : (
           <div className="insp">
             <div className="empty">
               <b>{def.label}</b> — {def.hint}.

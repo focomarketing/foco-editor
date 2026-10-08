@@ -18,6 +18,7 @@ import { Cmd } from '../engine/commands/commands';
 import { actions, media, store, transcripts } from './editor';
 import { notify } from './notify';
 import { timelineSpeech } from './smartCut';
+import { blobToBase64, grabFramesBase64 } from '../engine/media/generators';
 
 export interface PhaseRun {
   phase: PhaseId;
@@ -48,7 +49,7 @@ export const phaseRunStore = {
 };
 
 /** Fases que a IA executa sozinha ao entrar nelas. */
-export const AUTO_PHASES: PhaseId[] = ['cut', 'images'];
+export const AUTO_PHASES: PhaseId[] = ['cut', 'images', 'motion'];
 
 // --- ponte entre o orquestrador e o editor ----------------------------------------------------
 
@@ -99,6 +100,18 @@ const services: SkillServices = {
   },
   async levels(id) {
     return media.get(id)?.levels ?? (await media.whenLevels(id));
+  },
+  async frames(id, times) {
+    const entry = media.get(id);
+    if (entry?.image) {
+      const bmp = entry.image;
+      const k = 512 / Math.max(1, bmp.width);
+      const c = new OffscreenCanvas(512, Math.max(2, Math.round(bmp.height * k)));
+      c.getContext('2d')!.drawImage(bmp, 0, 0, c.width, c.height);
+      return [await blobToBase64(await c.convertToBlob({ type: 'image/jpeg', quality: 0.7 }))];
+    }
+    const track = await media.getInput(id)?.getPrimaryVideoTrack();
+    return track ? grabFramesBase64(track, times) : [];
   },
 };
 

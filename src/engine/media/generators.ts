@@ -26,6 +26,27 @@ export async function makeAssetThumbnail(track: InputVideoTrack, duration: numbe
   return wrapped ? canvasToBlob(wrapped.canvas) : null;
 }
 
+/** Quadros JPEG (base64, sem prefixo) em tempos escolhidos: para a IA "olhar" um take. */
+export async function grabFramesBase64(track: InputVideoTrack, times: number[], width = 512): Promise<string[]> {
+  const w = await track.getDisplayWidth();
+  const h = await track.getDisplayHeight();
+  const height = Math.max(2, Math.round((width * h) / Math.max(1, w)));
+  const sink = new CanvasSink(track, { width, height, fit: 'fill', poolSize: 1 });
+  const out: string[] = [];
+  for (const t of times) {
+    const wrapped = await sink.getCanvas(t).catch(() => null);
+    if (wrapped) out.push(await blobToBase64(await canvasToBlob(wrapped.canvas, 0.7)));
+  }
+  return out;
+}
+
+export async function blobToBase64(b: Blob): Promise<string> {
+  const bytes = new Uint8Array(await b.arrayBuffer());
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+
 /**
  * Tempos alinhados aos keyframes mais próximos (decodificar um keyframe é barato:
  * não precisa decodificar o GOP inteiro).

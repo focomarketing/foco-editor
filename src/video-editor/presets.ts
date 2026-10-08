@@ -42,7 +42,7 @@ export const PROJECT_PRESETS: ProjectPreset[] = [
     defaultMode: 'audio-led',
     enabledSkills: [
       'media-analysis', 'transcription', 'editorial-director', 'edit-interview-with-broll', 'edit-script-to-video',
-      'broll-selector', 'audio-designer', 'caption-designer', 'chapter-generator', 'quality-control',
+      'broll-selector', 'motion-graphics-designer', 'audio-designer', 'caption-designer', 'chapter-generator', 'quality-control',
     ],
     defaultSettings: { pacing: 'natural', captionStyle: 'youtube', musicLevel: 0.12, cutStyle: 'dynamic' },
   },

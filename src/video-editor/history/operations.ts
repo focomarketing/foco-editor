@@ -1,7 +1,7 @@
 // Histórico de operações da IA: criar (preview), escolher itens, aplicar (um passo de undo),
 // rejeitar e desfazer. Fica em project.metadata.operations (vai no .foco; fora do undo).
 
-import type { Project } from '../../core/types';
+import type { Keyframes, Project } from '../../core/types';
 import { newId } from '../../core/time';
 import { Cmd } from '../../engine/commands/commands';
 import type { EditCommand, EditOperation } from '../commands/types';
@@ -106,12 +106,35 @@ export function revertOperation(port: EditorPort, opId: string, opts: { includeE
   }
   // Só adições podem ser desfeitas "tirando o que a IA criou"; cortes, aparos e movimentos só voltam pelo undo.
   const ADDS = new Set(['add_clip', 'add_overlay', 'add_music', 'add_sound_effect', 'add_caption']);
-  const destructive = op.commands.some((c) => !ADDS.has(c.type) && op.selected?.includes(c.id));
+  // Efeitos que guardam os keyframes anteriores (zoom) também voltam, se ninguém mexeu depois.
+  const restorable = (c: EditCommand) => c.type === 'add_effect' && 'prevKeyframes' in c.payload && !!c.payload.keyframes;
+  const destructive = op.commands.some((c) => !ADDS.has(c.type) && !restorable(c) && op.selected?.includes(c.id));
   if (destructive) return { ok: false, keptEdited: 0, message: 'Esta operação cortou ou alterou clipes e já houve edições depois: use Ctrl+Z ou o histórico de versões.' };
-  const { untouched, edited } = removableClips(port.getProject(), op.id);
+  const p = port.getProject();
+  const { untouched, edited } = removableClips(p, op.id);
   const remove = opts.includeEdited ? [...untouched, ...edited] : untouched;
-  if (remove.length) port.execute(Cmd.batch(`Desfazer IA · ${op.skill ?? op.stage ?? ''}`, [Cmd.deleteClips(remove.map((c) => c.id))], 'AI_REVERT'));
+  const restore: Record<string, Keyframes | undefined> = {};
+  let editedFx = 0;
+  for (const c of op.commands.filter((x) => restorable(x) && op.selected?.includes(x.id))) {
+    const clip = p.clips[c.payload.clipId as string];
+    if (!clip) continue;
+    const mine = Object.keys(c.payload.keyframes!) as (keyof Keyframes)[];
+    const same = mine.every((k) => JSON.stringify(clip.keyframes?.[k] ?? null) === JSON.stringify(c.payload.keyframes![k] ?? null));
+    if (!same && !opts.includeEdited) {
+      editedFx++;
+      continue;
+    }
+    const prev = (c.payload.prevKeyframes ?? undefined) as Keyframes | undefined;
+    const next: Keyframes = { ...clip.keyframes };
+    for (const k of mine) {
+      if (prev?.[k]) next[k] = prev[k];
+      else delete next[k];
+    }
+    restore[clip.id] = Object.keys(next).length ? next : undefined;
+  }
+  const cmds = [...(remove.length ? [Cmd.deleteClips(remove.map((c) => c.id))] : []), ...(Object.keys(restore).length ? [Cmd.setKeyframes(restore, 'Desfazer efeito')] : [])];
+  if (cmds.length) port.execute(Cmd.batch(`Desfazer IA · ${op.skill ?? op.stage ?? ''}`, cmds, 'AI_REVERT'));
   update(port, opId, { status: 'reverted' });
-  const kept = opts.includeEdited ? 0 : edited.length;
+  const kept = opts.includeEdited ? 0 : edited.length + editedFx;
   return { ok: true, keptEdited: kept, message: kept ? `Desfeito. ${kept} item(ns) que você editou foram mantidos.` : 'Desfeito.' };
 }

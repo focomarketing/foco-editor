@@ -105,7 +105,7 @@ function Suggestions({ op, fps }: { op: EditOperation; fps: number }) {
             <div key={c.id} className={`cut-row${on || !preview ? ' on' : ''}`} data-testid="suggestion">
               {preview && <input type="checkbox" checked={on} onChange={() => toggleSuggestion(op.id, c.id)} title={low ? 'Confiança baixa: revise antes de aplicar' : ''} />}
               <button className="cut-main" onClick={() => c.start !== undefined && playback.seek(Math.max(0, c.start - 0.8))} title={c.reason}>
-                <span className={`chip ${low ? 'k-filler' : 'k-pause'}`}>{KIND[c.type] ?? c.type}</span>
+                <span className={`chip ${low ? 'k-filler' : 'k-pause'}`}>{c.payload.title ? 'Título' : c.type === 'add_effect' && c.payload.label ? String(c.payload.label) : KIND[c.type] ?? c.type}</span>
                 <span className="tc">{c.start !== undefined ? formatTimecode(c.start, fps).slice(3) : ''}</span>
                 <span className="dur">IA · {c.skill} · {Math.round((c.confidence ?? 1) * 100)}%{low ? ' · revisar' : ''}</span>
                 <span className="why">{c.reason}{c.payload.license ? ` · ${c.payload.license.author ?? ''} (${c.payload.license.licenseName})` : ''}</span>

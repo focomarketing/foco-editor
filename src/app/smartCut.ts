@@ -59,7 +59,8 @@ export const smartCutStore = {
 function speechClips(p: Project) {
   const hidden = new Set(p.tracks.filter((t) => t.hidden || t.muted).map((t) => t.id));
   return Object.values(p.clips)
-    .filter((c) => !c.caption && !c.title && !hidden.has(c.trackId) && p.assets[c.assetId]?.hasAudio && !c.muted)
+    // volume 0 = take de apoio sem som (B-roll): não é fala
+    .filter((c) => !c.caption && !c.title && !hidden.has(c.trackId) && p.assets[c.assetId]?.hasAudio && !c.muted && c.volume > 0)
     .sort((a, b) => a.start - b.start);
 }
 
