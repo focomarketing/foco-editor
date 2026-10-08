@@ -1,0 +1,57 @@
+name: Build and Release FOCO Editor
+
+on:
+  push:
+    tags:
+      - 'v*.*.*' # Roda quando sobe uma tag de versão, ex: v1.0.1
+  workflow_dispatch: {}
+
+permissions:
+  contents: write # necessário para criar o Release com o instalador
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checar o código (Checkout)
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Instalar Dependências
+        run: npm ci
+
+      # Testes do editor: se falharem, nada é publicado (os apps instalados não recebem versão quebrada)
+      - name: Testes
+        run: npm test
+
+      # O editor (React/Vite) é compilado para dist/, que vai dentro do instalador.
+      # Sem este passo o app instalado abriria sem o editor.
+      - name: Compilar o editor
+        run: npm run build:web
+
+      # Só gera o instalador. NÃO publica pelo electron-builder: ele sobe os arquivos em paralelo
+      # e acabava criando DOIS releases com a mesma tag (um só com o .blockmap, sem latest.yml),
+      # e aí o auto-update dos apps instalados não achava a versão nova.
+      - name: Build do Electron
+        run: npx electron-builder --win --publish never
+
+      # Um único release com tudo que o electron-updater precisa: .exe, .blockmap e latest.yml
+      - name: Publicar no GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: FOCO Editor ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          make_latest: true
+          fail_on_unmatched_files: true
+          files: |
+            release/FOCO-Editor-Setup-*.exe
+            release/FOCO-Editor-Setup-*.exe.blockmap
+            release/latest.yml

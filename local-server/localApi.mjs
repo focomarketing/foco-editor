@@ -123,6 +123,19 @@ export async function handleLocal(req, res, url, opts = {}) {
       });
       return json(res, 200, { path: target });
     }
+    
+    // ==========================================
+    // ROTA DA INTELIGÊNCIA ARTIFICIAL E AGENTE
+    // ==========================================
+    if (u.pathname === '/agent/magic' && req.method === 'POST') {
+      const body = await readBody(req);
+      const data = JSON.parse(body.toString('utf8'));
+      
+      const { runAgentMagic } = await import('./agentRoute.mjs');
+      const timelineGerada = await runAgentMagic(data.briefing, data.videoPath);
+      
+      return json(res, 200, { success: true, timeline: timelineGerada });
+    }
     if (parts[0] === 'projects') {
       if (parts.length === 1 && req.method === 'GET') return json(res, 200, projectFiles().map(({ id, name, file, mtimeMs }) => ({ id, name, file, mtimeMs })));
       const id = parts[1];
