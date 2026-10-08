@@ -7,7 +7,15 @@ const { app, BrowserWindow, Menu, dialog, ipcMain, shell } = require('electron')
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
-const { autoUpdater } = require('electron-updater');
+// atualização automática: se o módulo faltar por algum motivo, o editor abre mesmo assim
+let autoUpdater;
+try {
+  ({ autoUpdater } = require('electron-updater'));
+} catch (e) {
+  console.error('[updater] indisponível:', e.message);
+  const noop = () => autoUpdater;
+  autoUpdater = { on: noop, checkForUpdates: () => Promise.resolve(), quitAndInstall: () => {} };
+}
 
 const PORT = Number(process.env.FOCO_APP_PORT || 51730);
 const DEV_URL = process.env.FOCO_DEV_URL; // npm run app:dev → usa o servidor do Vite
