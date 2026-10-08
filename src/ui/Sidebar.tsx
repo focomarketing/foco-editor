@@ -10,13 +10,14 @@ import { finishPhase, markRan, setPhase } from '../app/workflow';
 import { AUTO_PHASES, runPhase } from '../app/phases';
 import { PhaseRunCard } from './PhaseRun';
 import { TransitionLibrary } from './TransitionsPanel';
-import { AudioLines, Blend, Captions, Film, LayoutTemplate, Scissors, Shapes, Sparkles, Type, Wand } from 'lucide-react';
+import { AudioLines, Blend, Captions, Clapperboard, Film, LayoutTemplate, Scissors, Shapes, Sparkles, Type, Wand } from 'lucide-react';
+import { DirectorPanel } from './DirectorPanel';
 import { MediaBin, MediaReconnectBanner } from './MediaBin';
 import { AIPanel } from './AIPanel';
 import { TextPanel } from './TextPanel';
 import { CutPanel } from './CutPanel';
 
-type ToolId = 'media' | 'cut' | 'audio' | 'text' | 'captions' | 'transitions' | 'ai';
+type ToolId = 'media' | 'cut' | 'audio' | 'text' | 'captions' | 'transitions' | 'director' | 'ai';
 
 const TOOLS: { id: ToolId | null; label: string; icon: typeof Film; phase?: string }[] = [
   { id: 'media', label: 'Mídia', icon: Film },
@@ -28,6 +29,7 @@ const TOOLS: { id: ToolId | null; label: string; icon: typeof Film; phase?: stri
   { id: null, label: 'Efeitos', icon: Wand, phase: 'Fase 6' },
   { id: null, label: 'Elementos', icon: Shapes, phase: 'Fase 5' },
   { id: null, label: 'Templates', icon: LayoutTemplate, phase: 'Fase 11' },
+  { id: 'director', label: 'Diretor', icon: Clapperboard },
   { id: 'ai', label: 'IA', icon: Sparkles },
 ];
 
@@ -82,6 +84,21 @@ function PhasePanel({ wf }: { wf: Workflow }) {
           {last ? 'Concluir e abrir o Editor' : 'Concluir fase'} <ArrowRight size={12} />
         </button>
         <button className="btn sm link" onClick={() => setPhase('editor')} title="Abrir a timeline completa agora">Ir para o Editor</button>
+        <button
+          className="btn sm link"
+          onClick={() => {
+            try {
+              localStorage.setItem('foco.sidebar', 'director');
+            } catch {
+              /* sem armazenamento: abre na ferramenta padrão */
+            }
+            setPhase('editor');
+          }}
+          title="O Diretor edita o vídeo inteiro, confere e entrega para você aprovar"
+          data-testid="open-director"
+        >
+          Editar com o Diretor
+        </button>
       </div>
     </section>
   );
@@ -149,6 +166,12 @@ function ToolSidebar() {
               <PhaseRunCard phase="transitions" />
               <TransitionLibrary />
             </div>
+          </section>
+        )}
+        {tool === 'director' && (
+          <section className="panel">
+            <div className="panel-head"><span className="panel-title">Diretor de edição</span></div>
+            <div className="panel-body"><DirectorPanel /></div>
           </section>
         )}
         {tool === 'ai' && (

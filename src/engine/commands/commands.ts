@@ -141,6 +141,23 @@ export const Cmd = {
     cmd('UPDATE_MARKER', 'Editar marcador', { markerId, patch }, (p, x) => ops.updateMarker(p, x.markerId, x.patch)),
   removeMarker: (markerId: string) => cmd('REMOVE_MARKER', 'Apagar marcador', { markerId }, (p, x) => ops.removeMarker(p, x.markerId)),
 
+  /**
+   * Troca a montagem inteira (faixas, clipes, mídias) pela de um rascunho — a edição do Diretor
+   * entra como UM passo de undo. Mantém identidade, nome e o fluxo guiado atuais; mídias que só
+   * existem no projeto atual continuam na Mídia.
+   */
+  replaceTimeline: (next: Project, label = 'Edição do Diretor') =>
+    cmd('REPLACE_TIMELINE', label, { project: next }, (p, x) => ({
+      ...x.project,
+      id: p.id,
+      name: p.name,
+      createdAt: p.createdAt,
+      assets: { ...p.assets, ...x.project.assets },
+      folders: { ...p.folders, ...x.project.folders },
+      metadata: { ...x.project.metadata, workflow: p.metadata?.workflow },
+      updatedAt: Date.now(),
+    })),
+
   /** Vários comandos como UM passo de histórico (ex.: uma edição da IA). */
   batch: (label: string, commands: EditCommand[], type = 'BATCH') =>
     cmd(type, label, { commands: commands.map(toJSON) }, (p) => commands.reduce((acc, c) => c.execute(acc), p)),
@@ -190,6 +207,7 @@ const REGISTRY: Record<string, Factory> = {
   ADD_MARKER: (x: { marker: Marker }) => Cmd.addMarker(x.marker),
   UPDATE_MARKER: (x: { markerId: string; patch: Partial<Marker> }) => Cmd.updateMarker(x.markerId, x.patch),
   REMOVE_MARKER: (x: { markerId: string }) => Cmd.removeMarker(x.markerId),
+  REPLACE_TIMELINE: (x: { project: Project }) => Cmd.replaceTimeline(x.project),
 };
 
 export function commandFromJSON(j: CommandJSON): EditCommand {

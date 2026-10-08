@@ -87,7 +87,7 @@ async function ensureTranscripts(progress: (step: string, done?: number, total?:
   }
 }
 
-const services: SkillServices = {
+export const skillServices: SkillServices = {
   ensureTranscripts,
   async importFiles(files) {
     await actions.importItems(files.map((file) => ({ file })));
@@ -147,7 +147,7 @@ export async function runPhase(phase: PhaseId, opts: { regenerate?: boolean; aut
         signal: abort.signal,
         progress: (step, done = 0, total = 0) => set({ step, done, total }),
         words: () => timelineSpeech(store.getState().project).words,
-        services,
+        services: skillServices,
       },
       { autoApply: opts.autoApply ?? true, regenerate: opts.regenerate },
     );
