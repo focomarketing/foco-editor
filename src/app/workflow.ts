@@ -11,6 +11,7 @@ import { actions, playback, projectFile, store, transcripts } from './editor';
 import { notify } from './notify';
 import { viewStore } from './view';
 import type { ImportItem } from '../engine/media/MediaEngine';
+import type { EditMode } from '../video-editor/presets';
 
 const ASPECT_SIZE: Record<AspectRatio, [number, number]> = { '16:9': [1920, 1080], '9:16': [1080, 1920], '1:1': [1080, 1080], '4:5': [1080, 1350] };
 
@@ -36,8 +37,8 @@ export function startNewProject() {
 }
 
 /** Cria o projeto pela trilha escolhida e pede os vídeos (com acesso guardado, para reabrir depois). */
-export async function createGuidedProject(opts: { name: string; track: TrackId; subtype: string | null; aspect?: AspectRatio }, items?: ImportItem[]) {
-  const wf = createWorkflow(opts.track, opts.subtype);
+export async function createGuidedProject(opts: { name: string; track: TrackId; subtype: string | null; aspect?: AspectRatio; mode?: EditMode; script?: string }, items?: ImportItem[]) {
+  const wf = createWorkflow(opts.track, opts.subtype, { mode: opts.mode, script: opts.script });
   if (opts.aspect) wf.defaults.aspect = opts.aspect;
   const p = createProject();
   const [width, height] = ASPECT_SIZE[wf.defaults.aspect];

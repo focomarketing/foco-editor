@@ -4,7 +4,7 @@ import { TRACKS, completePhase, createWorkflow, goToPhase, readWorkflow, workflo
 describe('workflow', () => {
   it('trilha + tipo definem formato, ritmo de corte e legenda', () => {
     const w = createWorkflow('youtube', 'cristao');
-    expect(w.defaults).toEqual({ aspect: '16:9', cutMode: 'natural', captionPreset: 'cinema' });
+    expect(w.defaults).toMatchObject({ aspect: '16:9', cutMode: 'natural', captionPreset: 'cinema' });
     expect(w.current).toBe('cut');
     expect(w.phases.at(-1)).toBe('editor');
     const s = createWorkflow('short', 'venda');
