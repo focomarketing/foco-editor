@@ -1,0 +1,53 @@
+{
+  "name": "foco-editor-desktop",
+  "private": true,
+  "version": "1.0.0",
+  "description": "FOCO Editor — editor de vídeo com IA",
+  "main": "electron/main.cjs",
+  "devDependencies": {
+    "electron": "^44.7.0",
+    "electron-builder": "^26.15.3"
+  },
+  "allowScripts": {
+    "electron@44.7.0": true
+  },
+  "productName": "FOCO Editor",
+  "author": "FOCO Marketing",
+  "build": {
+    "appId": "com.focomarketing.editor",
+    "productName": "FOCO Editor",
+    "directories": {
+      "output": "release"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "focomarketing",
+        "repo": "foco-editor"
+      }
+    ],
+    "files": [
+      "dist/**",
+      "electron/**",
+      "local-server/**",
+      "package.json",
+      "!**/node_modules/**"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "electron/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "FOCO Editor",
+      "deleteAppDataOnUninstall": false
+    }
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9"
+  }
+}
