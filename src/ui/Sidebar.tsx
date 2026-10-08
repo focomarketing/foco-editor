@@ -2,6 +2,11 @@
 // desativadas com a fase em que chegam — nada de botão falso.
 
 import { useState } from 'react';
+import { ArrowRight, SkipForward } from 'lucide-react';
+import { useEditor } from './hooks';
+import { phaseDef, readWorkflow } from '../core/workflow';
+import type { Workflow } from '../core/workflow';
+import { finishPhase, setPhase } from '../app/workflow';
 import { AudioLines, Blend, Captions, Film, LayoutTemplate, Scissors, Shapes, Sparkles, Type, Wand } from 'lucide-react';
 import { MediaBin } from './MediaBin';
 import { AIPanel } from './AIPanel';
@@ -24,6 +29,48 @@ const TOOLS: { id: ToolId | null; label: string; icon: typeof Film; phase?: stri
 ];
 
 export function Sidebar() {
+  const { project } = useEditor();
+  const wf = readWorkflow(project.metadata);
+  if (wf && wf.current !== 'editor') return <PhasePanel wf={wf} />;
+  return <ToolSidebar />;
+}
+
+/** Painel da fase guiada atual (ocupa a barra e o painel lateral). */
+function PhasePanel({ wf }: { wf: Workflow }) {
+  const def = phaseDef(wf.current);
+  const last = wf.phases.indexOf(wf.current) === wf.phases.length - 2; // a próxima é o Editor
+  return (
+    <section className="panel phase-panel" data-testid={`phase-panel-${wf.current}`}>
+      <div className="panel-head">
+        <span className="panel-title">{wf.phases.indexOf(wf.current) + 1}. {def.label}</span>
+      </div>
+      <div className="panel-body">
+        {wf.current === 'cut' ? (
+          <CutPanel />
+        ) : (
+          <div className="insp">
+            <div className="empty">
+              <b>{def.label}</b> — {def.hint}.
+              <br />
+              Esta fase ainda está em construção. Pule para seguir, ou vá direto para o Editor.
+            </div>
+          </div>
+        )}
+      </div>
+      <div className="phase-foot">
+        <button className="btn sm" onClick={() => finishPhase('skipped')} title="Seguir sem esta fase" data-testid="phase-skip">
+          <SkipForward size={12} /> Pular
+        </button>
+        <button className="btn sm primary" onClick={() => finishPhase('done')} data-testid="phase-done">
+          {last ? 'Concluir e abrir o Editor' : 'Concluir fase'} <ArrowRight size={12} />
+        </button>
+        <button className="btn sm link" onClick={() => setPhase('editor')} title="Abrir a timeline completa agora">Ir para o Editor</button>
+      </div>
+    </section>
+  );
+}
+
+function ToolSidebar() {
   const [tool, setTool] = useState<ToolId>(() => {
     try {
       return (localStorage.getItem('foco.sidebar') as ToolId) || 'media';

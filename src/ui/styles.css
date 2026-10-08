@@ -394,3 +394,54 @@ button, input, select { font: inherit; color: inherit; }
 .perf-panel td { padding: 2px 0; }
 .perf-panel td:last-child { text-align: right; font-family: var(--mono); color: var(--text-0); }
 .mini-select { height: 24px; background: var(--bg-2); border: 1px solid var(--line-2); border-radius: 4px; color: var(--text-0); font-size: 11.5px; margin-right: 4px; }
+
+/* ---------- Fluxo guiado: Projetos, Novo projeto, fases ---------- */
+.app.home-app { grid-template-rows: 40px minmax(0, 1fr); }
+.app.with-phases { grid-template-rows: 40px 40px minmax(0, 1fr) 6px var(--timeline-h, 42%); }
+.home { overflow: auto; padding: 28px clamp(16px, 5vw, 64px) 60px; }
+.home h1 { font-size: 22px; margin: 8px 0 4px; }
+.home-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; margin-bottom: 22px; flex-wrap: wrap; }
+.home .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.home-empty { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 60px; border: 1px dashed var(--line-2); border-radius: 10px; color: var(--text-1); }
+.home-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.proj-card { position: relative; background: var(--bg-2); border: 1px solid var(--line); border-radius: 10px; }
+.proj-card:hover { border-color: var(--accent); }
+.proj-open { display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 14px 16px; background: transparent; border: 0; text-align: left; color: var(--text-0); cursor: pointer; }
+.proj-name { font-size: 15px; font-weight: 600; padding-right: 26px; }
+.proj-track { font-size: 12px; color: var(--accent-2); }
+.proj-meta { font-size: 11.5px; color: var(--text-2); }
+.proj-phases { display: flex; gap: 3px; }
+.proj-phases i { flex: 1; height: 4px; border-radius: 2px; background: var(--bg-4); }
+.proj-phases i.done { background: var(--ok); }
+.proj-phases i.now { background: var(--accent); }
+.proj-phases i.skipped { background: var(--text-2); }
+.proj-del { position: absolute; top: 10px; right: 10px; opacity: .5; }
+.proj-del:hover { opacity: 1; color: var(--danger); }
+.track-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+.track-card, .sub-card { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 18px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 10px; color: var(--text-0); text-align: left; cursor: pointer; font: inherit; }
+.track-card b { font-size: 15px; }
+.track-card span, .sub-card span { font-size: 12px; color: var(--text-1); }
+.track-card:hover:not(:disabled), .sub-card:hover { border-color: var(--accent); }
+.track-card:disabled { opacity: .5; cursor: default; }
+.track-card em { font-style: normal; font-size: 10.5px; color: var(--warn); }
+.new-form { max-width: 760px; display: flex; flex-direction: column; gap: 8px; }
+.new-form label.f { font-size: 12px; font-weight: 600; color: var(--text-1); margin-top: 8px; }
+.sub-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+.sub-card { padding: 12px 14px; }
+.sub-card.on { border-color: var(--accent); background: var(--accent-bg); }
+.new-form .text-input { background: var(--bg-2); border: 1px solid var(--line-2); border-radius: 6px; padding: 8px 10px; color: var(--text-0); font: inherit; }
+.phasebar { display: flex; align-items: stretch; gap: 2px; padding: 4px 10px; background: var(--bg-1); border-bottom: 1px solid var(--line); overflow-x: auto; }
+.phase { display: flex; align-items: center; gap: 7px; padding: 0 12px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--text-1); cursor: pointer; font: inherit; white-space: nowrap; }
+.phase:hover { background: var(--bg-3); }
+.phase .num { display: inline-grid; place-items: center; width: 19px; height: 19px; border-radius: 50%; background: var(--bg-4); font-size: 11px; color: var(--text-0); }
+.phase.now { border-color: var(--accent); color: var(--text-0); background: var(--accent-bg); }
+.phase.now .num { background: var(--accent); }
+.phase.done .num { background: var(--ok); color: #062b1b; }
+.phase.skipped { opacity: .6; }
+.phase.soon .lbl { color: var(--text-2); }
+.phase em { font-style: normal; font-size: 10px; color: var(--warn); }
+.phase-panel { grid-column: span 2; display: flex; flex-direction: column; min-height: 0; }
+.phase-panel .panel-body { flex: 1; min-height: 0; overflow: auto; }
+.phase-foot { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; padding: 8px 10px; border-top: 1px solid var(--line); background: var(--bg-1); }
+.btn.link { background: transparent; border-color: transparent; color: var(--text-2); }
+.btn.link:hover { color: var(--text-0); }

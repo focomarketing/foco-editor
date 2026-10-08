@@ -37,6 +37,20 @@ export interface BackupRecord {
 
 const MAX_BACKUPS_PER_PROJECT = 30;
 
+/** Projeto no catálogo "Projetos" (tela inicial): o projeto inteiro + resumo para a lista. */
+export interface CatalogEntry {
+  id: string;
+  name: string;
+  createdAt: number;
+  updatedAt: number;
+  /** Fluxo guiado (trilha, fase atual), se houver. */
+  workflow: unknown;
+  duration: number;
+  clipCount: number;
+  project: Project;
+  transcripts: Transcript[];
+}
+
 export interface LoadedProject {
   project: Project;
   transcripts: Transcript[];
@@ -118,6 +132,39 @@ export class ProjectFile {
     if (!this.handle) return;
     const rec: RecentProject = { id: p.id, name: p.name, fileName: this.handle.name, savedAt: Date.now(), handle: this.handle };
     await safe(idb.set('recents', p.id, rec));
+  }
+
+  // --- catálogo de projetos (tela inicial) -----------------------------------
+
+  /** Guarda o projeto no catálogo. Projetos vazios (sem mídia) não entram. */
+  async catalogSave(p: Project, transcripts: Transcript[], duration: number) {
+    if (!Object.keys(p.assets).length) return;
+    const assetIds = new Set(Object.keys(p.assets));
+    const rec: CatalogEntry = {
+      id: p.id,
+      name: p.name,
+      createdAt: p.createdAt,
+      updatedAt: Date.now(),
+      workflow: p.metadata?.workflow ?? null,
+      duration,
+      clipCount: Object.keys(p.clips).length,
+      project: p,
+      transcripts: transcripts.filter((t) => assetIds.has(t.assetId)),
+    };
+    await safe(idb.set('projects', p.id, rec));
+  }
+
+  async catalog(): Promise<CatalogEntry[]> {
+    const all = (await safe(idb.all<CatalogEntry>('projects'))) ?? [];
+    return all.sort((a, b) => b.updatedAt - a.updatedAt);
+  }
+
+  async catalogGet(id: string): Promise<CatalogEntry | undefined> {
+    return safe(idb.get<CatalogEntry>('projects', id));
+  }
+
+  async catalogRemove(id: string) {
+    await safe(idb.del('projects', id));
   }
 
   // --- autosave -------------------------------------------------------------

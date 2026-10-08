@@ -190,6 +190,15 @@ export class EditorStore {
     this.set({ dirty: false });
   }
 
+  /**
+   * Metadado do projeto que não é edição (ex.: em que fase do fluxo o projeto está).
+   * Fica salvo no projeto e dispara o autosave, mas não entra no histórico de undo.
+   */
+  setMeta(key: string, value: unknown) {
+    const p = this.state.project;
+    this.set({ project: { ...p, metadata: { ...p.metadata, [key]: value }, updatedAt: Date.now() }, dirty: true, revision: this.state.revision + 1 });
+  }
+
   // --- estado de UI (não entra no histórico) --------------------------------
 
   select(ids: string[]) {

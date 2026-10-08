@@ -23,6 +23,7 @@ import {
   sourceRangesToTimeline,
   trackKindForAsset,
   isPlaceable,
+  projectDuration,
 } from '../engine/timeline/operations';
 import type { Range } from '../engine/timeline/operations';
 import { TranscriptEngine } from '../engine/transcript/TranscriptEngine';
@@ -37,6 +38,7 @@ import { ProjectFile } from '../engine/project/ProjectEngine';
 import type { RecentProject } from '../engine/project/ProjectEngine';
 import { MEDIA_TYPES, downloadBlob, fsAccessSupported, isAbort, pickFiles, pickSaveFile, pickWithInput, writeTextFile } from '../engine/platform/fs';
 import { notify } from './notify';
+import { viewStore } from './view';
 
 export const store = new EditorStore();
 export const playback = new PlaybackEngine(store, media);
@@ -103,6 +105,8 @@ export const actions = {
 
   async importItems(items: ImportItem[]) {
     if (items.length === 0) return;
+    // Importar estando na tela de Projetos abre o editor com a mídia.
+    viewStore.set('project');
     const { assets, errors, skipped } = await media.importFiles(items);
     if (assets.length) {
       store.execute(Cmd.importAssets(assets));
@@ -325,6 +329,7 @@ export const actions = {
   },
 
   async load(p: Project, fromFile: Transcript[] = []) {
+    viewStore.set('project');
     playback.pause();
     media.releaseAll();
     store.load(p);
@@ -566,6 +571,8 @@ function saveNow() {
   const s = store.getState();
   lastSavedRevision = s.revision;
   void projectFile.autosave(s.project, s.dirty);
+  // Catálogo da tela Projetos: cada projeto com mídia fica guardado para reabrir depois.
+  void projectFile.catalogSave(s.project, transcripts.all(), projectDuration(s.project));
 }
 
 /** Autosave: logo após cada edição (intervalo 0) ou a cada N segundos. Backup automático a cada 10 min. */
@@ -666,6 +673,10 @@ export async function recoverSession() {
     await media.restore(Object.values(rec.project.assets));
     await transcripts.hydrate(Object.values(rec.project.assets));
     lastRevision = lastSavedRevision = lastBackupRevision = store.getState().revision;
+    // Projeto de antes do catálogo existir: entra na lista de Projetos.
+    void projectFile.catalogSave(rec.project, transcripts.all(), projectDuration(rec.project));
+    // Havia trabalho não salvo e a pessoa escolheu restaurar: abre direto nele.
+    if (rec.dirty) viewStore.set('project');
   } catch (e) {
     console.warn('autosave inválido', e);
     store.load(createProject());

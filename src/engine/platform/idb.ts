@@ -1,8 +1,8 @@
 // IndexedDB mínimo: autosave, handles de arquivos de mídia, cache de waveform e recentes.
 
 const DB_NAME = 'foco-editor';
-const DB_VERSION = 4;
-export type StoreName = 'kv' | 'mediaHandles' | 'waveforms' | 'recents' | 'transcripts' | 'thumbs' | 'cacheIndex' | 'backups';
+const DB_VERSION = 5;
+export type StoreName = 'kv' | 'mediaHandles' | 'waveforms' | 'recents' | 'transcripts' | 'thumbs' | 'cacheIndex' | 'backups' | 'projects';
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
@@ -11,7 +11,7 @@ function open(): Promise<IDBDatabase> {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
     req.onupgradeneeded = () => {
       const db = req.result;
-      for (const name of ['kv', 'mediaHandles', 'waveforms', 'recents', 'transcripts', 'thumbs', 'cacheIndex', 'backups']) {
+      for (const name of ['kv', 'mediaHandles', 'waveforms', 'recents', 'transcripts', 'thumbs', 'cacheIndex', 'backups', 'projects']) {
         if (!db.objectStoreNames.contains(name)) db.createObjectStore(name);
       }
     };

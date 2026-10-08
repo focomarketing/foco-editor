@@ -1,10 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
-import { ChevronDown, Download, FolderOpen } from 'lucide-react';
+import { ChevronDown, Download, FolderOpen, LayoutGrid } from 'lucide-react';
 import { actions, playback, projectFile } from '../app/editor';
 import type { RecentProject } from '../engine/project/ProjectEngine';
 import { fsAccessSupported } from '../engine/platform/fs';
 import { projectDuration } from '../engine/timeline/operations';
-import { useEditor, usePrefs, useToasts } from './hooks';
+import { useEditor, usePrefs, useToasts, useView } from './hooks';
+import { ProjectsHome } from './ProjectsHome';
+import { NewProject } from './NewProject';
+import { PhaseBar } from './PhaseBar';
+import { readWorkflow } from '../core/workflow';
+import { goHome } from '../app/workflow';
 import { SettingsDialog } from './SettingsDialog';
 import { VersionHistory } from './VersionHistory';
 import { PerformancePanel } from './PerformancePanel';
@@ -19,6 +24,25 @@ import { ExportDialog } from './ExportDialog';
 import { useShortcuts } from './shortcuts';
 
 export function App() {
+  const view = useView();
+  if (view !== 'project') {
+    return (
+      <div className="app home-app">
+        <header className="header">
+          <div className="brand">FOCO <span>EDITOR</span></div>
+        </header>
+        {view === 'home' ? <ProjectsHome /> : <NewProject />}
+        <Dialogs />
+        <Toasts />
+      </div>
+    );
+  }
+  return <ProjectApp />;
+}
+
+function ProjectApp() {
+  const { project } = useEditor();
+  const wf = readWorkflow(project.metadata);
   const [exporting, setExporting] = useState(false);
   const [panel, setPanel] = useState<'settings' | 'history' | null>(null);
   const prefs = usePrefs();
@@ -73,8 +97,9 @@ export function App() {
   };
 
   return (
-    <div className="app" style={{ '--timeline-h': `${timelineH}px` } as React.CSSProperties}>
+    <div className={`app${wf ? ' with-phases' : ''}`} style={{ '--timeline-h': `${timelineH}px` } as React.CSSProperties}>
       <Header onExport={() => setExporting(true)} onSettings={() => setPanel('settings')} onHistory={() => setPanel('history')} />
+      {wf && <PhaseBar wf={wf} />}
       <main className="workspace">
         <Sidebar />
         <Viewer />
@@ -116,6 +141,7 @@ function Header({ onExport, onSettings, onHistory }: { onExport: () => void; onS
   return (
     <header className="header">
       <div className="brand">FOCO <span>EDITOR</span></div>
+      <button className="btn" onClick={() => void goHome()} title="Voltar para a lista de projetos" data-testid="go-home"><LayoutGrid size={13} /> Projetos</button>
       <div className="menu" ref={menuRef}>
         <button className={`btn${menu ? ' active' : ''}`} onClick={() => setMenu(!menu)}>
           Arquivo <ChevronDown size={13} />
