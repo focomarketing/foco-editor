@@ -1,13 +1,13 @@
 // Tela inicial: projetos em aberto (catálogo no navegador) e "Novo projeto".
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { Clapperboard, FolderOpen, Plus, Trash2 } from 'lucide-react';
 import { actions, projectFile } from '../app/editor';
 import { openFromCatalog, removeFromCatalog, startNewProject } from '../app/workflow';
 import type { CatalogEntry } from '../engine/project/ProjectEngine';
 import { phaseDef, readWorkflow, workflowLabel } from '../core/workflow';
 import { formatDuration } from '../core/time';
-import { desktop } from '../engine/platform/desktop';
+import { desktop, updateStore } from '../engine/platform/desktop';
 
 export function ProjectsHome() {
   const [list, setList] = useState<CatalogEntry[] | null>(null);
@@ -77,6 +77,35 @@ export function ProjectsHome() {
             );
           })}
         </div>
+      )}
+      {desktop && <UpdateFooter />}
+    </div>
+  );
+}
+
+/** Versão instalada e atualização: verificar, acompanhar o download, reiniciar ou baixar manualmente. */
+function UpdateFooter() {
+  const st = useSyncExternalStore(updateStore.subscribe, updateStore.get);
+  const text =
+    st.kind === 'checking' ? 'Procurando atualização…'
+    : st.kind === 'none' ? (st.dev ? 'Modo de desenvolvimento (sem atualização automática).' : 'Você está na versão mais nova.')
+    : st.kind === 'available' ? `Versão ${st.version} disponível — baixando…`
+    : st.kind === 'downloading' ? `Baixando atualização${st.version ? ` ${st.version}` : ''}: ${Math.round(st.percent)}%`
+    : st.kind === 'ready' ? `Versão ${st.version} pronta para instalar.`
+    : st.kind === 'error' ? 'Não consegui verificar atualizações.'
+    : '';
+  return (
+    <div className="update-footer" data-testid="update-footer">
+      <span>FOCO Editor {desktop?.appVersion ?? ''}</span>
+      {text && <span className={`muted${st.kind === 'error' ? ' bad' : ''}`}>· {text}</span>}
+      {st.kind === 'ready' ? (
+        <button className="btn sm primary" onClick={() => desktop?.applyUpdate?.()}>Reiniciar e atualizar</button>
+      ) : st.kind === 'error' ? (
+        <button className="btn sm" onClick={() => desktop?.openReleases?.()}>Baixar manualmente</button>
+      ) : (
+        <button className="btn sm link" disabled={st.kind === 'checking' || st.kind === 'downloading' || st.kind === 'available'} onClick={() => desktop?.checkForUpdates?.()} data-testid="check-updates">
+          Verificar atualizações
+        </button>
       )}
     </div>
   );

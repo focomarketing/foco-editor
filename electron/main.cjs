@@ -146,11 +146,66 @@ if (!app.requestSingleInstanceLock()) {
 
     // Conversa com o GitHub (Releases de focomarketing/foco-editor): checa ao abrir e a cada 30 min
     if (!DEV_URL && app.isPackaged) {
-      const check = () => autoUpdater.checkForUpdates().catch((e) => updLog('check falhou:', e));
-      setTimeout(check, 5000);
-      setInterval(check, 30 * 60 * 1000);
+      useOwnUpdateConfig();
+      setTimeout(() => checkUpdates(false), 5000);
+      setInterval(() => checkUpdates(false), 30 * 60 * 1000);
     }
   });
+
+  // O endereço de atualização vem do código, não só do resources/app-update.yml da instalação:
+  // um desligamento inesperado logo depois de instalar já deixou esse arquivo zerado, e aí o
+  // atualizador falhava em silêncio. A cópia fica na pasta de dados e é regravada a cada abertura.
+  const FEED = { provider: 'github', owner: 'focomarketing', repo: 'foco-editor', releaseType: 'release' };
+  const RELEASES_URL = `https://github.com/${FEED.owner}/${FEED.repo}/releases/latest`;
+  function useOwnUpdateConfig() {
+    const yml = `owner: ${FEED.owner}\nrepo: ${FEED.repo}\nprovider: ${FEED.provider}\nreleaseType: ${FEED.releaseType}\nupdaterCacheDirName: foco-editor-updater\n`;
+    try {
+      const own = path.join(app.getPath('userData'), 'app-update.yml');
+      fs.writeFileSync(own, yml);
+      autoUpdater.updateConfigPath = own;
+    } catch (e) {
+      updLog('não consegui gravar a configuração de atualização:', e);
+    }
+    try {
+      autoUpdater.setFeedURL(FEED);
+    } catch (e) {
+      updLog('setFeedURL falhou:', e);
+    }
+    // diagnóstico: o arquivo da instalação danificado (ex.: desligamento logo depois de instalar)
+    try {
+      const installed = path.join(process.resourcesPath, 'app-update.yml');
+      const b = fs.readFileSync(installed);
+      if (b.length && b.every((x) => x === 0)) updLog('aviso: resources/app-update.yml da instalação está danificado (zerado); usando a configuração própria do app');
+    } catch {}
+  }
+
+  // Falhas seguidas viram aviso com o caminho manual (uma vez por sessão), nunca silêncio
+  let failures = 0;
+  let manualOffered = false;
+  async function checkUpdates(manual) {
+    if (win) win.webContents.send('updater:checking');
+    try {
+      await autoUpdater.checkForUpdates();
+      failures = 0;
+    } catch (e) {
+      failures++;
+      updLog('check falhou:', e);
+      if (win) win.webContents.send('updater:error', { message: String(e?.message ?? e).split('\n')[0] });
+      if ((manual || failures >= 2) && !manualOffered) {
+        manualOffered = true;
+        const { response } = await dialog.showMessageBox(win, {
+          type: 'warning',
+          title: 'FOCO Editor — atualização',
+          message: 'Não consegui verificar atualizações automaticamente.',
+          detail: 'Você pode baixar a versão mais nova na página de lançamentos e instalar por cima (seus projetos e mídias não são afetados).',
+          buttons: ['Baixar manualmente', 'Agora não'],
+          defaultId: 0,
+          cancelId: 1,
+        });
+        if (response === 0) void shell.openExternal(RELEASES_URL);
+      }
+    }
+  }
 
   // Eventos do AutoUpdater
   autoUpdater.autoDownload = true;
@@ -172,7 +227,14 @@ if (!app.requestSingleInstanceLock()) {
   });
 
   autoUpdater.on('download-progress', (p) => {
-    if (win) win.setProgressBar(p.percent / 100);
+    if (win) {
+      win.setProgressBar(p.percent / 100);
+      win.webContents.send('updater:progress', { percent: p.percent });
+    }
+  });
+
+  autoUpdater.on('update-not-available', () => {
+    if (win) win.webContents.send('updater:none', { version: app.getVersion() });
   });
 
   autoUpdater.on('update-downloaded', async (info) => {
@@ -219,6 +281,16 @@ if (!app.requestSingleInstanceLock()) {
   }
 
   ipcMain.on('foco:apply-update', () => void applyUpdate());
-  ipcMain.on('foco:check-update', () => void autoUpdater.checkForUpdates().catch((e) => updLog('check falhou:', e)));
+  ipcMain.on('foco:check-update', () => {
+    if (DEV_URL || !app.isPackaged) {
+      if (win) win.webContents.send('updater:none', { version: app.getVersion(), dev: true });
+      return;
+    }
+    void checkUpdates(true);
+  });
+  ipcMain.on('foco:version', (e) => {
+    e.returnValue = app.getVersion();
+  });
+  ipcMain.on('foco:open-releases', () => void shell.openExternal(RELEASES_URL));
   app.on('window-all-closed', () => app.quit());
 }
