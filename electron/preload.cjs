@@ -15,6 +15,8 @@ contextBridge.exposeInMainWorld('focoDesktop', {
   openFolder: (which) => ipcRenderer.send('foco:open-folder', which === 'media' ? 'media' : 'projects'),
   
   // Atualizações (AutoUpdater)
+  onUpdateAvailable: (callback) => ipcRenderer.on('updater:available', (_event, value) => callback(value)),
   onUpdateReady: (callback) => ipcRenderer.on('updater:ready', (_event, value) => callback(value)),
   applyUpdate: () => ipcRenderer.send('foco:apply-update'),
+  checkForUpdates: () => ipcRenderer.send('foco:check-update'),
 });

@@ -1,32 +1,32 @@
-name: Build and Release FOCO Editor
+﻿name: Build and Release FOCO Editor
 
 on:
   push:
     tags:
-      - 'v*.*.*' # Só roda quando você subir uma tag de versão, ex: v1.0.1
+      - 'v*.*.*' # Roda quando sobe uma tag de versÃ£o, ex: v1.0.1
+  workflow_dispatch: {}
+
+permissions:
+  contents: write # necessÃ¡rio para criar o Release com o instalador
 
 jobs:
   release:
     runs-on: windows-latest
 
     steps:
-      - name: Checar o código (Checkout)
-        uses: actions/checkout@v3
+      - name: Checar o cÃ³digo (Checkout)
+        uses: actions/checkout@v4
 
       - name: Configurar Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '18' # Ajuste se usar outra versão
+          node-version: '22'
           cache: 'npm'
 
-      - name: Instalar Dependências
+      - name: Instalar DependÃªncias
         run: npm install
 
-      # Se você tiver um processo de build do Front-end (ex: npm run build do Vite), descomente a linha abaixo
-      # - name: Build do Front-end (Vite)
-      #   run: npm run build
-
-      - name: Build do Electron e Publicação no GitHub Releases
+      - name: Build do Electron e PublicaÃ§Ã£o no GitHub Releases
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # O GitHub fornece esse token automaticamente
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx electron-builder --win --publish always

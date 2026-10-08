@@ -124,20 +124,76 @@ if (!app.requestSingleInstanceLock()) {
       }
     }
     await createWindow();
-    
-    // Inicia checagem de atualizações apenas se estiver empacotado (não em dev)
-    if (!DEV_URL) {
-      autoUpdater.checkForUpdatesAndNotify().catch(() => {});
+
+    // Conversa com o GitHub (Releases de focomarketing/foco-editor): checa ao abrir e a cada 30 min
+    if (!DEV_URL && app.isPackaged) {
+      const check = () => autoUpdater.checkForUpdates().catch(() => {});
+      setTimeout(check, 5000);
+      setInterval(check, 30 * 60 * 1000);
     }
   });
-  
+
   // Eventos do AutoUpdater
-  autoUpdater.on('update-downloaded', (info) => {
-    if (win) win.webContents.send('updater:ready', info);
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+  let announced = null;
+  let askedRestart = null;
+
+  autoUpdater.on('update-available', (info) => {
+    if (win) win.webContents.send('updater:available', info);
+    if (announced === info.version) return;
+    announced = info.version;
+    void dialog.showMessageBox(win, {
+      type: 'info',
+      title: 'FOCO Editor — atualização disponível',
+      message: `Nova versão ${info.version} disponível!`,
+      detail: `Você está na versão ${app.getVersion()}. Estou baixando a atualização em segundo plano — pode continuar editando. Aviso quando estiver pronta.`,
+      buttons: ['OK'],
+    });
   });
-  
-  ipcMain.on('foco:apply-update', () => {
-    autoUpdater.quitAndInstall();
+
+  autoUpdater.on('download-progress', (p) => {
+    if (win) win.setProgressBar(p.percent / 100);
   });
+
+  autoUpdater.on('update-downloaded', async (info) => {
+    if (win) {
+      win.setProgressBar(-1);
+      win.webContents.send('updater:ready', info);
+    }
+    if (askedRestart === info.version) return;
+    askedRestart = info.version;
+    const { response } = await dialog.showMessageBox(win, {
+      type: 'info',
+      title: 'FOCO Editor — atualização pronta',
+      message: `A versão ${info.version} está pronta para instalar.`,
+      detail: 'Reiniciar agora para atualizar? (Seu projeto é salvo antes.) Se escolher "Depois", ela instala sozinha quando você fechar o app.',
+      buttons: ['Reiniciar agora', 'Depois'],
+      defaultId: 0,
+      cancelId: 1,
+    });
+    if (response === 0) applyUpdate();
+  });
+
+  autoUpdater.on('error', (err) => {
+    if (win) win.setProgressBar(-1);
+    console.error('[updater]', err && err.message);
+  });
+
+  // salva o projeto antes de reiniciar para instalar
+  async function applyUpdate() {
+    try {
+      if (win) {
+        const flush = win.webContents.executeJavaScript('window.__focoFlush ? window.__focoFlush().then(() => true) : true', true).catch(() => true);
+        await Promise.race([flush, new Promise((r) => setTimeout(r, 4000))]);
+      }
+    } finally {
+      closing = true;
+      autoUpdater.quitAndInstall();
+    }
+  }
+
+  ipcMain.on('foco:apply-update', () => void applyUpdate());
+  ipcMain.on('foco:check-update', () => void autoUpdater.checkForUpdates().catch(() => {}));
   app.on('window-all-closed', () => app.quit());
 }
