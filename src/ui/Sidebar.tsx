@@ -10,7 +10,7 @@ import { finishPhase, markRan, setPhase } from '../app/workflow';
 import { AUTO_PHASES, phaseRunStore, runPhase } from '../app/phases';
 import { PhaseRunCard } from './PhaseRun';
 import { AudioLines, Blend, Captions, Film, LayoutTemplate, Scissors, Shapes, Sparkles, Type, Wand } from 'lucide-react';
-import { MediaBin } from './MediaBin';
+import { MediaBin, MediaReconnectBanner } from './MediaBin';
 import { AIPanel } from './AIPanel';
 import { TextPanel } from './TextPanel';
 import { CutPanel } from './CutPanel';
@@ -56,6 +56,7 @@ function PhasePanel({ wf }: { wf: Workflow }) {
         <span className="panel-title">{wf.phases.indexOf(wf.current) + 1}. {def.label}</span>
       </div>
       <div className="panel-body">
+        <MediaReconnectBanner />
         {auto && <PhaseRunCard phase={wf.current} />}
         {wf.current === 'cut' ? (
           <CutPanel />

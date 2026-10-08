@@ -214,6 +214,9 @@ export class MediaEngine {
       if (r.asset) {
         this.attach(r.asset, item.file, item.handle);
         if (item.handle) await safe(idb.set('mediaHandles', r.asset.id, item.handle));
+        // sem arquivo no disco (imagem baixada pela IA, arquivo escolhido sem acesso ao disco):
+        // guarda uma cópia no navegador para sobreviver ao recarregar
+        else await safe(keepCopy(r.asset.id, item.file));
       }
       return r;
     } catch (e) {
@@ -538,6 +541,7 @@ export class MediaEngine {
     this.entries.delete(assetId);
     this.assets.delete(assetId);
     void safe(idb.del('mediaHandles', assetId));
+    void safe(dropCopy(assetId));
     this.emit();
   }
 
@@ -557,7 +561,9 @@ export class MediaEngine {
       this.assets.set(asset.id, asset);
       const handle = await safe(idb.get<FileSystemFileHandle>('mediaHandles', asset.id));
       if (!handle) {
-        this.patch(asset.id, { status: 'offline', warning: 'Mídia original não vinculada neste navegador. Use "Localizar mídia".' });
+        const copy = await safe(loadCopy(asset.id));
+        if (copy) this.attach(asset, copy);
+        else this.patch(asset.id, { status: 'offline', warning: 'Mídia original não vinculada neste navegador. Use "Localizar mídia".' });
         continue;
       }
       try {
@@ -676,3 +682,33 @@ export class MediaEngine {
 }
 
 export const media = new MediaEngine();
+
+// --- cópias no navegador (OPFS) das mídias sem arquivo no disco -------------------------------
+
+const COPY_MAX = 300 * 1024 * 1024;
+
+async function copiesDir() {
+  const root = await navigator.storage.getDirectory();
+  return root.getDirectoryHandle('media', { create: true });
+}
+
+async function keepCopy(assetId: string, file: File) {
+  if (file.size > COPY_MAX) return;
+  const fh = await (await copiesDir()).getFileHandle(assetId, { create: true });
+  const w = await fh.createWritable();
+  await w.write(file);
+  await w.close();
+  await idb.set('kv', `mediaCopy:${assetId}`, { name: file.name, type: file.type, lastModified: file.lastModified });
+}
+
+async function loadCopy(assetId: string): Promise<File | null> {
+  const meta = await idb.get<{ name: string; type: string; lastModified: number }>('kv', `mediaCopy:${assetId}`);
+  if (!meta) return null;
+  const blob = await (await (await copiesDir()).getFileHandle(assetId)).getFile();
+  return new File([blob], meta.name, { type: meta.type, lastModified: meta.lastModified });
+}
+
+async function dropCopy(assetId: string) {
+  await idb.del('kv', `mediaCopy:${assetId}`);
+  await (await copiesDir()).removeEntry(assetId).catch(() => {});
+}

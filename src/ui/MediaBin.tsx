@@ -145,16 +145,7 @@ export function MediaBin({ only, title = 'Mídia' }: { only?: AssetKind[]; title
         </button>
       )}
 
-      {(needsPermission > 0 || offline > 0) && (
-        <div className="banner">
-          {needsPermission > 0 && <span>{needsPermission} mídia(s) precisam de permissão para serem lidas novamente.</span>}
-          {offline > 0 && <span>{offline} mídia(s) offline — localize os arquivos originais.</span>}
-          <div className="row">
-            {needsPermission > 0 && <button className="btn sm outline" onClick={() => void actions.reconnectMedia()}>Reconectar</button>}
-            <button className="btn sm outline" onClick={() => void actions.relinkMedia()}>Localizar arquivos…</button>
-          </div>
-        </div>
-      )}
+      <MediaReconnectBanner needsPermission={needsPermission} offline={offline} />
 
       <div
         className={`panel-body bin ${view}${over ? ' drop-over' : ''}`}
@@ -416,5 +407,25 @@ function ProxyCreate({ assetId }: { assetId: string }) {
       <option value="720p">720p</option>
       <option value="1080p">1080p</option>
     </select>
+  );
+}
+
+/** Aviso de mídias sem acesso (depois de recarregar a página): reconectar com um clique. */
+export function MediaReconnectBanner(props: { needsPermission?: number; offline?: number }) {
+  const { project } = useEditor();
+  useMediaVersion();
+  const all = Object.values(project.assets);
+  const needsPermission = props.needsPermission ?? all.filter((a) => media.get(a.id)?.status === 'needs-permission').length;
+  const offline = props.offline ?? all.filter((a) => (media.get(a.id)?.status ?? 'offline') === 'offline').length;
+  if (!needsPermission && !offline) return null;
+  return (
+    <div className="banner" data-testid="media-reconnect">
+      {needsPermission > 0 && <span>{needsPermission} mídia(s) precisam de permissão para serem lidas novamente.</span>}
+      {offline > 0 && <span>{offline} mídia(s) offline — localize os arquivos originais.</span>}
+      <div className="row">
+        {needsPermission > 0 && <button className="btn sm primary" onClick={() => void actions.reconnectMedia()}>Reconectar</button>}
+        <button className="btn sm outline" onClick={() => void actions.relinkMedia()}>Localizar arquivos…</button>
+      </div>
+    </div>
   );
 }
