@@ -141,11 +141,13 @@ export async function askJson(s: AISettings, system: string, user: string, schem
     res = await fetch(`${s.ollamaUrl.replace(/\/$/, '')}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      signal,
+      // modelo local lento ou parado não pode travar a fase: 5 min e cai para o plano local
+      signal: AbortSignal.any([...(signal ? [signal] : []), AbortSignal.timeout(300_000)]),
       body: JSON.stringify({ model: s.ollamaModel, stream: false, think: false, format: schema, options: { temperature: 0.2, num_ctx: 32768 }, messages: [{ role: 'system', content: system }, { role: 'user', content: user }] }),
     });
   } catch (e) {
     if (e instanceof DOMException && e.name === 'AbortError') throw e;
+    if (e instanceof DOMException && e.name === 'TimeoutError') throw new Error('O modelo local demorou demais (5 min).');
     throw new Error(`Ollama não está respondendo em ${s.ollamaUrl}.`);
   }
   if (!res.ok) throw new Error(`Ollama respondeu ${res.status}`);

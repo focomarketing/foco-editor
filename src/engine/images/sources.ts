@@ -23,6 +23,18 @@ export interface SourceKeys {
 const strip = (html: string) => html.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
 const FREE_LICENSE = /^(public domain|pd|cc0|cc-?zero)/i;
 
+/**
+ * Junta o cancelamento do usuário com um limite de tempo: uma fonte lenta ou uma imagem
+ * enorme não pode travar a fase. Estourar o tempo é TimeoutError (pula para a próxima).
+ */
+export function within(signal: AbortSignal | undefined, ms: number): AbortSignal {
+  const t = AbortSignal.timeout(ms);
+  return signal ? AbortSignal.any([signal, t]) : t;
+}
+
+const SEARCH_MS = 15_000;
+const DOWNLOAD_MS = 45_000;
+
 export async function searchWikimedia(query: string, signal?: AbortSignal, limit = 8): Promise<ImageCandidate[]> {
   const params = new URLSearchParams({
     origin: '*',
@@ -37,7 +49,7 @@ export async function searchWikimedia(query: string, signal?: AbortSignal, limit
     iiurlwidth: '1920',
     iiextmetadatafilter: 'LicenseShortName|Artist|ObjectName',
   });
-  const res = await fetch(`https://commons.wikimedia.org/w/api.php?${params}`, { signal });
+  const res = await fetch(`https://commons.wikimedia.org/w/api.php?${params}`, { signal: within(signal, SEARCH_MS) });
   if (!res.ok) throw new Error(`Wikimedia respondeu ${res.status}`);
   const data = (await res.json()) as { query?: { pages?: Record<string, { index: number; title: string; imageinfo?: { thumburl?: string; url: string; thumbwidth?: number; thumbheight?: number; width: number; height: number; descriptionurl: string; extmetadata?: Record<string, { value: string }> }[] }> } };
   const pages = Object.values(data.query?.pages ?? {}).sort((a, b) => a.index - b.index);
@@ -63,7 +75,7 @@ export async function searchWikimedia(query: string, signal?: AbortSignal, limit
 }
 
 export async function searchPexels(query: string, key: string, orientation: 'landscape' | 'portrait', signal?: AbortSignal): Promise<ImageCandidate[]> {
-  const res = await fetch(`https://api.pexels.com/v1/search?${new URLSearchParams({ query, orientation, per_page: '8' })}`, { headers: { Authorization: key }, signal });
+  const res = await fetch(`https://api.pexels.com/v1/search?${new URLSearchParams({ query, orientation, per_page: '8' })}`, { headers: { Authorization: key }, signal: within(signal, SEARCH_MS) });
   if (res.status === 401) throw new Error('Chave do Pexels inválida.');
   if (!res.ok) throw new Error(`Pexels respondeu ${res.status}`);
   const data = (await res.json()) as { photos?: { width: number; height: number; url: string; photographer: string; alt: string; src: { large2x: string } }[] };
@@ -71,7 +83,7 @@ export async function searchPexels(query: string, key: string, orientation: 'lan
 }
 
 export async function searchPixabay(query: string, key: string, orientation: 'horizontal' | 'vertical', signal?: AbortSignal): Promise<ImageCandidate[]> {
-  const res = await fetch(`https://pixabay.com/api/?${new URLSearchParams({ key, q: query, image_type: 'photo', orientation, per_page: '8', safesearch: 'true' })}`, { signal });
+  const res = await fetch(`https://pixabay.com/api/?${new URLSearchParams({ key, q: query, image_type: 'photo', orientation, per_page: '8', safesearch: 'true' })}`, { signal: within(signal, SEARCH_MS) });
   if (res.status === 400 || res.status === 401) throw new Error('Chave do Pixabay inválida.');
   if (!res.ok) throw new Error(`Pixabay respondeu ${res.status}`);
   const data = (await res.json()) as { hits?: { largeImageURL: string; imageWidth: number; imageHeight: number; user: string; tags: string; pageURL: string }[] };
@@ -109,7 +121,7 @@ export async function searchImages(query: string, opts: { keys: SourceKeys; vert
 }
 
 export async function downloadImage(c: ImageCandidate, signal?: AbortSignal): Promise<File> {
-  const res = await fetch(c.url, { signal });
+  const res = await fetch(c.url, { signal: within(signal, DOWNLOAD_MS) });
   if (!res.ok) throw new Error(`não consegui baixar a imagem (${res.status})`);
   const blob = await res.blob();
   const ext = blob.type.includes('png') ? 'png' : blob.type.includes('webp') ? 'webp' : 'jpg';
