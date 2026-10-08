@@ -3,6 +3,7 @@
 import { createServer } from 'vite';
 import { chromium } from 'playwright-core';
 import path from 'node:path';
+import os from 'node:os';
 
 const shots = process.env.E2E_SHOTS;
 let failures = 0;
@@ -12,6 +13,8 @@ const check = (cond, msg, extra = '') => {
 };
 const near = (a, b, tol) => Math.abs(a - b) <= tol;
 
+// mídia gravada pelo editor vai para uma pasta temporária, não para Documentos
+process.env.FOCO_MEDIA_DIR ??= path.join(os.tmpdir(), 'foco-e2e-media');
 const server = await createServer({ server: { port: 5193, strictPort: true }, logLevel: 'error' });
 await server.listen();
 const browser = await chromium.launch({ channel: process.env.E2E_BROWSER === 'chrome' ? 'chrome' : 'msedge', headless: !process.env.E2E_HEADED, args: ['--autoplay-policy=no-user-gesture-required'] });

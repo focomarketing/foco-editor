@@ -70,6 +70,8 @@ export interface PendingImport {
 export interface ImportItem {
   file: File;
   handle?: FileSystemFileHandle;
+  /** Caminho do arquivo no PC (quando conhecido): reaberto pelo servidor local. */
+  path?: string;
 }
 
 export type DuplicateChoice = 'existing' | 'import' | 'cancel';
@@ -214,9 +216,15 @@ export class MediaEngine {
       if (r.asset) {
         this.attach(r.asset, item.file, item.handle);
         if (item.handle) await safe(idb.set('mediaHandles', r.asset.id, item.handle));
-        // sem arquivo no disco (imagem baixada pela IA, arquivo escolhido sem acesso ao disco):
-        // guarda uma cópia no navegador para sobreviver ao recarregar
-        else await safe(keepCopy(r.asset.id, item.file));
+        // caminho no PC conhecido: ao reabrir, relê direto do disco
+        else if (item.path) await safe(idb.set('kv', `mediaPath:${r.asset.id}`, item.path));
+        // sem vínculo (imagem baixada pela IA, arquivo escolhido sem acesso ao disco): grava
+        // na pasta de mídia do FOCO no PC; sem o servidor local, uma cópia no navegador
+        else {
+          const saved = await safe(saveToDisk(r.asset.id, item.file));
+          if (saved) await safe(idb.set('kv', `mediaPath:${r.asset.id}`, saved));
+          else await safe(keepCopy(r.asset.id, item.file));
+        }
       }
       return r;
     } catch (e) {
@@ -561,7 +569,7 @@ export class MediaEngine {
       this.assets.set(asset.id, asset);
       const handle = await safe(idb.get<FileSystemFileHandle>('mediaHandles', asset.id));
       if (!handle) {
-        const copy = await safe(loadCopy(asset.id));
+        const copy = (await safe(loadFromDisk(asset.id))) ?? (await safe(loadCopy(asset.id)));
         if (copy) this.attach(asset, copy);
         else this.patch(asset.id, { status: 'offline', warning: 'Mídia original não vinculada neste navegador. Use "Localizar mídia".' });
         continue;
@@ -682,6 +690,31 @@ export class MediaEngine {
 }
 
 export const media = new MediaEngine();
+
+// --- arquivos no PC pelo servidor local (o editor roda na máquina da pessoa) -------------------
+
+const LOCAL = '/__foco/local';
+let localOk: Promise<boolean> | null = null;
+const hasLocalFiles = () => (localOk ??= fetch(`${LOCAL}/ping`).then((r) => r.ok && (r.headers.get('content-type') ?? '').includes('json')).catch(() => false));
+
+/** Grava na pasta de mídia do FOCO no PC e devolve o caminho (null sem o servidor local). */
+async function saveToDisk(assetId: string, file: File): Promise<string | null> {
+  if (!(await hasLocalFiles())) return null;
+  const res = await fetch(`${LOCAL}/save?name=${encodeURIComponent(`${assetId}-${file.name}`)}`, { method: 'POST', body: file });
+  if (!res.ok) return null;
+  return ((await res.json()) as { path?: string }).path ?? null;
+}
+
+/** Relê do disco a mídia com caminho conhecido (com o nome e a data originais). */
+async function loadFromDisk(assetId: string): Promise<File | null> {
+  const p = await idb.get<string>('kv', `mediaPath:${assetId}`);
+  if (!p || !(await hasLocalFiles())) return null;
+  const res = await fetch(`${LOCAL}/file?p=${encodeURIComponent(p)}`);
+  if (!res.ok) return null;
+  const blob = await res.blob();
+  const name = (p.split(/[\\/]/).pop() ?? 'midia').replace(new RegExp(`^${assetId}-`), '');
+  return new File([blob], name, { type: blob.type, lastModified: Number(res.headers.get('X-Last-Modified-Ms')) || Date.now() });
+}
 
 // --- cópias no navegador (OPFS) das mídias sem arquivo no disco -------------------------------
 

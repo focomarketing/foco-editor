@@ -22,6 +22,8 @@ if (!fs.existsSync(wav)) {
   execFileSync('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', path.join(import.meta.dirname, 'make-speech.ps1'), wav], { stdio: 'inherit' });
 }
 
+// mídia gravada pelo editor vai para uma pasta temporária, não para Documentos
+process.env.FOCO_MEDIA_DIR ??= path.join(os.tmpdir(), 'foco-e2e-media');
 const server = await createServer({ server: { port: 5194, strictPort: true }, logLevel: 'error' });
 await server.listen();
 const context = await chromium.launchPersistentContext(path.join(work, 'profile'), {

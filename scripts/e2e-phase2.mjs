@@ -16,6 +16,8 @@ const check = (cond, msg, extra = '') => {
   if (!cond) failures++;
 };
 
+// mídia gravada pelo editor vai para uma pasta temporária, não para Documentos
+process.env.FOCO_MEDIA_DIR ??= path.join(os.tmpdir(), 'foco-e2e-media');
 const server = await createServer({ server: { port: 5191, strictPort: true }, logLevel: 'error' });
 await server.listen();
 const profile = path.join(os.tmpdir(), 'foco-e2e-phase2');

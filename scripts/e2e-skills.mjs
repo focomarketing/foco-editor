@@ -25,6 +25,8 @@ const check = (cond, msg, extra = '') => {
 
 const profile = path.join(os.tmpdir(), 'foco-e2e-skills');
 fs.rmSync(profile, { recursive: true, force: true });
+// mídia gravada pelo editor vai para uma pasta temporária, não para Documentos
+process.env.FOCO_MEDIA_DIR ??= path.join(os.tmpdir(), 'foco-e2e-media');
 const server = await createServer({ server: { port: 5199, strictPort: true }, logLevel: 'error' });
 await server.listen();
 const context = await chromium.launchPersistentContext(profile, {
@@ -93,7 +95,8 @@ try {
   check(new Set(takeCmds.map((c) => c.payload.assetId)).size === takeCmds.length, 'nenhum take repetido');
   const overlap = img.commands.some((a, i) => img.commands.some((b, j) => i < j && a.start < b.end && b.start < a.end));
   check(!overlap, 'acervo não disputa trecho com os takes');
-  if (!img.selected.length && img.commands.length) await page.locator('[data-testid="apply-all"]').click();
+  const appliedAll = !img.selected.length && img.commands.length > 0;
+  if (appliedAll) await page.locator('[data-testid="apply-all"]').click(); // nada entrou sozinho: aprova tudo, como a pessoa faria
   const placed = await page.evaluate(() => {
     const f = window.__foco;
     const p = f.store.getState().project;
@@ -101,7 +104,11 @@ try {
     const clips = Object.values(p.clips).filter((c) => c.trackId === t?.id && p.assets[c.assetId]?.kind === 'video');
     return { n: clips.length, mute: clips.every((c) => c.volume === 0), speechAssets: [...new Set(f.smartCut.timelineSpeech(p).words.map((w) => w.assetId))].length };
   });
-  check(placed.n > 0 && placed.mute, 'takes no B-roll, mudos (o som é o da fala)', `${placed.n} take(s)`);
+  // take com confiança baixa (ex.: só pelo nome do arquivo) fica para revisão, não entra sozinho
+  const takesInReview = takeCmds.filter((c) => !img.selected.includes(c.id)).length;
+  const takesAutoApplied = appliedAll ? takeCmds.length : takeCmds.length - takesInReview;
+  check(placed.n === takesAutoApplied && placed.mute, 'takes de confiança alta no B-roll, mudos; os de baixa ficam para revisão', `${placed.n} aplicado(s) · ${takesInReview} para revisar`);
+  check(takeCmds.every((c) => img.selected.includes(c.id) === c.confidence >= 0.6), 'aplicação automática respeita a confiança');
   check(placed.speechAssets === 1, 'a fala da timeline continua só a do vídeo principal', placed.speechAssets);
   if (shots) await page.screenshot({ path: path.join(shots, 'skills-1-imagens.png') });
 

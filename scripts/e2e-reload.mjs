@@ -20,6 +20,8 @@ const check = (cond, msg, extra = '') => {
 
 const profile = path.join(os.tmpdir(), 'foco-e2e-reload');
 fs.rmSync(profile, { recursive: true, force: true });
+// mídia gravada pelo editor vai para uma pasta temporária, não para Documentos
+process.env.FOCO_MEDIA_DIR ??= path.join(os.tmpdir(), 'foco-e2e-media');
 const server = await createServer({ server: { port: 5196, strictPort: true }, logLevel: 'error' });
 await server.listen();
 const context = await chromium.launchPersistentContext(profile, { channel: process.env.E2E_BROWSER === 'chrome' ? 'chrome' : 'msedge', headless: !process.env.E2E_HEADED, viewport: { width: 1400, height: 860 } });
@@ -45,15 +47,20 @@ try {
     document.body.appendChild(i);
   });
   await page.setInputFiles('#__rl_file', video);
-  await page.evaluate(async () => {
-    await window.__foco.workflow.createGuidedProject({ name: 'Teste recarregar', track: 'youtube', subtype: 'cristao' }, [{ file: document.getElementById('__rl_file').files[0] }]);
+  const mediaDir = process.env.FOCO_MEDIA_DIR;
+  fs.rmSync(mediaDir, { recursive: true, force: true });
+  await page.evaluate(async (videoPath) => {
+    // o vídeo entra com o caminho no PC (relido do disco ao reabrir, sem cópia)
+    await window.__foco.workflow.createGuidedProject({ name: 'Teste recarregar', track: 'youtube', subtype: 'cristao' }, [{ file: document.getElementById('__rl_file').files[0], path: videoPath }]);
     // uma imagem "baixada pela IA" (sem arquivo no disco)
     const c = new OffscreenCanvas(1280, 720);
     c.getContext('2d').fillRect(0, 0, 1280, 720);
     const blob = await c.convertToBlob({ type: 'image/jpeg' });
     await window.__foco.actions.importItems([{ file: new File([blob], 'acervo-teste.jpg', { type: 'image/jpeg' }) }]);
-  });
+  }, path.resolve(video));
   await page.waitForTimeout(1500);
+  const onDisk = fs.existsSync(mediaDir) ? fs.readdirSync(mediaDir) : [];
+  check(onDisk.length === 1 && onDisk[0].endsWith('acervo-teste.jpg'), 'imagem sem vínculo gravada na pasta de mídia do PC (o vídeo não é copiado)', onDisk.join(', '));
   const before = await status(page);
   console.log('    antes:', JSON.stringify(before.assets));
   check(before.assets.every((a) => a.status === 'ready'), 'mídias prontas antes de recarregar');
@@ -75,6 +82,15 @@ try {
   console.log('    depois:', JSON.stringify(after.assets));
   check(after.name === 'Teste recarregar' && after.clips > 0, 'projeto reaberto com o vídeo na timeline', `${after.clips} clipe(s)`);
   check(after.assets.length === 2 && after.assets.every((a) => a.status === 'ready'), 'vídeo e imagem continuam disponíveis depois de recarregar');
+  const opfs = await page.evaluate(async () => {
+    const root = await navigator.storage.getDirectory();
+    const names = [];
+    try {
+      for await (const k of (await root.getDirectoryHandle('media')).keys()) names.push(k);
+    } catch {}
+    return names.length;
+  });
+  check(opfs === 0, 'nada guardado na memória do navegador (tudo no disco)', opfs);
   check(errors.length === 0, 'sem erros de página', errors.join(' | ').slice(0, 300));
 } finally {
   await context.close();
