@@ -23,6 +23,8 @@ import { projectDuration, sourceRangesToTimeline } from '../engine/timeline/oper
 import { Cmd } from '../engine/commands/commands';
 import type { EditCommand } from '../engine/commands/commands';
 import type { Range } from '../engine/timeline/operations';
+import { CUT_MODES, DEFAULT_OPTIONS, planSmartCuts } from '../engine/cut/smartCut';
+import { timelineSpeech } from './smartCut';
 
 // --- configurações (por navegador) --------------------------------------------------
 
@@ -126,15 +128,16 @@ ${COMMAND_DOCS}
 Regras:
 - Nunca invente conteúdo. Textos de títulos e destaques devem vir do que é dito na transcrição; não acrescente fatos.
 - Use os tempos da transcrição (segundos da timeline) para posicionar gráficos.
-- "Deixe mais dinâmico": remove_silences aggressive + remove_mistakes balanced + smart_zoom normal.
-- "Remova os erros de fala": remove_mistakes balanced. "Pausas maiores que 1 s": remove_silences safe.
+- Cortar a fala (pausas, respiros, erros, gaguejadas, repetições, "tirar o que sobra"): smart_cut. Escolha o ritmo pelo tipo de vídeo: natural para reflexão, ensaio, aula, teologia ou quando pedirem para manter as pausas; dynamic para YouTube; dry para Reels, Shorts, TikTok e anúncio.
+- "Deixe mais dinâmico": smart_cut dynamic (ou dry se for vídeo curto/vertical) + smart_zoom normal.
+- Use remove_silences/remove_mistakes só se o usuário pedir algo bem específico (ex.: "só as pausas maiores que 1 s": remove_silences safe).
 - "Versão vertical / para Reels / Shorts / TikTok": set_format 9:16. Para Shorts/Reels prefira legendas "shorts".
 - Não repita uma edição que já foi aplicada, a menos que o usuário peça.
 - Se o "reply" diz que algo será feito, o comando correspondente TEM que estar em "commands". Se não houver comando para o pedido, diga isso no reply e deixe "commands" vazio.
 
 Exemplos:
-Pedido: "melhore o áudio e tire as pausas"
-{"reply":"Vou limpar a voz e remover as pausas longas.","commands":[{"type":"enhance_audio","preset":"voice"},{"type":"remove_silences","level":"safe"}]}
+Pedido: "melhore o áudio e tire as pausas e os erros" (vídeo de reflexão, 16:9)
+{"reply":"Vou limpar a voz e cortar pausas e erros mantendo o ritmo natural da reflexão.","commands":[{"type":"enhance_audio","preset":"voice"},{"type":"smart_cut","mode":"natural"}]}
 Pedido: "crie legendas para Reels"
 {"reply":"Vou criar legendas no estilo Shorts.","commands":[{"type":"generate_captions","preset":"shorts"}]}
 Pedido: "coloque um título com o tema no início" (transcrição: "[0.0–3.1] Hoje vamos falar sobre liderança.")
@@ -224,8 +227,8 @@ export function clearChat() {
 
 // --- executor -----------------------------------------------------------------------
 
-const NEEDS_TRANSCRIPT = new Set<AICommand['type']>(['remove_mistakes', 'generate_captions', 'smart_zoom']);
-const ORDER: AICommand['type'][] = ['set_format', 'auto_color', 'color_preset', 'enhance_audio', 'add_title', 'remove_silences', 'remove_mistakes', 'smart_zoom', 'generate_captions'];
+const NEEDS_TRANSCRIPT = new Set<AICommand['type']>(['remove_mistakes', 'generate_captions', 'smart_zoom', 'smart_cut']);
+const ORDER: AICommand['type'][] = ['set_format', 'auto_color', 'color_preset', 'enhance_audio', 'add_title', 'remove_silences', 'remove_mistakes', 'smart_cut', 'smart_zoom', 'generate_captions'];
 const ASPECT_SIZE: Record<AspectRatio, [number, number]> = { '16:9': [1920, 1080], '9:16': [1080, 1920], '1:1': [1080, 1080], '4:5': [1080, 1350] };
 
 async function ensureTranscript(asset: Asset): Promise<Transcript | null> {
@@ -374,6 +377,19 @@ function planOne(p: Project, c: AICommand, d: Prepared): Plan {
       const counts = summarize(chosen).counts;
       const parts = (Object.entries(counts) as [CutKind, number][]).map(([k, n]) => `${n}× ${CUT_KIND_LABEL[k].toLowerCase()}`);
       return { commands: [Cmd.rippleRemove(ranges, describeCommand(c))], detail: `${parts.join(', ')} · −${fmtS(removed)}` };
+    }
+    case 'smart_cut': {
+      const { words, missing } = timelineSpeech(p);
+      if (!words.length) return { error: missing.length ? 'transcrição indisponível' : 'nenhuma fala na timeline' };
+      const waves = new Map<string, Float32Array>();
+      for (const id of new Set(words.map((w) => w.assetId))) {
+        const lv = media.get(id)?.levels;
+        if (lv) waves.set(id, lv);
+      }
+      const { cuts, removed } = planSmartCuts(words, waves, { ...DEFAULT_OPTIONS, mode: c.mode });
+      if (!cuts.length) return { commands: [], detail: 'a fala já está limpa neste ritmo' };
+      const ranges: Range[] = cuts.map((x) => [x.start, x.end]);
+      return { commands: [Cmd.rippleRemove(ranges, describeCommand(c))], detail: `${cuts.length} trechos · −${fmtS(removed)} (${CUT_MODES[c.mode].label.toLowerCase()})` };
     }
     case 'smart_zoom': {
       if (!d.asset || !d.transcript) return { error: 'transcrição indisponível' };

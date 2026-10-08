@@ -3,6 +3,7 @@
 // VALIDADOR (abaixo) -> executor -> timeline. O LLM nunca altera o estado diretamente.
 
 import type { TitleTemplate } from '../../core/types';
+import type { CutMode } from '../cut/smartCut';
 import type { CutLevel } from '../analysis/cuts';
 import type { ZoomIntensity } from '../analysis/zoom';
 import { CAPTION_PRESETS } from '../captions/captions';
@@ -20,12 +21,14 @@ export type AICommand =
   | { type: 'color_preset'; preset: string }
   | { type: 'smart_zoom'; intensity: ZoomIntensity }
   | { type: 'add_title'; template: TitleTemplate; text: string; subtitle: string; at: number; duration: number }
-  | { type: 'set_format'; aspect: AspectRatio };
+  | { type: 'set_format'; aspect: AspectRatio }
+  | { type: 'smart_cut'; mode: CutMode };
 
 const LEVELS = ['safe', 'balanced', 'aggressive'] as const;
 const INTENSITIES = ['subtle', 'normal', 'strong'] as const;
 const TEMPLATES = ['title', 'lowerThird', 'callout', 'cta'] as const;
 const ASPECTS = ['16:9', '9:16', '1:1', '4:5'] as const;
+const CUT_MODE_IDS = ['natural', 'dynamic', 'dry'] as const;
 const CAPTION_IDS = CAPTION_PRESETS.map((p) => p.id);
 const COLOR_IDS = COLOR_PRESETS.map((p) => p.id);
 const AUDIO_IDS = AUDIO_PRESETS.map((p) => p.id);
@@ -64,6 +67,7 @@ export const RESPONSE_SCHEMA = {
             duration: { type: 'number', description: 'segundos' },
           }),
           obj('set_format', { aspect: { type: 'string', enum: ASPECTS } }),
+          obj('smart_cut', { mode: { type: 'string', enum: CUT_MODE_IDS } }),
         ],
       },
     },
@@ -79,7 +83,8 @@ export const COMMAND_DOCS = `Comandos disponíveis (use só estes):
 - color_preset {preset}: estilo de cor. presets: ${COLOR_IDS.join(', ')}.
 - smart_zoom {intensity}: zooms suaves nas frases importantes. intensity: subtle, normal, strong.
 - add_title {template, text, subtitle, at, duration}: gráfico animado. templates: title (título central), lowerThird (nome/cargo no canto), callout (destaque curto), cta (chamada para ação). "at" em segundos da timeline atual. subtitle pode ser "".
-- set_format {aspect}: formato do quadro: 16:9, 9:16, 1:1, 4:5.`;
+- set_format {aspect}: formato do quadro: 16:9, 9:16, 1:1, 4:5.
+- smart_cut {mode}: corte completo da fala pela onda do áudio (pausas pelo ritmo, vícios, gagueira, começos falsos, frase dita de novo: fica a melhor tomada). mode: natural (mantém respiração e pausas de ênfase; ensaio, aula, reflexão), dynamic (YouTube), dry (Reels, Shorts, anúncio). Prefira este a remove_silences/remove_mistakes; não use os três juntos.`;
 
 // --- validador ---------------------------------------------------------------------
 
@@ -162,6 +167,12 @@ export function validateCommands(raw: unknown, ctx: ValidationContext): Validati
         if (!inSet(o.aspect, ASPECTS)) bad('formato inválido');
         else commands.push({ type: 'set_format', aspect: o.aspect });
         break;
+      case 'smart_cut': {
+        const mode = orDefault(o.mode, CUT_MODE_IDS, 'natural');
+        if (!mode) bad('ritmo inválido');
+        else commands.push({ type: 'smart_cut', mode });
+        break;
+      }
       default:
         bad('comando desconhecido');
     }
@@ -190,6 +201,8 @@ export function describeCommand(c: AICommand): string {
       return `Gráfico "${c.text}" em ${c.at.toFixed(1)} s`;
     case 'set_format':
       return `Formato ${c.aspect}`;
+    case 'smart_cut':
+      return `Corte pela onda (${{ natural: 'natural', dynamic: 'dinâmico', dry: 'seco' }[c.mode]})`;
   }
 }
 

@@ -1,7 +1,6 @@
 // Aba Corte: ritmo (natural / dinâmico / seco), o que remover, revisão item a item com
 // "ouvir", aplicar como um passo de undo e conferência do resultado.
 
-import { useSyncExternalStore } from 'react';
 import { CheckCircle2, Play, Scissors, Sparkles, TriangleAlert } from 'lucide-react';
 import { formatTimecode } from '../core/time';
 import { actions, playback } from '../app/editor';
@@ -9,10 +8,8 @@ import { analyzeSmartCuts, applySmartCuts, smartCutStore } from '../app/smartCut
 import { CUT_MODES, SMART_CUT_LABEL } from '../engine/cut/smartCut';
 import type { CutMode, SmartCut, SmartCutKind, SmartCutOptions } from '../engine/cut/smartCut';
 import { WHISPER_MODELS } from '../engine/transcript/TranscriptEngine';
-import { useEditor, useTranscriptsVersion } from './hooks';
+import { useEditor, useSmartCut, useTranscriptsVersion } from './hooks';
 import { transcripts } from '../app/editor';
-
-const useSmartCut = () => useSyncExternalStore(smartCutStore.subscribe, smartCutStore.get);
 
 const TOGGLES: { key: keyof SmartCutOptions; label: string; hint: string }[] = [
   { key: 'pauses', label: 'Pausas e respiros', hint: 'encurta pelo ritmo escolhido' },

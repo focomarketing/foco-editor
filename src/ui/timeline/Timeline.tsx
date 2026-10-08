@@ -9,7 +9,7 @@ import { actions, playback, store } from '../../app/editor';
 import {
   clipEnd, findSnap, projectDuration, snapPoints, trackKindForAsset,
 } from '../../engine/timeline/operations';
-import { useAnalysis, useEditor, usePlayback, usePrefs } from '../hooks';
+import { useAnalysis, useEditor, usePlayback, usePrefs, useSmartCut } from '../hooks';
 import { formatTime, prefsStore } from '../../app/prefs';
 import { sourceRangesToTimeline } from '../../engine/timeline/operations';
 import { TITLE_TEMPLATES } from '../../engine/motion/titles';
@@ -470,14 +470,21 @@ function GraphicsMenu() {
   );
 }
 
-/** Sugestões de corte em revisão, desenhadas sobre a timeline. */
+/** Sugestões de corte em revisão (aba IA e aba Corte), desenhadas sobre a timeline. */
 function CutMarks({ zoom, top, height }: { zoom: number; top: number; height: number }) {
   const { project } = useEditor();
   const a = useAnalysis();
-  if (!a.assetId || !a.suggestions.length) return null;
-  const marks = a.suggestions.flatMap((s) =>
-    sourceRangesToTimeline(project, a.assetId!, [[s.start, s.end]]).map(([x, y]) => ({ id: s.id, x, y, on: a.selected.has(s.id) })),
-  );
+  const sc = useSmartCut();
+  const marks = [
+    ...(a.assetId
+      ? a.suggestions.flatMap((s) =>
+          sourceRangesToTimeline(project, a.assetId!, [[s.start, s.end]]).map(([x, y]) => ({ id: s.id, x, y, on: a.selected.has(s.id) })),
+        )
+      : []),
+    // a aba Corte já planeja em tempo da timeline
+    ...sc.cuts.map((c) => ({ id: `sc-${c.id}`, x: c.start, y: c.end, on: sc.selected.has(c.id) })),
+  ];
+  if (!marks.length) return null;
   return (
     <>
       {marks.map((m, i) => (

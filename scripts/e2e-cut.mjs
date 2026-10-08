@@ -112,6 +112,16 @@ try {
   await page.waitForTimeout(300);
   const d2 = await dur();
   check(Math.abs(d2 - d0) < 0.01, 'um Ctrl+Z desfaz o corte inteiro', `${d2.toFixed(2)} s`);
+  console.log('Diretor IA: comando smart_cut pelo executor do chat');
+  const ai = await page.evaluate(async () => {
+    const f = window.__foco;
+    const v = f.commands.validateCommands([{ type: 'smart_cut', mode: 'natural' }, { type: 'smart_cut', mode: 'xyz' }], { duration: 60 });
+    const results = await f.ai.runCommands(v.commands, 'teste');
+    return { valid: v.commands.length, rejected: v.errors.length, results };
+  });
+  const d3 = await dur();
+  check(ai.valid === 1 && ai.rejected === 1, 'validador aceita ritmo válido e recusa inválido');
+  check(ai.results[0]?.ok && d3 < d0 - 5, 'smart_cut pelo chat corta a fala', `${ai.results[0]?.label} — ${ai.results[0]?.detail}`);
   check(errors.length === 0, 'sem erros de página', errors.join(' | ').slice(0, 300));
 } finally {
   await context.close();

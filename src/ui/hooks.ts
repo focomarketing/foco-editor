@@ -2,6 +2,7 @@ import { useSyncExternalStore } from 'react';
 import { media, playback, store, transcripts } from '../app/editor';
 import { toastStore } from '../app/notify';
 import { analysisStore } from '../app/analysis';
+import { smartCutStore } from '../app/smartCut';
 import { aiStore } from '../app/aiEditor';
 import { prefsStore } from '../app/prefs';
 
@@ -10,6 +11,7 @@ export const usePlayback = () => useSyncExternalStore(playback.subscribe, playba
 export const useMediaVersion = () => useSyncExternalStore(media.subscribe, media.getVersion);
 export const useTranscriptsVersion = () => useSyncExternalStore(transcripts.subscribe, transcripts.getVersion);
 export const useAnalysis = () => useSyncExternalStore(analysisStore.subscribe, analysisStore.get);
+export const useSmartCut = () => useSyncExternalStore(smartCutStore.subscribe, smartCutStore.get);
 export const useToasts = () => useSyncExternalStore(toastStore.subscribe, toastStore.get);
 export const useAI = () => useSyncExternalStore(aiStore.subscribe, aiStore.get);
 export const usePrefs = () => useSyncExternalStore(prefsStore.subscribe, prefsStore.get);
