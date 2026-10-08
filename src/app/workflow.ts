@@ -85,3 +85,9 @@ export function finishPhase(how: 'done' | 'skipped' = 'done') {
   setWorkflow(completePhase(wf, how));
   void persist();
 }
+
+/** Marca que a IA já executou esta fase (para não repetir sozinha ao reabrir). */
+export function markRan(phase: PhaseId) {
+  const wf = currentWorkflow();
+  if (wf) setWorkflow({ ...wf, ran: { ...wf.ran, [phase]: true } });
+}

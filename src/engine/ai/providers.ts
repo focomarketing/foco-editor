@@ -103,6 +103,57 @@ export async function planWithOllama(s: AISettings, system: string, history: Cha
   return { ...parseJson(data.message?.content ?? ''), model: data.model ?? s.ollamaModel };
 }
 
+/**
+ * Pergunta estruturada genérica (usada pelas fases automáticas): devolve o JSON do schema.
+ * O chamador valida o resultado; o modelo nunca é confiável sozinho.
+ */
+export async function askJson(s: AISettings, system: string, user: string, schema: Record<string, unknown>, signal?: AbortSignal): Promise<unknown> {
+  if (s.provider === 'claude') {
+    if (!s.claudeKey) throw new Error('Informe a chave da API Anthropic nas configurações da IA.');
+    if (!s.cloudConsent) throw new Error('Autorize o envio do texto para a API da Anthropic nas configurações da IA.');
+    const client = new Anthropic({ apiKey: s.claudeKey, dangerouslyAllowBrowser: true, maxRetries: 2 });
+    try {
+      const response = await client.beta.messages.create(
+        {
+          model: s.claudeModel,
+          max_tokens: 16000,
+          system,
+          messages: [{ role: 'user', content: user }],
+          output_config: { effort: 'medium', format: { type: 'json_schema', schema } },
+          betas: ['server-side-fallback-2026-07-01'],
+          fallbacks: 'default',
+        },
+        { signal },
+      );
+      if (response.stop_reason === 'refusal') throw new Error('O modelo recusou o pedido.');
+      if (response.stop_reason === 'max_tokens') throw new Error('Resposta cortada (limite de tokens).');
+      const text = response.content.flatMap((b) => (b.type === 'text' ? [b.text] : [])).join('');
+      return JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1));
+    } catch (e) {
+      if (e instanceof Anthropic.AuthenticationError) throw new Error('Chave da API Anthropic inválida.');
+      if (e instanceof Anthropic.RateLimitError) throw new Error('Limite de uso da API atingido; tente em instantes.');
+      if (e instanceof Anthropic.APIConnectionError) throw new Error('Sem conexão com a API da Anthropic.');
+      throw e;
+    }
+  }
+  let res: Response;
+  try {
+    res = await fetch(`${s.ollamaUrl.replace(/\/$/, '')}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal,
+      body: JSON.stringify({ model: s.ollamaModel, stream: false, think: false, format: schema, options: { temperature: 0.2, num_ctx: 32768 }, messages: [{ role: 'system', content: system }, { role: 'user', content: user }] }),
+    });
+  } catch (e) {
+    if (e instanceof DOMException && e.name === 'AbortError') throw e;
+    throw new Error(`Ollama não está respondendo em ${s.ollamaUrl}.`);
+  }
+  if (!res.ok) throw new Error(`Ollama respondeu ${res.status}`);
+  const data = (await res.json()) as { message?: { content?: string } };
+  const text = data.message?.content ?? '';
+  return JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1));
+}
+
 /** Modelos instalados no Ollama (para o seletor nas configurações). */
 export async function listOllamaModels(url: string): Promise<string[]> {
   const res = await fetch(`${url.replace(/\/$/, '')}/api/tags`);

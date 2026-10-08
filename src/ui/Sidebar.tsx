@@ -1,12 +1,14 @@
 // Barra lateral esquerda: ferramentas por categoria. As que ainda não existem aparecem
 // desativadas com a fase em que chegam — nada de botão falso.
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ArrowRight, SkipForward } from 'lucide-react';
 import { useEditor } from './hooks';
 import { phaseDef, readWorkflow } from '../core/workflow';
 import type { Workflow } from '../core/workflow';
-import { finishPhase, setPhase } from '../app/workflow';
+import { finishPhase, markRan, setPhase } from '../app/workflow';
+import { AUTO_PHASES, phaseRunStore, runPhase } from '../app/phases';
+import { PhaseRunCard } from './PhaseRun';
 import { AudioLines, Blend, Captions, Film, LayoutTemplate, Scissors, Shapes, Sparkles, Type, Wand } from 'lucide-react';
 import { MediaBin } from './MediaBin';
 import { AIPanel } from './AIPanel';
@@ -38,6 +40,15 @@ export function Sidebar() {
 /** Painel da fase guiada atual (ocupa a barra e o painel lateral). */
 function PhasePanel({ wf }: { wf: Workflow }) {
   const def = phaseDef(wf.current);
+  const { project } = useEditor();
+  const hasMedia = Object.keys(project.clips).length > 0;
+  const auto = AUTO_PHASES.includes(wf.current);
+  // Entrou numa fase automática pela primeira vez (e há vídeo): a IA começa sozinha.
+  useEffect(() => {
+    if (!auto || !hasMedia || wf.ran?.[wf.current] || phaseRunStore.get()?.running) return;
+    markRan(wf.current);
+    void runPhase(wf.current);
+  }, [auto, hasMedia, wf.current, wf.ran]);
   const last = wf.phases.indexOf(wf.current) === wf.phases.length - 2; // a próxima é o Editor
   return (
     <section className="panel phase-panel" data-testid={`phase-panel-${wf.current}`}>
@@ -45,9 +56,10 @@ function PhasePanel({ wf }: { wf: Workflow }) {
         <span className="panel-title">{wf.phases.indexOf(wf.current) + 1}. {def.label}</span>
       </div>
       <div className="panel-body">
+        {auto && <PhaseRunCard phase={wf.current} />}
         {wf.current === 'cut' ? (
           <CutPanel />
-        ) : (
+        ) : wf.current === 'images' ? null : (
           <div className="insp">
             <div className="empty">
               <b>{def.label}</b> — {def.hint}.

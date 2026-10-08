@@ -19,7 +19,7 @@ export interface PhaseDef {
 
 export const PHASES: PhaseDef[] = [
   { id: 'cut', label: 'Corte', hint: 'pausas, erros e melhor tomada', ready: true },
-  { id: 'images', label: 'Imagens', hint: 'imagens e B-roll na fala certa', ready: false },
+  { id: 'images', label: 'Imagens', hint: 'imagens e B-roll na fala certa', ready: true },
   { id: 'transitions', label: 'Transições', hint: 'só onde o assunto muda', ready: false },
   { id: 'motion', label: 'Efeitos e motion', hint: 'zoom, textos animados, motion', ready: false },
   { id: 'audio', label: 'Música e efeitos', hint: 'trilha e efeitos sonoros', ready: false },
@@ -120,6 +120,8 @@ export interface Workflow {
   phases: PhaseId[];
   status: Partial<Record<PhaseId, PhaseStatus>>;
   current: PhaseId;
+  /** Fases que a IA já executou sozinha (não roda de novo ao reabrir). */
+  ran?: Partial<Record<PhaseId, boolean>>;
   /** Padrões resolvidos da trilha + tipo (usados pelas fases). */
   defaults: { aspect: AspectRatio; cutMode: CutMode; captionPreset: string };
 }
