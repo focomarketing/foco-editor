@@ -1,7 +1,7 @@
 {
   "name": "foco-editor-desktop",
   "private": true,
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "FOCO Editor — editor de vídeo com IA",
   "main": "electron/main.cjs",
   "devDependencies": {

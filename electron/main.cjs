@@ -63,12 +63,23 @@ function startServer() {
       }
     });
     server.once('error', reject);
-    server.listen(PORT, '127.0.0.1', () => resolve(server));
+    server.listen(PORT, '127.0.0.1', () => resolve((httpServer = server)));
   });
 }
 
 let win = null;
 let closing = false;
+let httpServer = null;
+
+// registro do auto-update em %APPDATA%\FOCO Editor\updater.log (antes os erros sumiam em silêncio)
+function updLog(...args) {
+  const line = `[${new Date().toISOString()}] ${args.map((a) => (a instanceof Error ? a.stack || a.message : typeof a === 'string' ? a : JSON.stringify(a))).join(' ')}\n`;
+  console.log('[updater]', line.trim());
+  try {
+    fs.appendFileSync(path.join(app.getPath('userData'), 'updater.log'), line);
+  } catch {}
+}
+autoUpdater.logger = { info: (...a) => updLog('INFO', ...a), warn: (...a) => updLog('WARN', ...a), error: (...a) => updLog('ERROR', ...a), debug: () => {} };
 
 async function createWindow() {
   win = new BrowserWindow({
@@ -135,7 +146,7 @@ if (!app.requestSingleInstanceLock()) {
 
     // Conversa com o GitHub (Releases de focomarketing/foco-editor): checa ao abrir e a cada 30 min
     if (!DEV_URL && app.isPackaged) {
-      const check = () => autoUpdater.checkForUpdates().catch(() => {});
+      const check = () => autoUpdater.checkForUpdates().catch((e) => updLog('check falhou:', e));
       setTimeout(check, 5000);
       setInterval(check, 30 * 60 * 1000);
     }
@@ -185,7 +196,7 @@ if (!app.requestSingleInstanceLock()) {
 
   autoUpdater.on('error', (err) => {
     if (win) win.setProgressBar(-1);
-    console.error('[updater]', err && err.message);
+    updLog('erro:', err || 'desconhecido');
   });
 
   // salva o projeto antes de reiniciar para instalar
@@ -197,11 +208,17 @@ if (!app.requestSingleInstanceLock()) {
       }
     } finally {
       closing = true;
-      autoUpdater.quitAndInstall();
+      try {
+        httpServer?.closeAllConnections?.();
+        httpServer?.close();
+      } catch {}
+      updLog('instalando atualização e reiniciando');
+      // silencioso (usa a mesma pasta de instalação) e reabre o app ao terminar
+      setImmediate(() => autoUpdater.quitAndInstall(true, true));
     }
   }
 
   ipcMain.on('foco:apply-update', () => void applyUpdate());
-  ipcMain.on('foco:check-update', () => void autoUpdater.checkForUpdates().catch(() => {}));
+  ipcMain.on('foco:check-update', () => void autoUpdater.checkForUpdates().catch((e) => updLog('check falhou:', e)));
   app.on('window-all-closed', () => app.quit());
 }

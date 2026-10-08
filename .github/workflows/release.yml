@@ -1,20 +1,20 @@
-﻿name: Build and Release FOCO Editor
+name: Build and Release FOCO Editor
 
 on:
   push:
     tags:
-      - 'v*.*.*' # Roda quando sobe uma tag de versÃ£o, ex: v1.0.1
+      - 'v*.*.*' # Roda quando sobe uma tag de versão, ex: v1.0.1
   workflow_dispatch: {}
 
 permissions:
-  contents: write # necessÃ¡rio para criar o Release com o instalador
+  contents: write # necessário para criar o Release com o instalador
 
 jobs:
   release:
     runs-on: windows-latest
 
     steps:
-      - name: Checar o cÃ³digo (Checkout)
+      - name: Checar o código (Checkout)
         uses: actions/checkout@v4
 
       - name: Configurar Node.js
@@ -23,10 +23,26 @@ jobs:
           node-version: '22'
           cache: 'npm'
 
-      - name: Instalar DependÃªncias
+      - name: Instalar Dependências
         run: npm install
 
-      - name: Build do Electron e PublicaÃ§Ã£o no GitHub Releases
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx electron-builder --win --publish always
+      # Só gera o instalador. NÃO publica pelo electron-builder: ele sobe os arquivos em paralelo
+      # e acabava criando DOIS releases com a mesma tag (um só com o .blockmap, sem latest.yml),
+      # e aí o auto-update dos apps instalados não achava a versão nova.
+      - name: Build do Electron
+        run: npx electron-builder --win --publish never
+
+      # Um único release com tudo que o electron-updater precisa: .exe, .blockmap e latest.yml
+      - name: Publicar no GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: FOCO Editor ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          make_latest: true
+          fail_on_unmatched_files: true
+          files: |
+            release/FOCO-Editor-Setup-*.exe
+            release/FOCO-Editor-Setup-*.exe.blockmap
+            release/latest.yml
