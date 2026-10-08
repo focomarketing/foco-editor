@@ -3,10 +3,7 @@
 // serializável. O histórico guarda o comando + o patch reversível (undo/redo).
 // A IA não toca no estado: ela produz comandos, que passam por validação antes.
 
-import type {
-  Asset, AudioFx, BlendMode, CaptionData, Clip, ColorSettings, Crop, Folder, Keyframes, Marker, Project,
-  SequenceSettings, TitleData, TitleTemplate, Track, TrackKind, Transform,
-} from '../../core/types';
+import type { Asset, AudioFx, BlendMode, CaptionData, Clip, ColorSettings, Crop, Folder, Keyframes, Marker, Project, SequenceSettings, TitleData, TitleTemplate, Track, TrackKind, Transform, TransitionSpec, ClipOrigin } from '../../core/types';
 import * as ops from '../timeline/operations';
 import type { ClipMove, Range } from '../timeline/operations';
 import { applyCaptions } from '../captions/captions';
@@ -110,6 +107,11 @@ export const Cmd = {
     cmd('SET_AUDIO_FX', label, { values }, (p, x) => setClipField(p, 'audio', x.values)),
   setKeyframes: (values: Record<string, Keyframes | undefined>, label = 'Keyframes') =>
     cmd('SET_KEYFRAMES', label, { values }, (p, x) => setClipField(p, 'keyframes', x.values)),
+  setTransition: (values: Record<string, TransitionSpec | undefined>, label = 'Transição') =>
+    cmd('SET_TRANSITION', label, { values }, (p, x) => setClipField(p, 'transitionIn', x.values)),
+  /** Origem/proteção do clipe ("Criado pela IA", "não alterar"). */
+  setOrigin: (values: Record<string, ClipOrigin | undefined>, label = 'Proteção do clipe') =>
+    cmd('SET_ORIGIN', label, { values }, (p, x) => setClipField(p, 'origin', x.values)),
   setCaption: (clipId: string, caption: CaptionData, label = 'Editar legenda') =>
     cmd('SET_CAPTION', label, { clipId, caption }, (p, x) => setClipField(p, 'caption', { [x.clipId]: x.caption })),
   setTitle: (clipId: string, title: TitleData, label = 'Editar gráfico') =>
@@ -173,6 +175,8 @@ const REGISTRY: Record<string, Factory> = {
   SET_COLOR: (x: { values: Record<string, ColorSettings | undefined> }) => Cmd.setColor(x.values),
   SET_AUDIO_FX: (x: { values: Record<string, AudioFx | undefined> }) => Cmd.setAudioFx(x.values),
   SET_KEYFRAMES: (x: { values: Record<string, Keyframes | undefined> }) => Cmd.setKeyframes(x.values),
+  SET_TRANSITION: (x: { values: Record<string, TransitionSpec | undefined> }) => Cmd.setTransition(x.values),
+  SET_ORIGIN: (x: { values: Record<string, ClipOrigin | undefined> }) => Cmd.setOrigin(x.values),
   SET_CAPTION: (x: { clipId: string; caption: CaptionData }) => Cmd.setCaption(x.clipId, x.caption),
   SET_TITLE: (x: { clipId: string; title: TitleData }) => Cmd.setTitle(x.clipId, x.title),
   RIPPLE_REMOVE_RANGES: (x: { ranges: Range[] }) => Cmd.rippleRemove(x.ranges),
@@ -218,6 +222,8 @@ export function clipPatchCommand(clipId: string, patch: Partial<Clip>, label?: s
   if (has('color')) list.push(Cmd.setColor({ [clipId]: patch.color }, label));
   if (has('audio')) list.push(Cmd.setAudioFx({ [clipId]: patch.audio }, label));
   if (has('keyframes')) list.push(Cmd.setKeyframes({ [clipId]: patch.keyframes }, label));
+  if (has('transitionIn')) list.push(Cmd.setTransition({ [clipId]: patch.transitionIn }, label));
+  if (has('origin')) list.push(Cmd.setOrigin({ [clipId]: patch.origin }, label));
   if (has('caption') && patch.caption) list.push(Cmd.setCaption(clipId, patch.caption, label));
   if (has('title') && patch.title) list.push(Cmd.setTitle(clipId, patch.title, label));
   if (list.length === 1) return label ? { ...list[0], label } : list[0];

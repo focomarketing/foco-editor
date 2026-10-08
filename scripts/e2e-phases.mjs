@@ -79,17 +79,29 @@ try {
   const img = await page.evaluate(() => {
     const f = window.__foco;
     const r = f.phases.phaseRunStore.get();
+    const op = f.phases.currentOperation(r.opId);
     const p = f.store.getState().project;
     const track = p.tracks.find((t) => t.name === 'B-roll');
     const clips = Object.values(p.clips).filter((c) => c.trackId === track?.id);
-    return { summary: r.summary, error: r.error, images: r.images.map((i) => ({ at: i.start.toFixed(1), q: i.query, title: i.credit.title.slice(0, 50), lic: i.credit.license, src: i.credit.source })), clips: clips.length, topTrack: p.tracks[0]?.name, undo: f.store.getState().canUndo && r.undoLabel };
+    const sugg = op ? op.commands : [];
+    return {
+      summary: r.summary,
+      error: r.error,
+      status: op?.status,
+      images: sugg.map((c) => ({ at: (c.start ?? 0).toFixed(1), q: c.payload.label, title: c.reason?.slice(0, 50), lic: c.payload.license?.licenseName ?? '', src: c.payload.license?.provider ?? '', conf: c.confidence })),
+      clips: clips.length,
+      aiMarked: clips.every((c) => c.origin?.by === 'ai' && c.origin.skill === 'broll-selector'),
+      topTrack: p.tracks[0]?.name,
+      pending: sugg.length - (op?.selected?.length ?? 0),
+    };
   });
   console.log(`    ${img.summary ?? img.error} (${((Date.now() - t0) / 1000).toFixed(0)} s)`);
-  for (const i of img.images) console.log(`      ${i.at}s · "${i.q}" → ${i.title} [${i.src} · ${i.lic}]`);
-  check(img.clips > 0, 'imagens colocadas no vídeo', img.clips);
-  check(img.topTrack === 'B-roll', 'trilha B-roll acima do vídeo', img.topTrack);
+  for (const i of img.images) console.log(`      ${i.at}s · "${i.q}" (${Math.round(i.conf * 100)}%) → ${i.title} [${i.src} · ${i.lic}]`);
+  check(img.images.length > 0, 'sugestões de imagem geradas (EditOperation)', img.images.length);
+  check(img.clips + img.pending === img.images.length, 'confiança alta aplicada, baixa para revisão', `${img.clips} aplicadas · ${img.pending} para revisar`);
+  check(img.clips === 0 || img.aiMarked, 'clipes marcados "Criado pela IA" com a skill');
+  check(img.clips === 0 || img.topTrack === 'B-roll', 'trilha B-roll acima do vídeo', img.topTrack);
   check(img.images.every((i) => /public domain|pd|cc0|pexels|pixabay/i.test(i.lic)), 'só licenças livres');
-  check(!!img.undo, 'a fase pode ser desfeita em um passo');
 
   // quadros no meio de cada imagem
   if (shots) {
@@ -106,13 +118,15 @@ try {
   }
 
   const before = img.clips;
-  await page.locator('[data-testid="phase-undo"]').click();
+  if (before > 0) await page.locator('[data-testid="phase-undo"]').click();
+  else await page.locator('[data-testid="apply-all"]').click();
   const after = await page.evaluate(() => {
     const p = window.__foco.store.getState().project;
     const track = p.tracks.find((t) => t.name === 'B-roll');
     return Object.values(p.clips).filter((c) => c.trackId === track?.id).length;
   });
-  check(before > 0 && after === 0, 'Desfazer esta fase tira todas as imagens', `${before} → ${after}`);
+  if (before > 0) check(after === 0, 'Desfazer etapa tira todas as imagens', `${before} → ${after}`);
+  else check(after > 0, 'Aplicar tudo coloca as sugestões em revisão', `0 → ${after}`);
   check(errors.length === 0, 'sem erros de página', errors.join(' | ').slice(0, 300));
 } finally {
   await context.close();

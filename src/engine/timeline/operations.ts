@@ -73,7 +73,7 @@ export function clearRange(
     } else if (cs < start && ce > end) {
       out[c.id] = { ...c, duration: start - cs };
       const rightId = newId('c');
-      out[rightId] = { ...c, id: rightId, start: end, duration: ce - end, sourceIn: c.sourceIn + (end - cs) * speedOf(c) };
+      out[rightId] = { ...c, id: rightId, start: end, duration: ce - end, sourceIn: c.sourceIn + (end - cs) * speedOf(c), transitionIn: undefined };
     } else if (cs < start) {
       out[c.id] = { ...c, duration: start - cs };
     } else {
@@ -180,7 +180,7 @@ export function splitClips(p: Project, ids: string[], t: number): { project: Pro
     const leftDur = t - c.start;
     clips[id] = { ...c, duration: leftDur };
     const rightId = newId('c');
-    clips[rightId] = { ...c, id: rightId, start: t, duration: c.duration - leftDur, sourceIn: c.sourceIn + leftDur * speedOf(c), fadeIn: 0 };
+    clips[rightId] = { ...c, id: rightId, start: t, duration: c.duration - leftDur, sourceIn: c.sourceIn + leftDur * speedOf(c), fadeIn: 0, transitionIn: undefined };
     clips[id] = { ...clips[id], fadeOut: 0 };
     created.push(rightId);
   }

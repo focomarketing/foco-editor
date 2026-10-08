@@ -146,14 +146,32 @@ export function coverScale(imgW: number, imgH: number, W: number, H: number) {
   return Math.max(W / (imgW * fit), H / (imgH * fit)) * 1.02;
 }
 
+/** Movimento lento + dissolve de uma imagem em tela cheia (alterna aproximar e afastar). */
+export function kenBurns(width: number, height: number, W: number, H: number, duration: number, index: number, opts: { dissolve?: number; push?: number } = {}): { scale: number; keyframes: { scale: Keyframe[]; opacity: Keyframe[] } } {
+  const cover = coverScale(width, height, W, H);
+  const push = opts.push ?? 1.07;
+  const [from, to] = index % 2 === 0 ? [cover, cover * push] : [cover * push, cover];
+  const fi = Math.min(opts.dissolve ?? 0.6, duration / 3);
+  return {
+    scale: from,
+    keyframes: {
+      scale: [{ t: 0, v: from, ease: 'linear' }, { t: duration, v: to, ease: 'linear' }],
+      opacity: [
+        { t: 0, v: 0, ease: 'easeInOut' },
+        { t: fi, v: 1, ease: 'linear' },
+        { t: duration - fi, v: 1, ease: 'easeInOut' },
+        { t: duration, v: 0, ease: 'linear' },
+      ],
+    },
+  };
+}
+
 /** Comandos para pôr as imagens numa trilha "B-roll" acima do vídeo (um passo de undo). */
 export function brollCommands(p: Project, items: Placement[], opts: { dissolve?: number; push?: number } = {}): { commands: EditCommand[]; clipIds: string[] } {
   const W = p.settings.width;
   const H = p.settings.height;
-  const dissolve = opts.dissolve ?? 0.6;
-  const push = opts.push ?? 1.07;
   const commands: EditCommand[] = [];
-  let track = p.tracks.find((t) => t.kind === 'video' && t.name === BROLL_TRACK);
+  const track = p.tracks.find((t) => t.kind === 'video' && t.name === BROLL_TRACK);
   let trackId = track?.id;
   if (!trackId) {
     trackId = newId('t');
@@ -161,31 +179,20 @@ export function brollCommands(p: Project, items: Placement[], opts: { dissolve?:
   }
   const clipIds: string[] = [];
   items.forEach((it, i) => {
-    const cover = coverScale(it.width, it.height, W, H);
-    // alterna aproximar e afastar, para o movimento não ficar repetitivo
-    const [from, to] = i % 2 === 0 ? [cover, cover * push] : [cover * push, cover];
-    const d = it.duration;
-    const fi = Math.min(dissolve, d / 3);
-    const scale: Keyframe[] = [{ t: 0, v: from, ease: 'linear' }, { t: d, v: to, ease: 'linear' }];
-    const opacity: Keyframe[] = [
-      { t: 0, v: 0, ease: 'easeInOut' },
-      { t: fi, v: 1, ease: 'linear' },
-      { t: d - fi, v: 1, ease: 'easeInOut' },
-      { t: d, v: 0, ease: 'linear' },
-    ];
+    const kb = kenBurns(it.width, it.height, W, H, it.duration, i, opts);
     const clip: Clip = {
       id: newId('c'),
       assetId: it.assetId,
       trackId: trackId!,
       start: it.start,
-      duration: d,
+      duration: it.duration,
       sourceIn: 0,
       volume: 0,
       speed: 1,
       fadeIn: 0,
       fadeOut: 0,
-      transform: { ...DEFAULT_TRANSFORM, scale: from },
-      keyframes: { scale, opacity },
+      transform: { ...DEFAULT_TRANSFORM, scale: kb.scale },
+      keyframes: kb.keyframes,
     };
     clipIds.push(clip.id);
     commands.push(Cmd.addClip(clip));

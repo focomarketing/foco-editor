@@ -279,6 +279,32 @@ export interface Clip {
   keyframes?: Keyframes;
   color?: ColorSettings;
   audio?: AudioFx;
+  /** Quem criou o clipe e se ele está protegido ("não alterar"). Ausente = criado pelo usuário. */
+  origin?: ClipOrigin;
+  /** Transição de entrada (preset editável, aplicada no início do clipe). */
+  transitionIn?: TransitionSpec;
+}
+
+export type TransitionType = 'cut' | 'fade' | 'dissolve' | 'dip-black' | 'zoom' | 'slide' | 'push' | 'blur' | 'flash' | 'whip';
+
+/** Preset de transição: não é renderizada no arquivo; o compositor desenha no preview e no export. */
+export interface TransitionSpec {
+  type: TransitionType;
+  /** Segundos. */
+  duration: number;
+}
+
+/** Proveniência de um clipe: criado pela IA (skill/operação) ou protegido pelo usuário. */
+export interface ClipOrigin {
+  by: 'ai' | 'user';
+  skill?: string;
+  operationId?: string;
+  confidence?: number;
+  reason?: string;
+  /** "Não alterar": a IA nunca move, apaga ou regenera este clipe. */
+  locked?: boolean;
+  /** Impressão do clipe no momento em que a IA o criou (para detectar edição manual). */
+  stamp?: string;
 }
 
 export interface SequenceSettings {
