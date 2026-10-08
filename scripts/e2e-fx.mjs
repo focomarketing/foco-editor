@@ -14,6 +14,7 @@ const check = (cond, msg, extra = '') => {
 
 // mídia gravada pelo editor vai para uma pasta temporária, não para Documentos
 process.env.FOCO_MEDIA_DIR ??= path.join(os.tmpdir(), 'foco-e2e-media');
+process.env.FOCO_PROJECTS_DIR ??= path.join(os.tmpdir(), 'foco-e2e-projetos');
 const server = await createServer({ server: { port: 5195, strictPort: true }, logLevel: 'error' });
 await server.listen();
 const browser = await chromium.launch({ channel: process.env.E2E_BROWSER === 'chrome' ? 'chrome' : 'msedge', headless: !process.env.E2E_HEADED, args: ['--autoplay-policy=no-user-gesture-required'] });

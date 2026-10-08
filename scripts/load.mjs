@@ -54,6 +54,7 @@ async function withGpu(fn) {
 
 // mídia gravada pelo editor vai para uma pasta temporária, não para Documentos
 process.env.FOCO_MEDIA_DIR ??= path.join(os.tmpdir(), 'foco-e2e-media');
+process.env.FOCO_PROJECTS_DIR ??= path.join(os.tmpdir(), 'foco-e2e-projetos');
 const server = await createServer({ server: { port: 5192, strictPort: true, hmr: false, watch: null }, logLevel: 'error' });
 await server.listen();
 const work = path.join(os.tmpdir(), 'foco-load');

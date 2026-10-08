@@ -15,7 +15,10 @@
     "test:e2e:chat": "node scripts/e2e-chat.mjs",
     "test:e2e:phase1": "node scripts/e2e-phase1.mjs",
     "test:e2e:phase2": "node scripts/e2e-phase2.mjs",
-    "test:load": "node scripts/load.mjs t1,t2,t3,t4,t5,t6,t7"
+    "test:load": "node scripts/load.mjs t1,t2,t3,t4,t5,t6,t7",
+    "app:run": "node scripts/build-desktop.mjs --run",
+    "app:build": "node scripts/build-desktop.mjs",
+    "test:e2e:desktop": "node scripts/build-desktop.mjs --no-web --prepare && node scripts/e2e-desktop.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0",

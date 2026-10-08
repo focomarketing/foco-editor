@@ -29,6 +29,7 @@ async function persist() {
 export async function goHome() {
   playback.pause();
   await persist(); // a lista de Projetos lê o catálogo: salva antes de mostrar
+  await projectFile.flushDisk();
   viewStore.set('home');
 }
 

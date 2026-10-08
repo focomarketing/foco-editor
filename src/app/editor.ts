@@ -38,6 +38,7 @@ import { ProjectFile } from '../engine/project/ProjectEngine';
 import type { RecentProject } from '../engine/project/ProjectEngine';
 import { MEDIA_TYPES, downloadBlob, fsAccessSupported, isAbort, pickFiles, pickSaveFile, pickWithInput, writeTextFile } from '../engine/platform/fs';
 import { notify } from './notify';
+import { desktop, withPath } from '../engine/platform/desktop';
 import { viewStore } from './view';
 
 export const store = new EditorStore();
@@ -72,7 +73,10 @@ export const actions = {
   async importMedia() {
     try {
       let items: ImportItem[];
-      if (fsAccessSupported) {
+      if (desktop) {
+        // app instalado: o seletor do sistema dá o caminho real de cada arquivo
+        items = (await pickWithInput('video/*,audio/*,image/*,.ttf,.otf,.woff,.woff2', true)).map(withPath);
+      } else if (fsAccessSupported) {
         const handles = await pickFiles(MEDIA_TYPES, true, 'foco-media');
         items = await Promise.all(handles.map(async (handle) => ({ handle, file: await handle.getFile() })));
       } else {
@@ -96,6 +100,10 @@ export const actions = {
       const items: ImportItem[] = [];
       for (const e of entries) {
         if (!e.file) continue;
+        if (desktop) {
+          items.push(withPath(e.file));
+          continue;
+        }
         const h = await e.handle.catch(() => null);
         items.push({ file: e.file, handle: h && h.kind === 'file' ? (h as FileSystemFileHandle) : undefined });
       }
@@ -222,13 +230,18 @@ export const actions = {
   async relinkMedia() {
     try {
       let items: ImportItem[];
-      if (fsAccessSupported) {
+      if (desktop) {
+        items = (await pickWithInput('video/*,audio/*,image/*', true)).map(withPath);
+      } else if (fsAccessSupported) {
         const handles = await pickFiles(MEDIA_TYPES, true, 'foco-media');
         items = await Promise.all(handles.map(async (handle) => ({ handle, file: await handle.getFile() })));
       } else {
         items = (await pickWithInput('video/*,audio/*,image/*', true)).map((file) => ({ file }));
       }
-      const n = await media.relink(Object.values(project().assets), items);
+      const n = await media.relink(Object.values(project().assets), items, (asset, item) => {
+        // guarda no projeto o caminho do arquivo reencontrado (da próxima vez abre sozinho)
+        if (item.path && asset.localPath !== item.path) store.execute(Cmd.updateAsset({ ...asset, localPath: item.path }, 'Vincular mídia ao arquivo do PC'));
+      });
       notify(n ? `${n} mídia(s) reconectada(s).` : 'Nenhum arquivo correspondeu às mídias offline (conteúdo, nome e tamanho diferentes). Use "Localizar" na mídia para escolher manualmente.', n ? 'success' : 'error');
     } catch (e) {
       handleError(e, 'Falha ao localizar mídia');
@@ -574,6 +587,13 @@ function saveNow() {
   // Catálogo da tela Projetos: cada projeto com mídia fica guardado para reabrir depois.
   void projectFile.catalogSave(s.project, transcripts.all(), projectDuration(s.project));
 }
+
+/** Grava tudo já (catálogo + .foco na pasta Projetos). O app chama ao fechar a janela. */
+export async function flushAll() {
+  if (Object.keys(store.getState().project.assets).length) saveNow();
+  await projectFile.flushDisk();
+}
+(globalThis as { __focoFlush?: () => Promise<void> }).__focoFlush = flushAll;
 
 /** Autosave: logo após cada edição (intervalo 0) ou a cada N segundos. Backup automático a cada 10 min. */
 function startAutosave() {

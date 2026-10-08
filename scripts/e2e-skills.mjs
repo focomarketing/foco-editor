@@ -27,6 +27,7 @@ const profile = path.join(os.tmpdir(), 'foco-e2e-skills');
 fs.rmSync(profile, { recursive: true, force: true });
 // mídia gravada pelo editor vai para uma pasta temporária, não para Documentos
 process.env.FOCO_MEDIA_DIR ??= path.join(os.tmpdir(), 'foco-e2e-media');
+process.env.FOCO_PROJECTS_DIR ??= path.join(os.tmpdir(), 'foco-e2e-projetos');
 const server = await createServer({ server: { port: 5199, strictPort: true }, logLevel: 'error' });
 await server.listen();
 const context = await chromium.launchPersistentContext(profile, {

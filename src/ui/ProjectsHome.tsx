@@ -7,6 +7,7 @@ import { openFromCatalog, removeFromCatalog, startNewProject } from '../app/work
 import type { CatalogEntry } from '../engine/project/ProjectEngine';
 import { phaseDef, readWorkflow, workflowLabel } from '../core/workflow';
 import { formatDuration } from '../core/time';
+import { desktop } from '../engine/platform/desktop';
 
 export function ProjectsHome() {
   const [list, setList] = useState<CatalogEntry[] | null>(null);
@@ -18,9 +19,14 @@ export function ProjectsHome() {
       <div className="home-head">
         <div>
           <h1>Projetos</h1>
-          <p className="muted">Continue de onde parou ou comece um vídeo novo.</p>
+          <p className="muted">Continue de onde parou ou comece um vídeo novo.{desktop ? ' Tudo fica salvo em Documentos\\FOCO Editor.' : ''}</p>
         </div>
         <div className="row">
+          {desktop?.openFolder && (
+            <button className="btn outline" onClick={() => desktop!.openFolder!('projects')} title="Os projetos ficam salvos como arquivos .foco nesta pasta" data-testid="open-projects-folder">
+              <FolderOpen size={14} /> Pasta de projetos
+            </button>
+          )}
           <button className="btn outline" onClick={() => void actions.openProject()}><FolderOpen size={14} /> Abrir arquivo .foco</button>
           <button className="btn primary" onClick={startNewProject} data-testid="home-new"><Plus size={15} /> Novo projeto</button>
         </div>

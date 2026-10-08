@@ -21,6 +21,7 @@ const check = (cond, msg, extra = '') => {
 
 // mídia gravada pelo editor vai para uma pasta temporária, não para Documentos
 process.env.FOCO_MEDIA_DIR ??= path.join(os.tmpdir(), 'foco-e2e-media');
+process.env.FOCO_PROJECTS_DIR ??= path.join(os.tmpdir(), 'foco-e2e-projetos');
 const server = await createServer({ server: { port: 5196, strictPort: true }, logLevel: 'error' });
 await server.listen();
 const context = await chromium.launchPersistentContext(path.join(os.tmpdir(), 'foco-e2e-cut'), {

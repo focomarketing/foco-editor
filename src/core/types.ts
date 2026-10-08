@@ -30,6 +30,11 @@ export interface Asset {
   audioDecodable: boolean;
   /** Pasta no Media Bin (null = raiz). */
   folderId?: string | null;
+  /**
+   * Caminho do arquivo no PC (quando conhecido: app instalado, mídia gravada pelo editor).
+   * Vai no projeto: ao reabrir, a mídia é relida direto do disco, sem pedir permissão.
+   */
+  localPath?: string;
   bitrate?: number;
   audioChannels?: number;
   sampleRate?: number;

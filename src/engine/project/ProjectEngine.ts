@@ -5,6 +5,7 @@
 import type { Project, Transcript } from '../../core/types';
 import { migrateProject } from '../../core/migrate';
 import { idb, safe } from '../platform/idb';
+import { diskProjects } from '../platform/localFiles';
 import { PROJECT_TYPES, fsAccessSupported, downloadBlob, pickFiles, pickSaveFile, pickWithInput, requestWritePermission, writeTextFile } from '../platform/fs';
 
 const AUTOSAVE_KEY = 'autosave';
@@ -75,6 +76,12 @@ export function deserialize(text: string): LoadedProject {
   const { format: _format, transcripts, ...project } = d as typeof d & { transcripts?: Transcript[] };
   void _format;
   return { project: migrateProject(project as Record<string, unknown>), transcripts: Array.isArray(transcripts) ? transcripts : [] };
+}
+
+/** Entrada do catálogo a partir de um projeto aberto de arquivo. */
+function entryOf(p: Project, transcripts: Transcript[], updatedAt: number): CatalogEntry {
+  const duration = Math.max(0, ...Object.values(p.clips).map((c) => c.start + c.duration));
+  return { id: p.id, name: p.name, createdAt: p.createdAt, updatedAt, workflow: p.metadata?.workflow ?? null, duration, clipCount: Object.keys(p.clips).length, project: p, transcripts };
 }
 
 export class ProjectFile {
@@ -152,9 +159,69 @@ export class ProjectFile {
       transcripts: transcripts.filter((t) => assetIds.has(t.assetId)),
     };
     await safe(idb.set('projects', p.id, rec));
+    this.toDisk(p, rec.transcripts);
+  }
+
+  // Cópia de cada projeto em Documentos\FOCO Editor\Projetos (.foco): sobrevive a limpar o
+  // navegador, a trocar de endereço e ao app instalado. Gravação agrupada (no máximo a cada 2 s).
+  private diskTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  private diskPending = new Map<string, { p: Project; transcripts: Transcript[] }>();
+  private toDisk(p: Project, transcripts: Transcript[]) {
+    this.diskPending.set(p.id, { p, transcripts });
+    if (this.diskTimers.has(p.id)) return;
+    this.diskTimers.set(
+      p.id,
+      setTimeout(() => {
+        this.diskTimers.delete(p.id);
+        const x = this.diskPending.get(p.id);
+        this.diskPending.delete(p.id);
+        if (x) void safe(diskProjects.write(x.p.id, x.p.name, serialize(x.p, x.transcripts)));
+      }, 2000),
+    );
+  }
+
+  /** Grava já o que estiver pendente (ao sair do projeto / fechar o app). */
+  async flushDisk() {
+    for (const [id, t] of this.diskTimers) {
+      clearTimeout(t);
+      this.diskTimers.delete(id);
+      const x = this.diskPending.get(id);
+      this.diskPending.delete(id);
+      if (x) await safe(diskProjects.write(x.p.id, x.p.name, serialize(x.p, x.transcripts)));
+    }
+  }
+
+  private synced: Promise<void> | null = null;
+  /**
+   * Junta o catálogo do navegador com a pasta Projetos do PC (uma vez por sessão): o que só
+   * está no disco (ou está mais novo lá) entra no catálogo; o que só está no navegador vai
+   * para o disco.
+   */
+  syncWithDisk(): Promise<void> {
+    this.synced ??= (async () => {
+      const disk = await safe(diskProjects.list());
+      if (!disk) return;
+      const local = new Map(((await safe(idb.all<CatalogEntry>('projects'))) ?? []).map((e) => [e.id, e]));
+      for (const d of disk) {
+        const mine = local.get(d.id);
+        if (mine && mine.updatedAt >= d.mtimeMs - 1000) continue;
+        const text = await safe(diskProjects.read(d.id));
+        if (!text) continue;
+        try {
+          const { project, transcripts } = deserialize(text);
+          await safe(idb.set('projects', project.id, entryOf(project, transcripts, d.mtimeMs)));
+        } catch (e) {
+          console.warn('[projetos] arquivo inválido na pasta Projetos', d.file, e);
+        }
+      }
+      const onDisk = new Set(disk.map((d) => d.id));
+      for (const e of local.values()) if (!onDisk.has(e.id)) await safe(diskProjects.write(e.id, e.name, serialize(e.project, e.transcripts)));
+    })();
+    return this.synced;
   }
 
   async catalog(): Promise<CatalogEntry[]> {
+    await this.syncWithDisk();
     const all = (await safe(idb.all<CatalogEntry>('projects'))) ?? [];
     return all.sort((a, b) => b.updatedAt - a.updatedAt);
   }
@@ -165,6 +232,8 @@ export class ProjectFile {
 
   async catalogRemove(id: string) {
     await safe(idb.del('projects', id));
+    // no disco o arquivo vai para Projetos\.lixeira (nada é apagado de vez)
+    await safe(diskProjects.remove(id));
   }
 
   // --- autosave -------------------------------------------------------------
