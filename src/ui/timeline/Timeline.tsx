@@ -20,6 +20,7 @@ import { ClipView } from './ClipView';
 import { Ruler } from './Ruler';
 
 import { RULER_H, trackHeight } from './layout';
+import { isGraphic } from '../../core/types';
 const SNAP_PX = 8;
 /** 100% de zoom = 40 px por segundo. */
 const BASE_ZOOM = 40;
@@ -231,7 +232,7 @@ export function Timeline() {
       if (g.origins.size === 1) {
         const lane = laneAt(e.clientY);
         const asset = p0.assets[primaryClip.assetId];
-        const needed = asset ? trackKindForAsset(asset) : primaryClip.caption || primaryClip.title ? 'video' : null;
+        const needed = asset ? trackKindForAsset(asset) : isGraphic(primaryClip) ? 'video' : null;
         if (lane && !lane.locked && needed && lane.kind === needed) targetTrack = lane.id;
       }
       const moves = [...g.origins].map(([id, o]) => ({

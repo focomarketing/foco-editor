@@ -11,6 +11,7 @@ import { clipEnd } from '../engine/timeline/operations';
 import type { Range } from '../engine/timeline/operations';
 import { media, store, transcripts } from './editor';
 import { notify } from './notify';
+import { isGraphic } from '../core/types';
 
 export interface SmartCutState {
   options: SmartCutOptions;
@@ -60,7 +61,7 @@ function speechClips(p: Project) {
   const hidden = new Set(p.tracks.filter((t) => t.hidden || t.muted).map((t) => t.id));
   return Object.values(p.clips)
     // volume 0 = take de apoio sem som (B-roll): não é fala
-    .filter((c) => !c.caption && !c.title && !hidden.has(c.trackId) && p.assets[c.assetId]?.hasAudio && !c.muted && c.volume > 0)
+    .filter((c) => !isGraphic(c) && !hidden.has(c.trackId) && p.assets[c.assetId]?.hasAudio && !c.muted && c.volume > 0)
     .sort((a, b) => a.start - b.start);
 }
 

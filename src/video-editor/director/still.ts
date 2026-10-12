@@ -31,7 +31,7 @@ export async function renderStill(p: Project, t: number, W: number, H: number, f
     const src = active.asset.kind === 'image' ? frames.image(active.asset.id) : await frames.video(active.asset.id, active.sourceTime, width);
     if (!src) continue;
     const { clip } = active;
-    layers.push({ kind: 'media', ...src, transform: mediaTransform(active), color: clip.color, crop: clip.crop, blendMode: clip.blendMode, clipId: clip.id });
+    layers.push({ kind: 'media', ...src, transform: mediaTransform(active), color: clip.color, crop: clip.crop, blendMode: clip.blendMode, mask: clip.mask, clipId: clip.id });
   }
   // dissolve/máscara/push: o último quadro do clipe anterior fica por baixo
   const tails = new Map<string, FrameSource | null>();

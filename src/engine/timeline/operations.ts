@@ -10,6 +10,7 @@ import { DEFAULT_TRANSFORM } from '../../core/types';
 import { EPS, newId } from '../../core/time';
 import { speedOf, sourceEnd, sourceSpan } from '../../core/clipTime';
 import type { Folder, Marker } from '../../core/types';
+import { isGraphic } from '../../core/types';
 
 export const IMAGE_DEFAULT_DURATION = 5;
 
@@ -278,7 +279,7 @@ export function pasteClips(p: Project, source: Clip[], at: number): { project: P
   const created: string[] = [];
   for (const c of source) {
     const asset = p.assets[c.assetId];
-    if (!asset && !c.caption && !c.title) continue;
+    if (!asset && !isGraphic(c)) continue;
     let trackId = c.trackId;
     if (!getTrack(p, trackId)) {
       const kind = asset ? trackKindForAsset(asset) : 'video';
@@ -402,7 +403,7 @@ export function setSpeed(p: Project, ids: string[], speed: number): Project {
   let clips = { ...p.clips };
   for (const id of ids) {
     const c = clips[id];
-    if (!c || c.caption || c.title) continue;
+    if (!c || isGraphic(c)) continue;
     const span = sourceSpan(c);
     const duration = span / v;
     const delta = duration - c.duration;

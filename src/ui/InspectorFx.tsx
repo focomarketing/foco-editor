@@ -8,27 +8,16 @@ import { formatTimecode } from '../core/time';
 import { toSource, toTimeline } from '../core/clipTime';
 import { media, playback, store } from '../app/editor';
 import { runManual } from '../app/aiEditor';
-import { clipPatchCommand } from '../engine/commands/commands';
 import { COLOR_PRESETS, NEUTRAL_COLOR, colorPreset } from '../engine/color/color';
 import { AUDIO_PRESETS, audioFxFromPreset } from '../engine/audio/audioFx';
 import { TITLE_TEMPLATES, defaultTitle } from '../engine/motion/titles';
 import { useAI } from './hooks';
 import { usePlayback } from './hooks';
 import { FontSelect } from './FontSelect';
-
-/** Durante um gesto (slider): mostra o resultado; o gesto vira um único comando. */
-function live(clipId: string, fn: (c: Clip) => Partial<Clip>, label?: string) {
-  const c = store.getState().project.clips[clipId];
-  if (c) store.preview(clipPatchCommand(clipId, fn(c), label));
-}
-
-function commit(clipId: string, label: string, fn: (c: Clip) => Partial<Clip>) {
-  const c = store.getState().project.clips[clipId];
-  if (c) store.execute(clipPatchCommand(clipId, fn(c), label));
-}
+import { commit, live } from './clipEdit';
 
 /** Slider que vira um único passo de undo por arraste. */
-function Range(props: { label: string; value: number; min: number; max: number; step: number; fmt?: (v: number) => string; onLive: (v: number) => void }) {
+export function Range(props: { label: string; value: number; min: number; max: number; step: number; fmt?: (v: number) => string; onLive: (v: number) => void }) {
   return (
     <div className="field">
       <label>{props.label}</label>

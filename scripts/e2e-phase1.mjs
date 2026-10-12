@@ -159,6 +159,15 @@ try {
   await page.evaluate(() => window.__foco.playback.seek(1));
   await page.keyboard.press('m');
   check((await S(page)).project.markers.length === 1 && (await page.locator('.marker').count()) === 1, 'M adiciona marcador na régua');
+  // renomear: diálogo próprio do editor (o prompt() do navegador não existe no app instalado)
+  await page.locator('.marker').dblclick();
+  await page.getByTestId('dialog-input').fill('Gancho');
+  await page.getByTestId('dialog-input').press('Enter');
+  check((await S(page)).project.markers[0].label === 'Gancho', 'duplo clique renomeia o marcador (diálogo do editor)');
+  await page.locator('.marker').dblclick();
+  await page.getByTestId('dialog-input').fill('Outro nome');
+  await page.keyboard.press('Escape');
+  check((await S(page)).project.markers[0].label === 'Gancho' && (await page.getByTestId('decision-dialog').count()) === 0, 'Esc cancela sem mudar o nome');
   await page.keyboard.press('l');
   await page.keyboard.press('l');
   await page.waitForTimeout(300);
@@ -210,7 +219,9 @@ try {
       { file: toFile(b.audio, 'MUSICA.m4a', 'audio/mp4') },
     ]);
   }, files);
-  check(linked === 2, 'mídias reconectadas aos arquivos originais', linked);
+  // desde a cópia das mídias no navegador/disco, elas já voltam sozinhas ao reabrir (relink só pega as que faltam)
+  const ready = await page.evaluate(() => Object.values(window.__foco.store.getState().project.assets).every((a) => window.__foco.media.get(a.id)?.status === 'ready'));
+  check(ready, 'mídias reconectadas aos arquivos originais', `${linked} pelo relink, o resto já voltou sozinho`);
 
   console.log('19. Exportar (MP4 H.264 1080p)');
   const dur = await page.evaluate(() => Math.max(...Object.values(window.__foco.store.getState().project.clips).map((c) => c.start + c.duration)));

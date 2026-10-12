@@ -1,0 +1,702 @@
+[
+ {
+  "family": "Anton",
+  "category": "Impacto",
+  "faces": [
+   {
+    "weight": "400",
+    "url": "fonts/library/Anton/Anton-400.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Bebas Neue",
+  "category": "Impacto",
+  "faces": [
+   {
+    "weight": "400",
+    "url": "fonts/library/Bebas-Neue/Bebas-Neue-400.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Oswald",
+  "category": "Impacto",
+  "faces": [
+   {
+    "weight": "200 700",
+    "url": "fonts/library/Oswald/Oswald-200-700.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Archivo Black",
+  "category": "Impacto",
+  "faces": [
+   {
+    "weight": "400",
+    "url": "fonts/library/Archivo-Black/Archivo-Black-400.woff2"
+   }
+  ]
+ },
+ {
+  "family": "League Gothic",
+  "category": "Impacto",
+  "faces": [
+   {
+    "weight": "400",
+    "url": "fonts/library/League-Gothic/League-Gothic-400.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Bowlby One",
+  "category": "Impacto",
+  "faces": [
+   {
+    "weight": "400",
+    "url": "fonts/library/Bowlby-One/Bowlby-One-400.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Russo One",
+  "category": "Impacto",
+  "faces": [
+   {
+    "weight": "400",
+    "url": "fonts/library/Russo-One/Russo-One-400.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Alfa Slab One",
+  "category": "Impacto",
+  "faces": [
+   {
+    "weight": "400",
+    "url": "fonts/library/Alfa-Slab-One/Alfa-Slab-One-400.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Passion One",
+  "category": "Impacto",
+  "faces": [
+   {
+    "weight": "400",
+    "url": "fonts/library/Passion-One/Passion-One-400.woff2"
+   },
+   {
+    "weight": "700",
+    "url": "fonts/library/Passion-One/Passion-One-700.woff2"
+   },
+   {
+    "weight": "900",
+    "url": "fonts/library/Passion-One/Passion-One-900.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Fjalla One",
+  "category": "Impacto",
+  "faces": [
+   {
+    "weight": "400",
+    "url": "fonts/library/Fjalla-One/Fjalla-One-400.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Barlow Condensed",
+  "category": "Impacto",
+  "faces": [
+   {
+    "weight": "400",
+    "url": "fonts/library/Barlow-Condensed/Barlow-Condensed-400.woff2"
+   },
+   {
+    "weight": "500",
+    "url": "fonts/library/Barlow-Condensed/Barlow-Condensed-500.woff2"
+   },
+   {
+    "weight": "600",
+    "url": "fonts/library/Barlow-Condensed/Barlow-Condensed-600.woff2"
+   },
+   {
+    "weight": "700",
+    "url": "fonts/library/Barlow-Condensed/Barlow-Condensed-700.woff2"
+   },
+   {
+    "weight": "800",
+    "url": "fonts/library/Barlow-Condensed/Barlow-Condensed-800.woff2"
+   },
+   {
+    "weight": "900",
+    "url": "fonts/library/Barlow-Condensed/Barlow-Condensed-900.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Big Shoulders",
+  "category": "Impacto",
+  "faces": [
+   {
+    "weight": "100 900",
+    "url": "fonts/library/Big-Shoulders/Big-Shoulders-100-900.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Teko",
+  "category": "Impacto",
+  "faces": [
+   {
+    "weight": "300 700",
+    "url": "fonts/library/Teko/Teko-300-700.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Montserrat",
+  "category": "Moderna",
+  "faces": [
+   {
+    "weight": "100 900",
+    "url": "fonts/library/Montserrat/Montserrat-100-900.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Poppins",
+  "category": "Moderna",
+  "faces": [
+   {
+    "weight": "400",
+    "url": "fonts/library/Poppins/Poppins-400.woff2"
+   },
+   {
+    "weight": "500",
+    "url": "fonts/library/Poppins/Poppins-500.woff2"
+   },
+   {
+    "weight": "600",
+    "url": "fonts/library/Poppins/Poppins-600.woff2"
+   },
+   {
+    "weight": "700",
+    "url": "fonts/library/Poppins/Poppins-700.woff2"
+   },
+   {
+    "weight": "800",
+    "url": "fonts/library/Poppins/Poppins-800.woff2"
+   },
+   {
+    "weight": "900",
+    "url": "fonts/library/Poppins/Poppins-900.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Inter",
+  "category": "Moderna",
+  "faces": [
+   {
+    "weight": "100 900",
+    "url": "fonts/library/Inter/Inter-100-900.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Roboto",
+  "category": "Moderna",
+  "faces": [
+   {
+    "weight": "100 900",
+    "url": "fonts/library/Roboto/Roboto-100-900.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Open Sans",
+  "category": "Moderna",
+  "faces": [
+   {
+    "weight": "300 800",
+    "url": "fonts/library/Open-Sans/Open-Sans-300-800.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Lato",
+  "category": "Moderna",
+  "faces": [
+   {
+    "weight": "400",
+    "url": "fonts/library/Lato/Lato-400.woff2"
+   },
+   {
+    "weight": "700",
+    "url": "fonts/library/Lato/Lato-700.woff2"
+   },
+   {
+    "weight": "900",
+    "url": "fonts/library/Lato/Lato-900.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Nunito",
+  "category": "Moderna",
+  "faces": [
+   {
+    "weight": "200 1000",
+    "url": "fonts/library/Nunito/Nunito-200-1000.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Raleway",
+  "category": "Moderna",
+  "faces": [
+   {
+    "weight": "100 900",
+    "url": "fonts/library/Raleway/Raleway-100-900.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Work Sans",
+  "category": "Moderna",
+  "faces": [
+   {
+    "weight": "100 900",
+    "url": "fonts/library/Work-Sans/Work-Sans-100-900.woff2"
+   }
+  ]
+ },
+ {
+  "family": "DM Sans",
+  "category": "Moderna",
+  "faces": [
+   {
+    "weight": "100 1000",
+    "url": "fonts/library/DM-Sans/DM-Sans-100-1000.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Manrope",
+  "category": "Moderna",
+  "faces": [
+   {
+    "weight": "200 800",
+    "url": "fonts/library/Manrope/Manrope-200-800.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Outfit",
+  "category": "Moderna",
+  "faces": [
+   {
+    "weight": "100 900",
+    "url": "fonts/library/Outfit/Outfit-100-900.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Rubik",
+  "category": "Moderna",
+  "faces": [
+   {
+    "weight": "300 900",
+    "url": "fonts/library/Rubik/Rubik-300-900.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Kanit",
+  "category": "Moderna",
+  "faces": [
+   {
+    "weight": "400",
+    "url": "fonts/library/Kanit/Kanit-400.woff2"
+   },
+   {
+    "weight": "500",
+    "url": "fonts/library/Kanit/Kanit-500.woff2"
+   },
+   {
+    "weight": "600",
+    "url": "fonts/library/Kanit/Kanit-600.woff2"
+   },
+   {
+    "weight": "700",
+    "url": "fonts/library/Kanit/Kanit-700.woff2"
+   },
+   {
+    "weight": "800",
+    "url": "fonts/library/Kanit/Kanit-800.woff2"
+   },
+   {
+    "weight": "900",
+    "url": "fonts/library/Kanit/Kanit-900.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Lexend",
+  "category": "Moderna",
+  "faces": [
+   {
+    "weight": "100 900",
+    "url": "fonts/library/Lexend/Lexend-100-900.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Barlow",
+  "category": "Moderna",
+  "faces": [
+   {
+    "weight": "400",
+    "url": "fonts/library/Barlow/Barlow-400.woff2"
+   },
+   {
+    "weight": "500",
+    "url": "fonts/library/Barlow/Barlow-500.woff2"
+   },
+   {
+    "weight": "600",
+    "url": "fonts/library/Barlow/Barlow-600.woff2"
+   },
+   {
+    "weight": "700",
+    "url": "fonts/library/Barlow/Barlow-700.woff2"
+   },
+   {
+    "weight": "800",
+    "url": "fonts/library/Barlow/Barlow-800.woff2"
+   },
+   {
+    "weight": "900",
+    "url": "fonts/library/Barlow/Barlow-900.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Playfair Display",
+  "category": "Elegante",
+  "faces": [
+   {
+    "weight": "400 900",
+    "url": "fonts/library/Playfair-Display/Playfair-Display-400-900.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Cormorant Garamond",
+  "category": "Elegante",
+  "faces": [
+   {
+    "weight": "300 700",
+    "url": "fonts/library/Cormorant-Garamond/Cormorant-Garamond-300-700.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Lora",
+  "category": "Elegante",
+  "faces": [
+   {
+    "weight": "400 700",
+    "url": "fonts/library/Lora/Lora-400-700.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Merriweather",
+  "category": "Elegante",
+  "faces": [
+   {
+    "weight": "300 900",
+    "url": "fonts/library/Merriweather/Merriweather-300-900.woff2"
+   }
+  ]
+ },
+ {
+  "family": "DM Serif Display",
+  "category": "Elegante",
+  "faces": [
+   {
+    "weight": "400",
+    "url": "fonts/library/DM-Serif-Display/DM-Serif-Display-400.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Abril Fatface",
+  "category": "Elegante",
+  "faces": [
+   {
+    "weight": "400",
+    "url": "fonts/library/Abril-Fatface/Abril-Fatface-400.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Cinzel",
+  "category": "Elegante",
+  "faces": [
+   {
+    "weight": "400 900",
+    "url": "fonts/library/Cinzel/Cinzel-400-900.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Libre Baskerville",
+  "category": "Elegante",
+  "faces": [
+   {
+    "weight": "400 700",
+    "url": "fonts/library/Libre-Baskerville/Libre-Baskerville-400-700.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Pacifico",
+  "category": "Manuscrita",
+  "faces": [
+   {
+    "weight": "400",
+    "url": "fonts/library/Pacifico/Pacifico-400.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Dancing Script",
+  "category": "Manuscrita",
+  "faces": [
+   {
+    "weight": "400 700",
+    "url": "fonts/library/Dancing-Script/Dancing-Script-400-700.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Caveat",
+  "category": "Manuscrita",
+  "faces": [
+   {
+    "weight": "400 700",
+    "url": "fonts/library/Caveat/Caveat-400-700.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Satisfy",
+  "category": "Manuscrita",
+  "faces": [
+   {
+    "weight": "400",
+    "url": "fonts/library/Satisfy/Satisfy-400.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Great Vibes",
+  "category": "Manuscrita",
+  "faces": [
+   {
+    "weight": "400",
+    "url": "fonts/library/Great-Vibes/Great-Vibes-400.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Permanent Marker",
+  "category": "Manuscrita",
+  "faces": [
+   {
+    "weight": "400",
+    "url": "fonts/library/Permanent-Marker/Permanent-Marker-400.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Kaushan Script",
+  "category": "Manuscrita",
+  "faces": [
+   {
+    "weight": "400",
+    "url": "fonts/library/Kaushan-Script/Kaushan-Script-400.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Lobster",
+  "category": "Manuscrita",
+  "faces": [
+   {
+    "weight": "400",
+    "url": "fonts/library/Lobster/Lobster-400.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Sacramento",
+  "category": "Manuscrita",
+  "faces": [
+   {
+    "weight": "400",
+    "url": "fonts/library/Sacramento/Sacramento-400.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Shadows Into Light",
+  "category": "Manuscrita",
+  "faces": [
+   {
+    "weight": "400",
+    "url": "fonts/library/Shadows-Into-Light/Shadows-Into-Light-400.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Bangers",
+  "category": "Divertida",
+  "faces": [
+   {
+    "weight": "400",
+    "url": "fonts/library/Bangers/Bangers-400.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Luckiest Guy",
+  "category": "Divertida",
+  "faces": [
+   {
+    "weight": "400",
+    "url": "fonts/library/Luckiest-Guy/Luckiest-Guy-400.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Titan One",
+  "category": "Divertida",
+  "faces": [
+   {
+    "weight": "400",
+    "url": "fonts/library/Titan-One/Titan-One-400.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Fredoka",
+  "category": "Divertida",
+  "faces": [
+   {
+    "weight": "300 700",
+    "url": "fonts/library/Fredoka/Fredoka-300-700.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Baloo 2",
+  "category": "Divertida",
+  "faces": [
+   {
+    "weight": "400 800",
+    "url": "fonts/library/Baloo-2/Baloo-2-400-800.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Chewy",
+  "category": "Divertida",
+  "faces": [
+   {
+    "weight": "400",
+    "url": "fonts/library/Chewy/Chewy-400.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Righteous",
+  "category": "Divertida",
+  "faces": [
+   {
+    "weight": "400",
+    "url": "fonts/library/Righteous/Righteous-400.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Bungee",
+  "category": "Divertida",
+  "faces": [
+   {
+    "weight": "400",
+    "url": "fonts/library/Bungee/Bungee-400.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Orbitron",
+  "category": "Tech",
+  "faces": [
+   {
+    "weight": "400 900",
+    "url": "fonts/library/Orbitron/Orbitron-400-900.woff2"
+   }
+  ]
+ },
+ {
+  "family": "JetBrains Mono",
+  "category": "Tech",
+  "faces": [
+   {
+    "weight": "100 800",
+    "url": "fonts/library/JetBrains-Mono/JetBrains-Mono-100-800.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Space Mono",
+  "category": "Tech",
+  "faces": [
+   {
+    "weight": "400",
+    "url": "fonts/library/Space-Mono/Space-Mono-400.woff2"
+   },
+   {
+    "weight": "700",
+    "url": "fonts/library/Space-Mono/Space-Mono-700.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Space Grotesk",
+  "category": "Tech",
+  "faces": [
+   {
+    "weight": "300 700",
+    "url": "fonts/library/Space-Grotesk/Space-Grotesk-300-700.woff2"
+   }
+  ]
+ },
+ {
+  "family": "Press Start 2P",
+  "category": "Tech",
+  "faces": [
+   {
+    "weight": "400",
+    "url": "fonts/library/Press-Start-2P/Press-Start-2P-400.woff2"
+   }
+  ]
+ }
+]

@@ -1,14 +1,15 @@
 // Compositor 2D compartilhado entre preview e export: o mesmo código decide o que
 // aparece em cada instante e como é desenhado. Se o preview mostra, o export renderiza.
 
-import type { Asset, BlendMode, Clip, ColorSettings, Crop, Project, Transform } from '../../core/types';
-import { NO_CROP } from '../../core/types';
+import type { Asset, BlendMode, Clip, ClipMask, ColorSettings, Crop, Project, Transform } from '../../core/types';
+import { isGraphic, NO_CROP } from '../../core/types';
 import { EPS } from '../../core/time';
 import { toSource } from '../../core/clipTime';
 import { transformAt } from '../../core/animation';
 import { clipEnd } from '../timeline/operations';
 import { drawCaption } from '../captions/renderCaption';
 import { drawTitle } from '../motion/titles';
+import { drawElement } from '../motion/elements';
 import { colorProcessor, isNeutral } from '../color/color';
 import type { LayerFx, OverlaySpec } from './transitions';
 import { drawOverlay, drawSlices, maskBand, maskPath, rgbSplit } from './transitionDraw';
@@ -18,7 +19,7 @@ export type { FrameSource } from './transitionDraw';
 
 export interface ActiveClip {
   clip: Clip;
-  /** Ausente em legendas e títulos. */
+  /** Ausente em legendas, títulos e elementos. */
   asset?: Asset;
   /** Tempo dentro da mídia de origem (ou do gráfico). */
   sourceTime: number;
@@ -37,7 +38,7 @@ export function visualLayersAt(p: Project, t: number): ActiveClip[] {
       if (clip.trackId !== trackId) continue;
       if (t < clip.start - EPS || t >= clipEnd(clip) - EPS) continue;
       const sourceTime = toSource(clip, t);
-      if (clip.caption || clip.title) {
+      if (isGraphic(clip)) {
         out.push({ clip, sourceTime });
         break;
       }
@@ -70,6 +71,8 @@ export type DrawLayer =
       color?: ColorSettings;
       crop?: Crop;
       blendMode?: BlendMode;
+      /** Máscara do clipe (na área da imagem). */
+      mask?: ClipMask;
       /** Clipe de origem (para as transições acharem a camada). */
       clipId?: string;
       /** Efeito de transição neste quadro. */
@@ -77,12 +80,14 @@ export type DrawLayer =
     }
   | { kind: 'caption'; clip: Clip; time: number }
   | { kind: 'title'; clip: Clip; time: number }
+  | { kind: 'element'; clip: Clip; time: number }
   | { kind: 'overlay'; overlay: OverlaySpec };
 
-/** Monta a camada de um clipe ativo que não é mídia (legenda/título). */
+/** Monta a camada de um clipe ativo que não é mídia (legenda/título/elemento). */
 export function graphicLayer(a: ActiveClip): DrawLayer | null {
   if (a.clip.caption) return { kind: 'caption', clip: a.clip, time: a.sourceTime };
   if (a.clip.title) return { kind: 'title', clip: a.clip, time: a.sourceTime };
+  if (a.clip.element) return { kind: 'element', clip: a.clip, time: a.sourceTime };
   return null;
 }
 
@@ -124,6 +129,10 @@ export function composite(ctx: Ctx2D, W: number, H: number, layers: DrawLayer[],
       drawTitle(ctx, W, H, l.clip, l.time);
       continue;
     }
+    if (l.kind === 'element') {
+      drawElement(ctx, W, H, l.clip, l.time);
+      continue;
+    }
     if (l.kind === 'overlay') {
       drawOverlay(ctx, W, H, l.overlay);
       continue;
@@ -163,7 +172,8 @@ export function composite(ctx: Ctx2D, W: number, H: number, layers: DrawLayer[],
     // Com desfoque, a camada inteira (com as cópias espelhadas) é montada numa superfície e
     // desfocada de uma vez: sem emenda escura entre cópias nem borda puxando o preto de fora.
     const blurPx = fx?.blur && fx.blur > 0.0005 ? fx.blur * W : 0;
-    const surface = blurPx ? fxSurface(W, H) : null;
+    // máscara do clipe também é recortada numa superfície própria (borda suave)
+    const surface = blurPx || l.mask ? fxSurface(W, H) : null;
     const target: Ctx2D = surface ? surface.getContext('2d')! : ctx;
     if (surface) {
       target.setTransform(1, 0, 0, 1, 0, 0);
@@ -196,14 +206,17 @@ export function composite(ctx: Ctx2D, W: number, H: number, layers: DrawLayer[],
       if (fx.dy) for (const s of [-1, 1]) draw(0, s * Math.abs(dh), false, true);
     }
     if (fx?.rgb && fx.rgb > 0.0005) rgbSplit(target, source, srcW, srcH, x0, y0, dw, dh, fx.rgb * W);
+    if (surface && l.mask) applyMask(target, l.mask, x0, y0, dw, dh);
     if (surface) {
       ctx.save();
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.globalAlpha = Math.min(1, opacity);
       ctx.globalCompositeOperation = blend;
-      ctx.filter = `blur(${blurPx.toFixed(1)}px)`;
-      const m = blurPx * 2; // sobra: a borda desfocada fica fora do quadro
-      ctx.drawImage(surface, -m, -m, W + 2 * m, H + 2 * m);
+      if (blurPx) {
+        ctx.filter = `blur(${blurPx.toFixed(1)}px)`;
+        const m = blurPx * 2; // sobra: a borda desfocada fica fora do quadro
+        ctx.drawImage(surface, -m, -m, W + 2 * m, H + 2 * m);
+      } else ctx.drawImage(surface, 0, 0);
       ctx.restore();
     }
     ctx.globalCompositeOperation = 'source-over';
@@ -213,4 +226,28 @@ export function composite(ctx: Ctx2D, W: number, H: number, layers: DrawLayer[],
     }
   }
   ctx.restore();
+}
+
+/**
+ * Recorta a camada já desenhada em `target` (com a transformação da camada ativa) pela máscara:
+ * mantém o de dentro (ou o de fora, se invertida), com a borda suavizada por desfoque.
+ */
+function applyMask(target: Ctx2D, m: ClipMask, x0: number, y0: number, dw: number, dh: number) {
+  const aw = Math.abs(dw);
+  const ah = Math.abs(dh);
+  const w = m.w * aw;
+  const h = m.h * ah;
+  const cx = x0 + m.x * dw;
+  const cy = y0 + m.y * dh;
+  const feather = m.feather * Math.min(aw, ah);
+  target.save();
+  target.globalAlpha = 1;
+  target.globalCompositeOperation = m.invert ? 'destination-out' : 'destination-in';
+  if (feather > 0.5) target.filter = `blur(${feather.toFixed(1)}px)`;
+  target.fillStyle = '#fff';
+  target.beginPath();
+  if (m.shape === 'ellipse') target.ellipse(cx, cy, w / 2, h / 2, 0, 0, Math.PI * 2);
+  else target.roundRect(cx - w / 2, cy - h / 2, w, h, Math.max(0, Math.min(0.5, m.radius)) * Math.min(w, h));
+  target.fill();
+  target.restore();
 }

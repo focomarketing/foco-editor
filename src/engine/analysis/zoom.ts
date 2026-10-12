@@ -12,7 +12,7 @@ const CONFIG: Record<ZoomIntensity, { share: number; zoom: number; strongZoom: n
   strong: { share: 0.4, zoom: 1.1, strongZoom: 1.2, minGap: 2.5 },
 };
 
-const EMPHASIS = new Set([
+export const EMPHASIS = new Set([
   'nunca', 'sempre', 'muito', 'importante', 'segredo', 'verdade', 'atenção', 'cuidado', 'erro', 'mentira',
   'principal', 'melhor', 'pior', 'jamais', 'todos', 'ninguém', 'agora', 'hoje', 'grande', 'incrível',
   'never', 'always', 'secret', 'truth', 'important', 'best', 'worst',

@@ -8,6 +8,7 @@ import { captionText } from '../../engine/captions/captions';
 import { presetFor } from '../../video-editor/transitions/library';
 import { keyframeTimes } from '../../core/animation';
 import { sourceEnd, speedOf, toSource, toTimeline } from '../../core/clipTime';
+import { isGraphic } from '../../core/types';
 
 interface Props {
   clip: Clip;
@@ -24,9 +25,9 @@ export const ClipView = memo(function ClipView({ clip, asset, zoom, view, select
   const entry = useSyncExternalStore(media.subscribe, () => (asset ? media.get(asset.id) : undefined));
   const left = clip.start * zoom;
   const width = Math.max(2, clip.duration * zoom);
-  const kind = clip.caption ? 'caption' : clip.title ? 'title' : (asset?.kind ?? 'video');
+  const kind = clip.caption ? 'caption' : clip.title || clip.element ? 'title' : (asset?.kind ?? 'video');
   const online = !!clip.caption || !!clip.title || entry?.status === 'ready';
-  const label = clip.caption ? captionText(clip) : clip.title ? `◆ ${clip.title.text}` : (asset?.name ?? '?');
+  const label = clip.caption ? captionText(clip) : clip.title ? `◆ ${clip.title.text}` : clip.element ? `✦ ${clip.element.name}` : (asset?.name ?? '?');
   const kfs = keyframeTimes(clip.keyframes).filter((t) => t >= clip.sourceIn && t <= sourceEnd(clip));
 
   return (
@@ -34,7 +35,7 @@ export const ClipView = memo(function ClipView({ clip, asset, zoom, view, select
       className={`clip ${kind}${selected ? ' selected' : ''}${online ? '' : ' offline'}`}
       style={{ left, width, opacity: dimmed ? 0.4 : 1 }}
       data-clip={clip.id}
-      title={clip.caption || clip.title ? label : asset ? `${asset.name}${online ? '' : ' (offline)'}` : 'mídia removida'}
+      title={isGraphic(clip) ? label : asset ? `${asset.name}${online ? '' : ' (offline)'}` : 'mídia removida'}
       onPointerDown={(e) => onPointerDown(e, clip, 'body')}
     >
       <span className="clip-label">{label}</span>

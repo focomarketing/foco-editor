@@ -3,12 +3,12 @@
 // serializável. O histórico guarda o comando + o patch reversível (undo/redo).
 // A IA não toca no estado: ela produz comandos, que passam por validação antes.
 
-import type { Asset, AudioFx, BlendMode, CaptionData, Clip, ColorSettings, Crop, Folder, Keyframes, Marker, Project, SequenceSettings, TitleData, TitleTemplate, Track, TrackKind, Transform, TransitionSpec, ClipOrigin } from '../../core/types';
+import type { Asset, AudioFx, BlendMode, CaptionData, Clip, ClipMask, ElementData, ColorSettings, Crop, Folder, Keyframes, Marker, Project, SequenceSettings, TitleData, TitleTemplate, Track, TrackKind, Transform, TransitionSpec, ClipOrigin } from '../../core/types';
 import * as ops from '../timeline/operations';
 import type { ClipMove, Range } from '../timeline/operations';
 import { applyCaptions } from '../captions/captions';
 import type { TimelineWord } from '../captions/captions';
-import { addTitle } from '../motion/insert';
+import { addElement, addTitle } from '../motion/insert';
 
 export interface EditCommand<P = unknown> {
   type: string;
@@ -122,6 +122,11 @@ export const Cmd = {
   // --- gráficos / legendas -------------------------------------------------------
   addTitle: (opts: { template: TitleTemplate; text: string; subtitle?: string; at: number; duration: number }) =>
     cmd('ADD_TITLE', `Inserir gráfico`, opts, (p, x) => addTitle(p, x).project),
+  setElement: (clipId: string, element: ElementData, label = 'Editar elemento') =>
+    cmd('SET_ELEMENT', label, { clipId, element }, (p, x) => setClipField(p, 'element', { [x.clipId]: x.element })),
+  addElement: (opts: { element: ElementData; at: number; duration: number }) =>
+    cmd('ADD_ELEMENT', `Inserir ${opts.element.name}`, opts, (p, x) => addElement(p, x).project),
+  setMask: (values: Record<string, ClipMask | undefined>, label = 'Máscara') => cmd('SET_MASK', label, { values }, (p, x) => setClipField(p, 'mask', x.values)),
   generateCaptions: (words: TimelineWord[], preset: string) =>
     cmd('GENERATE_CAPTIONS', 'Gerar legendas', { words, preset }, (p, x) => applyCaptions(p, x.words, x.preset).project),
 
@@ -198,6 +203,9 @@ const REGISTRY: Record<string, Factory> = {
   SET_TITLE: (x: { clipId: string; title: TitleData }) => Cmd.setTitle(x.clipId, x.title),
   RIPPLE_REMOVE_RANGES: (x: { ranges: Range[] }) => Cmd.rippleRemove(x.ranges),
   ADD_TITLE: (x: { template: TitleTemplate; text: string; subtitle?: string; at: number; duration: number }) => Cmd.addTitle(x),
+  SET_ELEMENT: (x: { clipId: string; element: ElementData }) => Cmd.setElement(x.clipId, x.element),
+  ADD_ELEMENT: (x: { element: ElementData; at: number; duration: number }) => Cmd.addElement(x),
+  SET_MASK: (x: { values: Record<string, ClipMask | undefined> }) => Cmd.setMask(x.values),
   GENERATE_CAPTIONS: (x: { words: TimelineWord[]; preset: string }) => Cmd.generateCaptions(x.words, x.preset),
   ADD_TRACK: (x: { kind: TrackKind; id?: string; name?: string }) => Cmd.addTrack(x.kind, x),
   UPDATE_TRACK: (x: { trackId: string; patch: Partial<Track> }) => Cmd.updateTrack(x.trackId, x.patch),
@@ -244,6 +252,8 @@ export function clipPatchCommand(clipId: string, patch: Partial<Clip>, label?: s
   if (has('origin')) list.push(Cmd.setOrigin({ [clipId]: patch.origin }, label));
   if (has('caption') && patch.caption) list.push(Cmd.setCaption(clipId, patch.caption, label));
   if (has('title') && patch.title) list.push(Cmd.setTitle(clipId, patch.title, label));
+  if (has('element') && patch.element) list.push(Cmd.setElement(clipId, patch.element, label));
+  if (has('mask')) list.push(Cmd.setMask({ [clipId]: patch.mask }, label));
   if (list.length === 1) return label ? { ...list[0], label } : list[0];
   return Cmd.batch(label ?? 'Editar clipe', list);
 }

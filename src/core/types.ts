@@ -4,7 +4,7 @@
 
 /**
  * Tipos de mídia. Previstos para fases futuras (sem suporte ainda):
- * 'lut' | 'effect' | 'transition' | 'motionTemplate' | 'captionPreset'.
+ * 'lut' | 'effect' | 'transition' | 'motionTemplate'.
  */
 export type AssetKind = 'video' | 'audio' | 'image' | 'svg' | 'font';
 
@@ -91,7 +91,7 @@ export interface Marker {
   color: string;
 }
 
-/** Fonte de texto (sistema, importada ou da biblioteca — esta última numa fase futura). */
+/** Fonte de texto (sistema, importada ou da biblioteca: seleção embutida + Google Fonts). */
 export interface FontInfo {
   id: string;
   family: string;
@@ -147,6 +147,8 @@ export interface TranscriptWord {
   end: number;
   /** 0..1 quando o modelo informar. */
   confidence?: number;
+  /** Legendas: palavra em destaque (cor de ênfase), marcada à mão ou pelo destaque automático. */
+  emphasis?: boolean;
 }
 
 export interface Transcript {
@@ -161,7 +163,12 @@ export interface Transcript {
   words: TranscriptWord[];
 }
 
-export type CaptionMode = 'block' | 'karaoke' | 'word';
+/** block: bloco inteiro · karaoke: destaca a palavra falada · word: uma palavra por vez · reveal: palavras aparecem conforme a fala. */
+export type CaptionMode = 'block' | 'karaoke' | 'word' | 'reveal';
+/** Entrada/saída do bloco de legenda. */
+export type CaptionAnim = 'none' | 'fade' | 'pop' | 'slideUp' | 'slideDown' | 'zoom' | 'blur';
+/** Animação da palavra falada (ou de cada palavra que aparece, no modo reveal). */
+export type CaptionWordAnim = 'none' | 'pop' | 'bounce' | 'rise' | 'fade' | 'shake';
 
 export interface CaptionStyle {
   preset: string;
@@ -180,8 +187,35 @@ export interface CaptionStyle {
   /** Centro vertical da legenda, 0 (topo) a 1 (base). */
   y: number;
   mode: CaptionMode;
-  /** Palavra atual cresce e volta (pop). */
+  /** Palavra atual cresce e volta (pop). Legado: `wordAnim` manda quando existe. */
   pop: boolean;
+  // --- Fase 4 (opcionais: legendas antigas continuam iguais) ---
+  /** Espaço entre letras, em fração do tamanho da fonte (0 = normal). */
+  letterSpacing?: number;
+  /** Altura da linha, em múltiplos do tamanho da fonte (padrão 1.18). */
+  lineHeight?: number;
+  /** Largura máxima da linha, em fração da largura do quadro (padrão 0.86). */
+  maxWidth?: number;
+  /** Cor da sombra (padrão preto 65%). */
+  shadowColor?: string;
+  /** Desfoque da sombra, em fração do tamanho da fonte (padrão 0.12). Com deslocamento 0 vira brilho. */
+  shadowBlur?: number;
+  /** Deslocamento vertical da sombra, em fração do tamanho da fonte (padrão 0.05). */
+  shadowOffset?: number;
+  /** Fundo do bloco: folga e cantos, em fração do tamanho da fonte (padrão 0.45 / 0.25). */
+  backgroundPadding?: number;
+  backgroundRadius?: number;
+  /** Caixa colorida atrás da palavra falada (null = sem caixa). */
+  highlightBg?: string | null;
+  /** Cor das palavras em destaque (`emphasis`); padrão = cor de destaque. */
+  emphasisColor?: string;
+  /** Entrada e saída do bloco. */
+  animIn?: CaptionAnim;
+  animOut?: CaptionAnim;
+  /** Duração da entrada/saída (s, padrão 0.18). */
+  animDuration?: number;
+  /** Animação da palavra; ausente = 'pop' se `pop`, senão 'none'. */
+  wordAnim?: CaptionWordAnim;
 }
 
 /** Legenda: as palavras usam o tempo "de origem" do clipe (como uma mídia). */
@@ -253,7 +287,104 @@ export interface TitleData {
   y: number;
 }
 
-/** assetId de clipes que não vêm de um arquivo (legendas). */
+// --- Elementos (Fase 5): formas, texto e partículas em grupo -------------------------
+
+export type ElementShape = 'rect' | 'ellipse' | 'line' | 'arrow' | 'star' | 'polygon' | 'text' | 'particles';
+/** Entrada/saída de uma camada. "draw" desenha o contorno/traço progressivamente; "wipe" revela da esquerda. */
+export type ElementAnim = 'none' | 'fade' | 'pop' | 'slideLeft' | 'slideRight' | 'slideUp' | 'slideDown' | 'draw' | 'wipe' | 'spin';
+/** Movimento contínuo enquanto a camada está na tela. */
+export type ElementLoop = 'none' | 'pulse' | 'rotate' | 'float' | 'blink' | 'wiggle';
+export type ParticlePreset = 'confetti' | 'snow' | 'sparkles' | 'bubbles' | 'embers' | 'hearts';
+
+export interface ParticleSpec {
+  preset: ParticlePreset;
+  /** Quantidade de partículas na tela. */
+  count: number;
+  colors: string[];
+  /** Multiplicador de velocidade (1 = padrão do preset). */
+  speed: number;
+  /** Multiplicador de tamanho (1 = padrão do preset). */
+  size: number;
+  /** Semente: mesmo número = mesmo movimento (preview e export iguais). */
+  seed: number;
+}
+
+/**
+ * Camada de um elemento. Posição em fração do quadro (centro, 0..1); tamanho em fração do
+ * lado menor do quadro (um quadrado de w = h = 0.2 é quadrado em qualquer formato).
+ * Partículas ocupam a caixa x/y/w/h (w/h em fração da largura/altura do quadro).
+ */
+export interface ElementLayer {
+  id: string;
+  kind: ElementShape;
+  name?: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  /** Graus. */
+  rotation: number;
+  /** w/h em fração da largura/altura do quadro (molduras e faixas que acompanham o formato). */
+  frameUnits?: boolean;
+  opacity: number;
+  fill: string | null;
+  /** Segunda cor do preenchimento: gradiente linear (esquerda → direita). */
+  fill2?: string | null;
+  stroke: string | null;
+  /** Espessura do contorno em fração do lado menor do quadro. */
+  strokeWidth: number;
+  /** Cantos do retângulo, em fração do lado menor da forma (0..0.5). */
+  radius?: number;
+  /** Pontas da estrela / lados do polígono. */
+  points?: number;
+  /** Estrela: raio interno / externo. */
+  innerRatio?: number;
+  /** Sombra suave atrás da camada. */
+  shadow?: boolean;
+  // texto
+  text?: string;
+  fontFamily?: string;
+  fontWeight?: number;
+  // animação (s, relativos ao início do clipe)
+  animIn?: ElementAnim;
+  animOut?: ElementAnim;
+  /** Atraso da entrada. */
+  delay?: number;
+  /** Duração da entrada/saída (padrão 0.4). */
+  animDuration?: number;
+  loop?: ElementLoop;
+  /** Velocidade do loop (1 = padrão). */
+  loopSpeed?: number;
+  particles?: ParticleSpec;
+}
+
+/** Elemento = grupo de camadas desenhadas juntas; o clipe (transform + keyframes) move o grupo. */
+export interface ElementData {
+  /** Preset de origem (biblioteca de elementos). */
+  preset: string;
+  name: string;
+  layers: ElementLayer[];
+}
+
+/**
+ * Máscara de um clipe de vídeo/imagem, na área da própria imagem (acompanha posição e escala):
+ * centro e tamanho em fração da imagem.
+ */
+export interface ClipMask {
+  shape: 'rect' | 'ellipse';
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  /** Cantos do retângulo, em fração do lado menor da máscara (0..0.5). */
+  radius: number;
+  /** Borda suave, em fração do lado menor da imagem. */
+  feather: number;
+  /** Mostra o lado de fora em vez do de dentro. */
+  invert: boolean;
+}
+
+/** assetId de clipes que não vêm de um arquivo (legendas, gráficos e elementos). */
 export const NO_ASSET = '';
 
 export interface Clip {
@@ -281,6 +412,10 @@ export interface Clip {
   blendMode?: BlendMode;
   caption?: CaptionData;
   title?: TitleData;
+  /** Elemento (formas, texto, partículas) — Fase 5. */
+  element?: ElementData;
+  /** Máscara (só clipes de vídeo/imagem). */
+  mask?: ClipMask;
   keyframes?: Keyframes;
   color?: ColorSettings;
   audio?: AudioFx;
@@ -358,3 +493,6 @@ export const SEQUENCE_PRESETS: { id: string; label: string; width: number; heigh
   { id: '1:1', label: '1:1 · 1080×1080', width: 1080, height: 1080 },
   { id: '4:5', label: '4:5 · 1080×1350', width: 1080, height: 1350 },
 ];
+
+/** Clipe desenhado pelo editor (legenda, título ou elemento), sem arquivo de mídia. */
+export const isGraphic = (c: Pick<Clip, 'caption' | 'title' | 'element'>) => !!(c.caption || c.title || c.element);

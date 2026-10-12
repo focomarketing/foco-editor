@@ -9,20 +9,27 @@
 //   GET    /__foco/local/projects/<id>        → o arquivo .foco do projeto
 //   PUT    /__foco/local/projects/<id>?name=  → grava o .foco (escrita atômica)
 //   DELETE /__foco/local/projects/<id>        → move para Projetos/.lixeira (nada é apagado de vez)
+//   GET    /__foco/local/fonts/catalog        → catálogo do Google Fonts (cache de 7 dias em Fontes/)
+//   GET    /__foco/local/fonts/downloaded     → famílias já baixadas (faces.json de cada uma)
+//   GET    /__foco/local/fonts/family?name=   → baixa a família (se preciso) e devolve as faces
+//   GET    /__foco/local/fonts/file?f=<dir/arquivo> → um .woff2 baixado
 
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { downloadFamily, fetchCatalog, safeDirName } from './googleFonts.mjs';
 
 const TYPES = {
   '.mp4': 'video/mp4', '.mov': 'video/quicktime', '.m4v': 'video/mp4', '.webm': 'video/webm', '.mkv': 'video/x-matroska',
   '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.m4a': 'audio/mp4', '.aac': 'audio/aac', '.ogg': 'audio/ogg', '.flac': 'audio/flac',
   '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.gif': 'image/gif', '.svg': 'image/svg+xml',
+  '.woff2': 'font/woff2',
 };
 
 const base = () => process.env.FOCO_DATA_DIR || path.join(os.homedir(), 'Documents', 'FOCO Editor');
 export const mediaDir = () => process.env.FOCO_MEDIA_DIR || path.join(base(), 'Mídia');
 export const projectsDir = () => process.env.FOCO_PROJECTS_DIR || path.join(base(), 'Projetos');
+export const fontsDir = () => process.env.FOCO_FONTS_DIR || path.join(base(), 'Fontes');
 
 const isLocal = (req) => ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress ?? '');
 const safeName = (s) =>
@@ -99,6 +106,51 @@ function sendFile(req, res, p) {
   fs.createReadStream(p).pipe(res);
 }
 
+// --- fontes do Google Fonts ---------------------------------------------------------------------
+
+const CATALOG_MAX_AGE = 7 * 24 * 3600 * 1000;
+let catalogMem = null;
+
+/** Catálogo do Google Fonts: memória → disco (até 7 dias) → internet; sem internet, o cache antigo serve. */
+async function fontCatalog() {
+  if (catalogMem) return catalogMem;
+  const file = path.join(fontsDir(), 'catalogo.json');
+  const cached = fs.existsSync(file) ? fs.statSync(file) : null;
+  if (cached && Date.now() - cached.mtimeMs < CATALOG_MAX_AGE) return (catalogMem = JSON.parse(fs.readFileSync(file, 'utf8')));
+  try {
+    const list = await fetchCatalog();
+    fs.mkdirSync(fontsDir(), { recursive: true });
+    fs.writeFileSync(file, JSON.stringify(list));
+    return (catalogMem = list);
+  } catch (e) {
+    if (cached) return (catalogMem = JSON.parse(fs.readFileSync(file, 'utf8')));
+    throw e;
+  }
+}
+
+const faceUrls = (m) => ({ ...m, faces: m.faces.map((f) => ({ weight: f.weight, url: `/__foco/local/fonts/file?f=${encodeURIComponent(`${safeDirName(m.family)}/${f.file}`)}` })) });
+
+function downloadedFonts() {
+  const dir = fontsDir();
+  if (!fs.existsSync(dir)) return [];
+  return fs
+    .readdirSync(dir, { withFileTypes: true })
+    .filter((d) => d.isDirectory() && fs.existsSync(path.join(dir, d.name, 'faces.json')))
+    .map((d) => faceUrls(JSON.parse(fs.readFileSync(path.join(dir, d.name, 'faces.json'), 'utf8'))));
+}
+
+const downloading = new Map();
+async function fontFamily(name) {
+  const dir = path.join(fontsDir(), safeDirName(name));
+  const manifest = path.join(dir, 'faces.json');
+  if (fs.existsSync(manifest)) return faceUrls(JSON.parse(fs.readFileSync(manifest, 'utf8')));
+  const entry = (await fontCatalog()).find((f) => f.family.toLowerCase() === name.toLowerCase());
+  if (!entry) return null;
+  // dois pedidos da mesma fonte ao mesmo tempo baixam uma vez só
+  if (!downloading.has(entry.family)) downloading.set(entry.family, downloadFamily(entry, dir).finally(() => downloading.delete(entry.family)));
+  return faceUrls(await downloading.get(entry.family));
+}
+
 /**
  * Trata uma requisição /__foco/local/*. `url` é o caminho já sem o prefixo (ex.: "/file?p=...").
  * Devolve false se a rota não é desta API.
@@ -135,6 +187,25 @@ export async function handleLocal(req, res, url, opts = {}) {
       const timelineGerada = await runAgentMagic(data.briefing, data.videoPath);
       
       return json(res, 200, { success: true, timeline: timelineGerada });
+    }
+    if (parts[0] === 'fonts') {
+      if (u.pathname === '/fonts/catalog') {
+        res.setHeader('Cache-Control', 'max-age=3600');
+        return json(res, 200, await fontCatalog());
+      }
+      if (u.pathname === '/fonts/downloaded') return json(res, 200, downloadedFonts());
+      if (u.pathname === '/fonts/family') {
+        const name = (u.searchParams.get('name') ?? '').trim();
+        if (!name) return json(res, 400, { error: 'nome da fonte vazio' });
+        const m = await fontFamily(name);
+        return m ? json(res, 200, m) : json(res, 404, { error: `"${name}" não está no Google Fonts` });
+      }
+      if (u.pathname === '/fonts/file') {
+        const p = path.resolve(fontsDir(), u.searchParams.get('f') ?? '');
+        if (!p.startsWith(path.resolve(fontsDir()) + path.sep)) return json(res, 400, { error: 'caminho inválido' });
+        res.setHeader('Cache-Control', 'max-age=31536000, immutable');
+        return sendFile(req, res, p);
+      }
     }
     if (parts[0] === 'projects') {
       if (parts.length === 1 && req.method === 'GET') return json(res, 200, projectFiles().map(({ id, name, file, mtimeMs }) => ({ id, name, file, mtimeMs })));

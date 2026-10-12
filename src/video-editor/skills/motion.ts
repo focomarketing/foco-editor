@@ -13,6 +13,7 @@ import type { Skill } from '../orchestrator/orchestrator';
 import { isProtected } from '../validation/validate';
 import { isShort, llmReady, sentences } from './common';
 import type { Sentence } from './common';
+import { isGraphic } from '../../core/types';
 
 export type MotionKind = 'title' | 'callout' | 'lowerThird';
 
@@ -103,8 +104,8 @@ const PICK_SCHEMA = {
 
 /** Clipe principal (fala com imagem, não criado pela IA, sem B-roll por cima) num instante. */
 export function faceClipAt(p: Project, t: number): Clip | null {
-  const broll = new Set(p.tracks.filter((x) => x.name === 'B-roll' || x.name === 'Gráficos' || x.name === 'Legendas').map((x) => x.id));
-  const covered = Object.values(p.clips).some((c) => broll.has(c.trackId) && !c.title && !c.caption && c.start <= t && clipEnd(c) > t);
+  const broll = new Set(p.tracks.filter((x) => x.name === 'B-roll' || x.name === 'Gráficos' || x.name.startsWith('Gráficos ') || x.name === 'Legendas').map((x) => x.id));
+  const covered = Object.values(p.clips).some((c) => broll.has(c.trackId) && !isGraphic(c) && c.start <= t && clipEnd(c) > t);
   if (covered) return null;
   return (
     Object.values(p.clips).find((c) => {

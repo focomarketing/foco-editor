@@ -1,10 +1,9 @@
-// Font Engine (fundação): fontes do sistema + fontes importadas pelo usuário.
-// A biblioteca própria da plataforma (source: 'library') entra numa fase futura
-// sem mudar este modelo.
+// Font Engine: fontes do sistema + fontes importadas pelo usuário. A biblioteca
+// (seleção embutida + Google Fonts, source: 'library') fica em ./library.ts.
 
 import type { FontInfo, Project } from '../../core/types';
 
-const SYSTEM_FAMILIES = [
+export const SYSTEM_FAMILIES = [
   'Segoe UI', 'Segoe UI Black', 'Arial', 'Arial Black', 'Impact', 'Verdana', 'Tahoma', 'Trebuchet MS',
   'Georgia', 'Times New Roman', 'Palatino Linotype', 'Courier New', 'Consolas', 'Comic Sans MS',
 ];

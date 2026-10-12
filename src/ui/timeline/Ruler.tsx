@@ -3,6 +3,7 @@ import type { Marker } from '../../core/types';
 import { formatTimecode } from '../../core/time';
 import { playback, store } from '../../app/editor';
 import { Cmd } from '../../engine/commands/commands';
+import { askText } from '../../app/dialogs';
 
 const STEPS = [1 / 30, 1 / 10, 0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 900, 1800, 3600, 7200];
 
@@ -94,8 +95,9 @@ export function Ruler(props: {
           }}
           onDoubleClick={(e) => {
             e.stopPropagation();
-            const label = prompt('Nome do marcador:', m.label);
-            if (label !== null && label !== m.label) store.execute(Cmd.updateMarker(m.id, { label }));
+            void askText('Nome do marcador', '', m.label, 'Marcador').then((label) => {
+              if (label !== null && label !== m.label) store.execute(Cmd.updateMarker(m.id, { label }));
+            });
           }}
           onContextMenu={(e) => {
             e.preventDefault();

@@ -7,7 +7,8 @@ import { actions, playback, store, transcripts } from '../app/editor';
 import { analysisStore } from '../app/analysis';
 import { CUT_KIND_LABEL, summarize } from '../engine/analysis/cuts';
 import type { CutKind, CutLevel } from '../engine/analysis/cuts';
-import { CAPTION_PRESETS } from '../engine/captions/captions';
+import { getPreset } from '../engine/captions/captions';
+import { CaptionGallery } from './CaptionGallery';
 import { LANGUAGES, WHISPER_MODELS } from '../engine/transcript/TranscriptEngine';
 import { sourceTimeToTimeline } from '../engine/timeline/operations';
 import { useAnalysis, useEditor, useMediaVersion, useTranscriptsVersion } from './hooks';
@@ -17,6 +18,7 @@ import { runManual } from '../app/aiEditor';
 import { AUDIO_PRESETS } from '../engine/audio/audioFx';
 import type { ZoomIntensity } from '../engine/analysis/zoom';
 import { Wand2 } from 'lucide-react';
+import { askText } from '../app/dialogs';
 
 const LEVELS: { id: CutLevel; label: string; hint: string }[] = [
   { id: 'safe', label: 'Seguro', hint: 'só erros e pausas muito claros' },
@@ -240,8 +242,8 @@ const TranscriptView = memo(function TranscriptView({ transcript, asset }: { tra
     if (t !== null) playback.seek(t);
   };
 
-  const edit = (i: number) => {
-    const text = prompt('Corrigir palavra:', words[i].text);
+  const edit = async (i: number) => {
+    const text = await askText('Corrigir palavra', '', words[i].text);
     if (text === null || !text.trim() || text.trim() === words[i].text) return;
     const next = words.map((w, k) => (k === i ? { ...w, text: text.trim() } : w));
     void transcripts.setWords(asset, next);
@@ -255,7 +257,7 @@ const TranscriptView = memo(function TranscriptView({ transcript, asset }: { tra
       <div className="transcript" ref={ref} data-testid="transcript">
         {words.length === 0 && <span className="muted">Nenhuma fala reconhecida.</span>}
         {words.map((w, i) => (
-          <span key={i} data-i={i} onClick={() => seekTo(i)} onDoubleClick={() => edit(i)}>
+          <span key={i} data-i={i} onClick={() => seekTo(i)} onDoubleClick={() => void edit(i)}>
             {w.text}{' '}
           </span>
         ))}
@@ -362,14 +364,8 @@ function CaptionsSection({ asset }: { asset: Asset }) {
   return (
     <section>
       <h4><Captions size={12} /> Legendas</h4>
-      <div className="field wide">
-        <label>Estilo</label>
-        <select value={preset} onChange={(e) => setPreset(e.target.value)}>
-          {CAPTION_PRESETS.map((p) => (
-            <option key={p.id} value={p.id}>{p.label}</option>
-          ))}
-        </select>
-      </div>
+      <div className="muted" style={{ marginBottom: 4 }}>Estilo: <b>{getPreset(preset).label}</b></div>
+      <CaptionGallery value={preset} onPick={(p) => setPreset(p.id)} />
       <div className="row-between">
         <button className="btn sm primary" disabled={!has} onClick={() => actions.generateCaptions(asset.id, preset)} data-testid="gen-captions">
           <Sparkles size={13} /> Gerar legendas

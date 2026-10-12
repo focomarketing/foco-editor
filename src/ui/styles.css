@@ -374,9 +374,31 @@ button, input, select { font: inherit; color: inherit; }
 .tpl-callout .tpl-preview { background: #ffd400; color: #111; border-radius: 4px; padding: 1px 6px; align-self: center; }
 .tpl-cta .tpl-preview { background: var(--accent); border-radius: 12px; padding: 2px 10px; align-self: center; }
 .tpl-label { font-size: 10.5px; color: var(--text-2); display: flex; align-items: center; gap: 3px; }
-.font-list { max-height: 260px; overflow: auto; margin-top: 6px; border: 1px solid var(--line); border-radius: 6px; }
-.font-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 9px; border-bottom: 1px solid var(--line); font-size: 15px; color: var(--text-0); }
-.font-row em { font: normal 10px 'Segoe UI', sans-serif; color: var(--text-2); }
+/* fontes: navegador (painel Texto e seletor do Inspector) */
+.font-browser { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; min-width: 0; }
+.font-search { display: flex; align-items: center; gap: 6px; height: 26px; padding: 0 8px; background: var(--bg-2); border: 1px solid var(--line-2); border-radius: 4px; color: var(--text-2); }
+.font-search:focus-within { border-color: var(--accent); }
+.font-search input { flex: 1; min-width: 0; background: transparent; border: 0; outline: none; color: var(--text-0); }
+.font-cats { display: flex; flex-wrap: wrap; gap: 4px; }
+.font-chip { font-size: 10.5px; padding: 2px 8px; border-radius: 10px; border: 1px solid var(--line-2); background: transparent; color: var(--text-1); cursor: pointer; }
+.font-chip:hover { color: var(--text-0); background: var(--bg-3); }
+.font-chip.on { color: var(--accent-2); background: var(--accent-bg); border-color: transparent; }
+.font-list { max-height: 300px; overflow: auto; border: 1px solid var(--line); border-radius: 6px; }
+.font-sec { position: sticky; top: 0; z-index: 1; padding: 4px 9px; font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-2); background: var(--bg-1); border-bottom: 1px solid var(--line); }
+.font-row { display: flex; width: 100%; justify-content: space-between; align-items: center; gap: 8px; padding: 5px 9px; border: 0; border-bottom: 1px solid var(--line); background: transparent; font-size: 16px; color: var(--text-0); text-align: left; cursor: pointer; }
+.font-row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.font-row:hover { background: var(--bg-3); }
+.font-row.on { background: var(--accent-bg); }
+.font-row em { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; font: normal 10px 'Segoe UI', sans-serif; color: var(--text-2); }
+.font-row.on em { color: var(--accent-2); }
+.font-msg { display: flex; align-items: center; gap: 6px; margin: 0; padding: 8px 9px; font-size: 11.5px; color: var(--text-2); }
+.font-select { position: relative; min-width: 0; }
+.font-current { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 6px; height: 26px; padding: 0 8px; background: var(--bg-2); border: 1px solid var(--line-2); border-radius: 4px; color: var(--text-0); font-size: 14px; cursor: pointer; }
+.font-current span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.font-current:hover { border-color: var(--text-2); }
+.font-pop { position: absolute; top: 30px; right: 0; z-index: 60; width: max(100%, 290px); padding: 8px; background: var(--bg-2); border: 1px solid var(--line-2); border-radius: 8px; box-shadow: 0 12px 32px rgba(0,0,0,.5); }
+.font-pop .font-browser { margin-top: 0; }
+.spin { animation: spin .8s linear infinite; }
 
 /* ---------- inspector ---------- */
 .speed-row { display: flex; flex-wrap: wrap; gap: 3px; }
@@ -494,3 +516,40 @@ button, input, select { font: inherit; color: inherit; }
 @keyframes pulse { 50% { opacity: .45; } }
 .phase-run { display: flex; flex-direction: column; gap: 8px; padding-bottom: 10px; margin-bottom: 6px; border-bottom: 1px solid var(--line); }
 .field-group { display: flex; flex-direction: column; gap: 6px; }
+
+/* legendas: banco de estilos (galeria) e Inspector */
+.cap-gallery { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+.cap-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 6px; max-height: 340px; overflow: auto; padding: 1px; }
+.cap-card { position: relative; display: flex; flex-direction: column; border: 1px solid var(--line-2); border-radius: 6px; overflow: hidden; background: var(--bg-2); cursor: pointer; outline: none; }
+.cap-card:hover, .cap-card:focus-visible { border-color: var(--text-2); }
+.cap-card.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.cap-card canvas { display: block; }
+.cap-name { padding: 3px 6px; font-size: 11px; color: var(--text-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cap-card.on .cap-name { color: var(--accent-2); }
+.cap-del { position: absolute; top: 3px; right: 3px; display: none; width: 18px; height: 18px; align-items: center; justify-content: center; border: 0; border-radius: 9px; background: rgba(0,0,0,.6); color: #fff; cursor: pointer; }
+.cap-card:hover .cap-del { display: inline-flex; }
+.cap-words { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 4px; }
+.cap-word { padding: 1px 6px; border: 1px solid var(--line-2); border-radius: 4px; background: transparent; color: var(--text-1); font-size: 12px; cursor: pointer; }
+.cap-word:hover { background: var(--bg-3); color: var(--text-0); }
+.cap-word.on { border-color: currentColor; font-weight: 700; background: var(--bg-3); }
+.insp-group { border-top: 1px solid var(--line); padding-top: 6px; }
+.insp-group > summary { cursor: pointer; list-style: none; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-1); margin-bottom: 6px; }
+.insp-group > summary::before { content: '▸'; display: inline-block; width: 12px; color: var(--text-2); transition: transform .12s; }
+.insp-group[open] > summary::before { transform: rotate(90deg); }
+.insp-group > :not(summary) + :not(summary) { margin-top: 4px; }
+.inline-color { width: 26px; height: 18px; margin-left: 6px; padding: 0; border: 1px solid var(--line-2); border-radius: 3px; background: none; cursor: pointer; }
+.cap-actions { display: flex; flex-direction: column; gap: 6px; border-top: 1px solid var(--line); padding-top: 8px; }
+.cap-save { display: flex; gap: 6px; }
+.cap-save .text-input { flex: 1; min-width: 0; }
+
+/* elementos (Fase 5): camadas no Inspector */
+.el-add { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.el-layers { display: flex; flex-direction: column; margin-top: 6px; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.el-layer { display: flex; align-items: center; gap: 8px; padding: 3px 4px 3px 8px; border-bottom: 1px solid var(--line); cursor: pointer; font-size: 12px; color: var(--text-1); }
+.el-layer:last-child { border-bottom: 0; }
+.el-layer:hover { background: var(--bg-3); }
+.el-layer.on { background: var(--accent-bg); color: var(--text-0); }
+.el-swatch { width: 14px; height: 14px; border-radius: 3px; border: 1px solid var(--line-2); flex-shrink: 0; }
+.el-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.el-tools { display: inline-flex; gap: 1px; opacity: .55; }
+.el-layer:hover .el-tools, .el-layer.on .el-tools { opacity: 1; }

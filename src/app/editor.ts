@@ -40,12 +40,26 @@ import { MEDIA_TYPES, downloadBlob, fsAccessSupported, isAbort, pickFiles, pickS
 import { notify } from './notify';
 import { desktop, withPath } from '../engine/platform/desktop';
 import { viewStore } from './view';
+import { ensureFamily, isLoaded, projectFamilies } from '../engine/fonts/library';
 
 export const store = new EditorStore();
 export const playback = new PlaybackEngine(store, media);
 export const projectFile = new ProjectFile();
 export const transcripts = new TranscriptEngine(media);
 export { media };
+
+// Fontes da biblioteca usadas pelo projeto (ao abrir, ao escolher outra fonte, ao restaurar):
+// carregam em segundo plano e o preview redesenha quando chegam.
+let lastFontClips: Project['clips'] | null = null;
+store.subscribe(() => {
+  const p = store.getState().project;
+  if (p.clips === lastFontClips) return;
+  lastFontClips = p.clips;
+  for (const fam of projectFamilies(p)) {
+    if (isLoaded(fam)) continue;
+    void ensureFamily(fam).then((ok) => ok && playback.invalidate());
+  }
+});
 
 /** Nome da trilha criada para as legendas geradas. */
 export const CAPTION_TRACK_NAME = 'Legendas';

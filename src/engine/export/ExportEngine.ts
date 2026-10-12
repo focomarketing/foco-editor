@@ -25,6 +25,7 @@ import type { DrawLayer } from '../render/Compositor';
 import { buildChain, prepareContext } from '../audio/audioFx';
 import { timeStretch } from '../audio/timeStretch';
 import { fadeGain, sourceEnd, sourceSpan, speedOf, toSource } from '../../core/clipTime';
+import { ensureProjectFonts } from '../fonts/library';
 
 export type VideoCodecChoice = 'avc' | 'hevc';
 
@@ -110,6 +111,8 @@ export async function exportProject(
   const duration = projectDuration(p);
   const totalFrames = Math.ceil(duration * fps - EPS);
   if (totalFrames <= 0) throw new Error('A timeline está vazia.');
+  // fontes da biblioteca usadas nos textos precisam estar carregadas antes do primeiro quadro
+  await ensureProjectFonts(p);
 
   if (!(await canEncodeVideo(settings.codec, { width: W, height: H, bitrate: settings.bitrate }))) {
     throw new Error(`Este navegador não consegue codificar ${settings.codec === 'avc' ? 'H.264' : 'H.265'} em ${W}×${H}.`);
@@ -220,7 +223,7 @@ class ClipFrameProvider {
   async layerFor(clip: Clip, asset: Asset, frame: number, transform: Transform): Promise<DrawLayer | null> {
     if (isStill(asset)) {
       const img = this.media.get(asset.id)?.image;
-      return img ? { kind: 'media', source: img, width: img.width, height: img.height, transform, color: clip.color, crop: clip.crop, blendMode: clip.blendMode } : null;
+      return img ? { kind: 'media', source: img, width: img.width, height: img.height, transform, color: clip.color, crop: clip.crop, blendMode: clip.blendMode, mask: clip.mask } : null;
     }
     let entry = this.iters.get(clip.id);
     if (!entry) {
@@ -232,7 +235,7 @@ class ClipFrameProvider {
     const r = await entry.it.next();
     if (r.done || !r.value) return null;
     const c = r.value.canvas;
-    return { kind: 'media', source: c, width: c.width, height: c.height, transform, color: clip.color, crop: clip.crop, blendMode: clip.blendMode };
+    return { kind: 'media', source: c, width: c.width, height: c.height, transform, color: clip.color, crop: clip.crop, blendMode: clip.blendMode, mask: clip.mask };
   }
 
   private async open(clip: Clip, asset: Asset, fromFrame: number) {

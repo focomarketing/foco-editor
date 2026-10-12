@@ -25,6 +25,7 @@ import type { EditCommand } from '../engine/commands/commands';
 import type { Range } from '../engine/timeline/operations';
 import { CUT_MODES, DEFAULT_OPTIONS, planSmartCuts } from '../engine/cut/smartCut';
 import { timelineSpeech } from './smartCut';
+import { isGraphic } from '../core/types';
 
 // --- configurações (por navegador) --------------------------------------------------
 
@@ -150,7 +151,7 @@ function contextBlock(p: Project, maxWords: number): string {
   const asset = primaryAsset(p);
   const t = asset ? transcripts.get(asset.id) : undefined;
   const lines = [
-    `Projeto: ${dur.toFixed(1)} s, quadro ${p.settings.width}×${p.settings.height}, ${Object.values(p.clips).filter((c) => !c.caption && !c.title).length} clipe(s) de mídia, ${Object.values(p.clips).filter((c) => c.caption).length} legenda(s), ${Object.values(p.clips).filter((c) => c.title).length} gráfico(s).`,
+    `Projeto: ${dur.toFixed(1)} s, quadro ${p.settings.width}×${p.settings.height}, ${Object.values(p.clips).filter((c) => !isGraphic(c)).length} clipe(s) de mídia, ${Object.values(p.clips).filter((c) => c.caption).length} legenda(s), ${Object.values(p.clips).filter((c) => c.title).length} gráfico(s), ${Object.values(p.clips).filter((c) => c.element).length} elemento(s).`,
     asset ? `Mídia principal: ${asset.name}. Transcrição: ${t ? 'disponível' : 'ainda não feita (será feita automaticamente se um comando precisar)'}.` : 'Nenhuma mídia com áudio na timeline.',
   ];
   if (asset && t) {
@@ -298,7 +299,7 @@ export async function runCommands(commands: AICommand[], label: string): Promise
 }
 
 function visualAssets(p: Project): Asset[] {
-  const ids = new Set(Object.values(p.clips).filter((c) => !c.caption && !c.title).map((c) => c.assetId));
+  const ids = new Set(Object.values(p.clips).filter((c) => !isGraphic(c)).map((c) => c.assetId));
   return [...ids].map((id) => p.assets[id]).filter((a): a is Asset => !!a && a.hasVideo);
 }
 
@@ -314,7 +315,7 @@ function perClip<T>(p: Project, pred: (c: Clip, a: Asset) => boolean, fn: (c: Cl
   const out: Record<string, T> = {};
   for (const c of Object.values(p.clips)) {
     const a = p.assets[c.assetId];
-    if (!a || c.caption || c.title || !pred(c, a)) continue;
+    if (!a || isGraphic(c) || !pred(c, a)) continue;
     out[c.id] = fn(c, a);
   }
   return out;

@@ -1,4 +1,5 @@
-import type { CaptionStyle, Clip, Transform } from '../core/types';
+import { useState } from 'react';
+import type { CaptionAnim, CaptionStyle, CaptionWordAnim, Clip, Transform, TranscriptWord } from '../core/types';
 import { DEFAULT_TRANSFORM, NO_CROP, SEQUENCE_PRESETS } from '../core/types';
 import type { BlendMode } from '../core/types';
 import { hasTimeLimit } from '../engine/timeline/operations';
@@ -6,16 +7,21 @@ import { formatBytes, formatTimecode } from '../core/time';
 import { sourceEnd } from '../core/clipTime';
 import { actions, store } from '../app/editor';
 import { Cmd } from '../engine/commands/commands';
-import { CAPTION_PRESETS, captionText, getPreset } from '../engine/captions/captions';
+import { autoEmphasis, captionText, getPreset } from '../engine/captions/captions';
+import { wordAnimOf } from '../engine/captions/renderCaption';
+import { captionStylesStore } from '../app/captionStyles';
+import { notify } from '../app/notify';
+import { CaptionGallery } from './CaptionGallery';
 import { useEditor } from './hooks';
 import { FontSelect } from './FontSelect';
 import { AnimationSection, AudioSection, ColorSection, TitleInspector } from './InspectorFx';
+import { ElementInspector, MaskSection } from './ElementInspector';
 import { TransitionInspector } from './TransitionsPanel';
 
 export function Inspector() {
   const { project, selection } = useEditor();
   const clip = selection.length === 1 ? project.clips[selection[0]] : undefined;
-  const title = clip ? (clip.caption ? 'Legenda' : clip.title ? 'Gráfico' : 'Clipe') : selection.length > 1 ? `${selection.length} clipes` : 'Sequência';
+  const title = clip ? (clip.caption ? 'Legenda' : clip.title ? 'Gráfico' : clip.element ? 'Elemento' : 'Clipe') : selection.length > 1 ? `${selection.length} clipes` : 'Sequência';
 
   return (
     <section className="panel">
@@ -27,6 +33,8 @@ export function Inspector() {
           <CaptionInspector clip={clip} />
         ) : clip?.title ? (
           <TitleInspector clip={clip} />
+        ) : clip?.element ? (
+          <ElementInspector key={clip.id} clip={clip} />
         ) : clip ? (
           <ClipInspector clip={clip} />
         ) : (
@@ -41,6 +49,8 @@ function CaptionInspector({ clip }: { clip: Clip }) {
   const cap = clip.caption!;
   const s = cap.style;
   const fps = store.getState().project.settings.fps;
+  const [gallery, setGallery] = useState(false);
+  const [naming, setNaming] = useState<string | null>(null);
 
   const setStyle = (patch: Partial<CaptionStyle>, label = 'Estilo da legenda') => {
     const c = store.getState().project.clips[clip.id];
@@ -70,6 +80,15 @@ function CaptionInspector({ clip }: { clip: Clip }) {
     store.execute(Cmd.setCaption(clip.id, { ...cap, words: next }, 'Editar legenda'));
   };
 
+  const setWords = (words: TranscriptWord[], label: string) => {
+    const c = store.getState().project.clips[clip.id];
+    if (c?.caption) store.execute(Cmd.setCaption(clip.id, { ...c.caption, words }, label));
+  };
+  const visibleWords = cap.words.map((w, i) => ({ w, i })).filter(({ w }) => w.end > clip.sourceIn && w.start < sourceEnd(clip));
+  const anim = wordAnimOf(s);
+  const bg = splitColor(s.background ?? 'rgba(0,0,0,0.6)');
+  const shadow = splitColor(s.shadowColor ?? 'rgba(0,0,0,0.65)');
+
   return (
     <div className="insp">
       <div>
@@ -82,49 +101,185 @@ function CaptionInspector({ clip }: { clip: Clip }) {
           data-testid="caption-text"
         />
         <div className="muted">{formatTimecode(clip.start, fps)} · {clip.duration.toFixed(2)} s · {cap.words.length} palavras</div>
+        <div className="row-between" style={{ marginTop: 6 }}>
+          <span className="muted">Destaque: clique nas palavras</span>
+          <button className="btn sm" onClick={() => setWords(autoEmphasis(cap.words), 'Destaque automático')} title="Marca números e palavras de ênfase">Automático</button>
+        </div>
+        <div className="cap-words">
+          {visibleWords.map(({ w, i }) => (
+            <button
+              key={i}
+              className={`cap-word${w.emphasis ? ' on' : ''}`}
+              style={w.emphasis ? { color: s.emphasisColor ?? s.highlightColor } : undefined}
+              onClick={() => setWords(cap.words.map((x, k) => (k === i ? { ...x, emphasis: !x.emphasis || undefined } : x)), 'Destacar palavra')}
+              data-testid={`cap-word-${i}`}
+            >
+              {w.text}
+            </button>
+          ))}
+        </div>
       </div>
+
       <div>
-        <h4>Estilo</h4>
+        <div className="row-between">
+          <h4 style={{ margin: 0 }}>Estilo · {getPreset(s.preset).id === s.preset ? getPreset(s.preset).label : 'personalizado'}</h4>
+          <button className="btn sm outline" onClick={() => setGallery((g) => !g)} data-testid="cap-gallery-toggle">
+            {gallery ? 'Fechar' : 'Banco de estilos'}
+          </button>
+        </div>
+        {gallery && (
+          <CaptionGallery
+            value={s.preset}
+            onPick={(p) => {
+              const c = store.getState().project.clips[clip.id];
+              if (!c?.caption) return;
+              // estilos com cor de ênfase destacam as palavras-chave se nada estiver marcado
+              const words = p.style.emphasisColor && !c.caption.words.some((w) => w.emphasis) ? autoEmphasis(c.caption.words) : c.caption.words;
+              store.execute(Cmd.setCaption(clip.id, { words, style: { ...p.style } }, `Estilo ${p.label}`));
+            }}
+          />
+        )}
+      </div>
+
+      <details className="insp-group" open>
+        <summary>Fonte</summary>
+        <FontSelect value={s.fontFamily} onChange={(fontFamily) => setStyle({ fontFamily }, 'Fonte da legenda')} />
         <div className="field wide">
-          <label>Preset</label>
-          <select value={s.preset} onChange={(e) => setStyle({ ...getPreset(e.target.value).style }, 'Preset da legenda')}>
-            {CAPTION_PRESETS.map((p) => (
-              <option key={p.id} value={p.id}>{p.label}</option>
+          <label>Peso</label>
+          <select value={s.fontWeight} onChange={(e) => setStyle({ fontWeight: Number(e.target.value) }, 'Peso da fonte')}>
+            {[300, 400, 500, 600, 700, 800, 900].map((w) => (
+              <option key={w} value={w}>{WEIGHT_LABEL[w]} ({w})</option>
             ))}
           </select>
         </div>
-        <FontSelect value={s.fontFamily} onChange={(fontFamily) => setStyle({ fontFamily }, 'Fonte da legenda')} />
-        <div className="field wide">
-          <label>Animação</label>
-          <select value={s.mode} onChange={(e) => setStyle({ mode: e.target.value as CaptionStyle['mode'] })}>
-            <option value="block">Bloco inteiro</option>
-            <option value="karaoke">Destaca a palavra falada</option>
-            <option value="word">Uma palavra por vez</option>
-          </select>
-        </div>
-        <div className="field wide">
-          <label>Cores</label>
-          <span className="colors">
-            <input type="color" value={s.color} title="Texto" onChange={(e) => setStyle({ color: e.target.value })} />
-            <input type="color" value={s.highlightColor} title="Destaque" onChange={(e) => setStyle({ highlightColor: e.target.value })} />
-            <input type="color" value={s.strokeColor} title="Contorno" onChange={(e) => setStyle({ strokeColor: e.target.value })} />
-          </span>
-        </div>
         <Slider label="Tamanho" value={s.fontSize * 1000} min={15} max={160} step={1} unit="" onChange={(v) => setStyleLive({ fontSize: v / 1000 })} />
-        <Slider label="Contorno" value={s.strokeWidth * 100} min={0} max={30} step={1} unit="%" onChange={(v) => setStyleLive({ strokeWidth: v / 100 })} />
-        <Slider label="Altura" value={s.y * 100} min={5} max={95} step={0.5} unit="%" onChange={(v) => setStyleLive({ y: v / 100 })} />
+        <Slider label="Espaço letras" value={(s.letterSpacing ?? 0) * 100} min={-5} max={30} step={1} unit="%" onChange={(v) => setStyleLive({ letterSpacing: v / 100 })} />
         <label className="check">
           <input type="checkbox" checked={s.uppercase} onChange={(e) => setStyle({ uppercase: e.target.checked })} /> Maiúsculas
         </label>
+      </details>
+
+      <details className="insp-group" open>
+        <summary>Cores</summary>
+        <div className="field wide">
+          <label>Texto · fala</label>
+          <span className="colors">
+            <input type="color" value={s.color} title="Texto" onChange={(e) => setStyle({ color: e.target.value })} />
+            <input type="color" value={s.highlightColor} title="Palavra falada" onChange={(e) => setStyle({ highlightColor: e.target.value })} />
+            <input type="color" value={s.emphasisColor ?? s.highlightColor} title="Palavras em destaque" onChange={(e) => setStyle({ emphasisColor: e.target.value })} />
+          </span>
+        </div>
+        <div className="field wide">
+          <label>Contorno</label>
+          <span className="colors">
+            <input type="color" value={s.strokeColor} title="Contorno" onChange={(e) => setStyle({ strokeColor: e.target.value })} />
+          </span>
+        </div>
+        <Slider label="Espessura" value={s.strokeWidth * 100} min={0} max={30} step={1} unit="%" onChange={(v) => setStyleLive({ strokeWidth: v / 100 })} />
         <label className="check">
-          <input type="checkbox" checked={s.pop} onChange={(e) => setStyle({ pop: e.target.checked })} /> Pop na palavra atual
+          <input type="checkbox" checked={!!s.highlightBg} onChange={(e) => setStyle({ highlightBg: e.target.checked ? '#7c3aed' : null })} /> Caixa atrás da palavra falada
+          {s.highlightBg && <input type="color" className="inline-color" value={s.highlightBg} onChange={(e) => setStyle({ highlightBg: e.target.value })} />}
         </label>
+      </details>
+
+      <details className="insp-group">
+        <summary>Sombra e brilho</summary>
         <label className="check">
-          <input type="checkbox" checked={!!s.background} onChange={(e) => setStyle({ background: e.target.checked ? 'rgba(0,0,0,0.6)' : null })} /> Fundo
+          <input type="checkbox" checked={s.shadow} onChange={(e) => setStyle({ shadow: e.target.checked })} /> Sombra
+          {s.shadow && <input type="color" className="inline-color" value={shadow.hex} onChange={(e) => setStyle({ shadowColor: joinColor(e.target.value, shadow.a) })} />}
         </label>
-        <button className="btn sm outline" style={{ marginTop: 8 }} onClick={() => actions.styleAllCaptions(s)}>
+        {s.shadow && (
+          <>
+            <Slider label="Opacidade" value={Math.round(shadow.a * 100)} min={0} max={100} step={1} unit="%" onChange={(v) => setStyleLive({ shadowColor: joinColor(shadow.hex, v / 100) })} />
+            <Slider label="Desfoque" value={Math.round((s.shadowBlur ?? 0.12) * 100)} min={0} max={80} step={1} unit="%" onChange={(v) => setStyleLive({ shadowBlur: v / 100 })} />
+            <Slider label="Distância" value={Math.round((s.shadowOffset ?? 0.05) * 100)} min={0} max={30} step={1} unit="%" onChange={(v) => setStyleLive({ shadowOffset: v / 100 })} />
+          </>
+        )}
+      </details>
+
+      <details className="insp-group">
+        <summary>Fundo</summary>
+        <label className="check">
+          <input type="checkbox" checked={!!s.background} onChange={(e) => setStyle({ background: e.target.checked ? 'rgba(0,0,0,0.6)' : null })} /> Fundo atrás do bloco
+          {s.background && <input type="color" className="inline-color" value={bg.hex} onChange={(e) => setStyle({ background: joinColor(e.target.value, bg.a) })} />}
+        </label>
+        {s.background && (
+          <>
+            <Slider label="Opacidade" value={Math.round(bg.a * 100)} min={5} max={100} step={1} unit="%" onChange={(v) => setStyleLive({ background: joinColor(bg.hex, v / 100) })} />
+            <Slider label="Folga" value={Math.round((s.backgroundPadding ?? 0.45) * 100)} min={10} max={120} step={1} unit="%" onChange={(v) => setStyleLive({ backgroundPadding: v / 100 })} />
+            <Slider label="Cantos" value={Math.round((s.backgroundRadius ?? 0.25) * 100)} min={0} max={100} step={1} unit="%" onChange={(v) => setStyleLive({ backgroundRadius: v / 100 })} />
+          </>
+        )}
+      </details>
+
+      <details className="insp-group" open>
+        <summary>Animação</summary>
+        <div className="field wide">
+          <label>Modo</label>
+          <select value={s.mode} onChange={(e) => setStyle({ mode: e.target.value as CaptionStyle['mode'] }, 'Modo da legenda')} data-testid="cap-mode">
+            <option value="block">Bloco inteiro</option>
+            <option value="karaoke">Destaca a palavra falada</option>
+            <option value="word">Uma palavra por vez</option>
+            <option value="reveal">Aparece conforme a fala</option>
+          </select>
+        </div>
+        <div className="field wide">
+          <label>Palavra</label>
+          <select value={anim} onChange={(e) => setStyle({ wordAnim: e.target.value as CaptionWordAnim, pop: e.target.value === 'pop' }, 'Animação da palavra')} data-testid="cap-word-anim">
+            {Object.entries(WORD_ANIM_LABEL).map(([k, v]) => (
+              <option key={k} value={k}>{v}</option>
+            ))}
+          </select>
+        </div>
+        <div className="field wide">
+          <label>Entrada</label>
+          <select value={s.animIn ?? 'none'} onChange={(e) => setStyle({ animIn: e.target.value as CaptionAnim }, 'Entrada da legenda')} data-testid="cap-anim-in">
+            {Object.entries(BLOCK_ANIM_LABEL).map(([k, v]) => (
+              <option key={k} value={k}>{v}</option>
+            ))}
+          </select>
+        </div>
+        <div className="field wide">
+          <label>Saída</label>
+          <select value={s.animOut ?? 'none'} onChange={(e) => setStyle({ animOut: e.target.value as CaptionAnim }, 'Saída da legenda')}>
+            {Object.entries(BLOCK_ANIM_LABEL).map(([k, v]) => (
+              <option key={k} value={k}>{v}</option>
+            ))}
+          </select>
+        </div>
+        {(s.animIn ?? 'none') !== 'none' || (s.animOut ?? 'none') !== 'none' ? (
+          <Slider label="Duração" value={Math.round((s.animDuration ?? 0.18) * 100) / 100} min={0.05} max={0.8} step={0.01} unit="s" onChange={(v) => setStyleLive({ animDuration: v })} />
+        ) : null}
+      </details>
+
+      <details className="insp-group">
+        <summary>Posição e linhas</summary>
+        <Slider label="Altura" value={s.y * 100} min={5} max={95} step={0.5} unit="%" onChange={(v) => setStyleLive({ y: v / 100 })} />
+        <Slider label="Largura máx." value={Math.round((s.maxWidth ?? 0.86) * 100)} min={30} max={98} step={1} unit="%" onChange={(v) => setStyleLive({ maxWidth: v / 100 })} />
+        <Slider label="Entrelinha" value={Math.round((s.lineHeight ?? 1.18) * 100) / 100} min={0.8} max={2} step={0.02} unit="×" onChange={(v) => setStyleLive({ lineHeight: v })} />
+      </details>
+
+      <div className="cap-actions">
+        <button className="btn sm outline" onClick={() => actions.styleAllCaptions(s)} data-testid="cap-apply-all">
           Aplicar este estilo a todas as legendas
         </button>
+        {naming === null ? (
+          <button className="btn sm" onClick={() => setNaming('')} data-testid="cap-save-style">Salvar como meu estilo</button>
+        ) : (
+          <form
+            className="cap-save"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const id = captionStylesStore.save(naming, s);
+              setStyle({ preset: id }, 'Salvar estilo');
+              setNaming(null);
+              notify(`Estilo "${naming.trim() || 'Meu estilo'}" salvo em Meus estilos.`, 'success');
+            }}
+          >
+            <input className="text-input" autoFocus placeholder="Nome do estilo" value={naming} onChange={(e) => setNaming(e.target.value)} onKeyDown={(e) => e.key === 'Escape' && setNaming(null)} data-testid="cap-style-name" />
+            <button className="btn sm primary" type="submit">Salvar</button>
+          </form>
+        )}
       </div>
     </div>
   );
@@ -134,6 +289,22 @@ function CaptionInspector({ clip }: { clip: Clip }) {
     if (c?.caption) store.preview(Cmd.setCaption(clip.id, { ...c.caption, style: { ...c.caption.style, ...patch } }, 'Estilo da legenda'));
   }
 }
+
+const WEIGHT_LABEL: Record<number, string> = { 300: 'Fina', 400: 'Normal', 500: 'Média', 600: 'Semi-negrito', 700: 'Negrito', 800: 'Extra-negrito', 900: 'Black' };
+const WORD_ANIM_LABEL: Record<CaptionWordAnim, string> = { none: 'Nenhuma', pop: 'Pop', bounce: 'Quique', rise: 'Sobe', fade: 'Surge', shake: 'Tremida' };
+const BLOCK_ANIM_LABEL: Record<CaptionAnim, string> = { none: 'Nenhuma', fade: 'Fade', pop: 'Pop', zoom: 'Zoom', slideUp: 'Sobe', slideDown: 'Desce', blur: 'Desfoque' };
+
+/** "#rrggbb" ou "rgba(r,g,b,a)" → cor + opacidade (para os controles). */
+function splitColor(css: string): { hex: string; a: number } {
+  const m = /rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+))?\s*\)/.exec(css);
+  if (m) return { hex: `#${[m[1], m[2], m[3]].map((v) => Number(v).toString(16).padStart(2, '0')).join('')}`, a: m[4] === undefined ? 1 : Number(m[4]) };
+  if (/^#[0-9a-f]{6}$/i.test(css)) return { hex: css, a: 1 };
+  return { hex: '#000000', a: 1 };
+}
+const joinColor = (hex: string, a: number) => {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${Math.round(a * 100) / 100})`;
+};
 
 function SequenceInspector() {
   const { project } = useEditor();
@@ -307,6 +478,7 @@ function ClipInspector({ clip }: { clip: Clip }) {
       )}
       {visual && <TransitionInspector clip={clip} />}
       {visual && <AnimationSection clip={clip} />}
+      {visual && <MaskSection clip={clip} />}
       {visual && <ColorSection clip={clip} />}
       {asset?.hasAudio && <AudioSection clip={clip} />}
     </div>

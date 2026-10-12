@@ -376,7 +376,7 @@ export class PlaybackEngine {
       const transform = mediaTransform(active);
       if (isStill(asset)) {
         const img = this.media.get(asset.id)?.image;
-        if (img) layers.push({ kind: 'media', source: img, width: img.width, height: img.height, transform, color: clip.color, crop: clip.crop, blendMode: clip.blendMode, clipId: clip.id });
+        if (img) layers.push({ kind: 'media', source: img, width: img.width, height: img.height, transform, color: clip.color, crop: clip.crop, blendMode: clip.blendMode, mask: clip.mask, clipId: clip.id });
         continue;
       }
       const el = this.pool.get(clip.id);
@@ -386,14 +386,14 @@ export class PlaybackEngine {
         // resolução); o quadro definitivo substitui assim que a decodificação termina.
         const thumb = this.scrubbing || !this.snap.playing ? this.media.previewThumb(asset.id, active.sourceTime) : null;
         if (thumb) {
-          layers.push({ kind: 'media', source: thumb, width: thumb.width, height: thumb.height, transform, color: clip.color, crop: clip.crop, blendMode: clip.blendMode, clipId: clip.id });
+          layers.push({ kind: 'media', source: thumb, width: thumb.width, height: thumb.height, transform, color: clip.color, crop: clip.crop, blendMode: clip.blendMode, mask: clip.mask, clipId: clip.id });
           provisional = true;
         } else {
           waiting = true;
         }
         continue;
       }
-      layers.push({ kind: 'media', source: el, width: el.videoWidth || asset.width, height: el.videoHeight || asset.height, transform, color: clip.color, crop: clip.crop, blendMode: clip.blendMode, clipId: clip.id });
+      layers.push({ kind: 'media', source: el, width: el.videoWidth || asset.width, height: el.videoHeight || asset.height, transform, color: clip.color, crop: clip.crop, blendMode: clip.blendMode, mask: clip.mask, clipId: clip.id });
     }
     // Enquanto um quadro carrega, mantém o anterior em vez de piscar preto.
     if (waiting) {

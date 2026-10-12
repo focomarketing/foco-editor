@@ -11,6 +11,7 @@ import type { Clip, Project, TransitionSpec } from '../../core/types';
 import { clipEnd } from '../timeline/operations';
 import { presetFor } from '../../video-editor/transitions/library';
 import type { TransitionPreset } from '../../video-editor/transitions/library';
+import { isGraphic } from '../../core/types';
 
 export interface MaskSpec {
   shape: NonNullable<TransitionPreset['parameters']['shape']>;
@@ -211,7 +212,7 @@ export function transitionsAt(p: Project, t: number): TransitionFrame {
   for (const track of p.tracks) {
     if (track.kind !== 'video' || track.hidden) continue;
     const list = Object.values(p.clips)
-      .filter((c) => c.trackId === track.id && !c.caption && !c.title)
+      .filter((c) => c.trackId === track.id && !isGraphic(c))
       .sort((x, y) => x.start - y.start);
     list.forEach((b, i) => {
       const w = transitionWindow(b);
@@ -243,7 +244,7 @@ export function cutPairs(p: Project): { a: Clip; b: Clip; trackId: string }[] {
   for (const track of p.tracks) {
     if (track.kind !== 'video') continue;
     const list = Object.values(p.clips)
-      .filter((c) => c.trackId === track.id && !c.caption && !c.title)
+      .filter((c) => c.trackId === track.id && !isGraphic(c))
       .sort((x, y) => x.start - y.start);
     for (let i = 1; i < list.length; i++) if (Math.abs(clipEnd(list[i - 1]) - list[i].start) < ADJ) out.push({ a: list[i - 1], b: list[i], trackId: track.id });
   }

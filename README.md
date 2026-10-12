@@ -137,13 +137,43 @@ Teste do roteiro manual da especificação (20 passos, incluindo tocar o MP4 exp
 
 Testes: `npm run test:e2e:phase2` (fluxo completo da fase) e `node scripts/load.mjs t1,...,t7` (carga; resultados em `scripts/load-results/`).
 
+## Fase 3 — Biblioteca de fontes
+
+- **Seleção embutida:** 60 fontes livres (Google Fonts, licença OFL/Apache) escolhidas para vídeo, em 6 categorias — Impacto, Moderna, Elegante, Manuscrita, Divertida e Tech. Vêm no app (`public/fonts/library`, 2,1 MB, só o alfabeto latino) e funcionam offline. Para mudar a lista: editar e rodar `node scripts/fetch-library-fonts.mjs`.
+- **Google Fonts completo:** busca nas ~1.800 famílias com alfabeto latino, com prévia de cada uma. Um clique baixa a fonte pela API local e guarda em `Documentos\FOCO Editor\Fontes`; depois ela funciona sem internet. O catálogo fica em cache por 7 dias. Só no app instalado ou no `npm run dev`.
+- **Seletor de fonte** (Inspector de legendas e gráficos, painel Texto): busca, categorias, seções Importadas / Biblioteca / Baixadas / Sistema, cada nome escrito na própria fonte.
+- **Projeto portátil:** o `.foco` guarda só o nome da família. Ao abrir o projeto, as fontes usadas são carregadas sozinhas (e baixadas do Google se faltarem no PC); o export espera as fontes antes do primeiro quadro.
+
+Teste: `npm run test:e2e:fonts` (precisa de internet).
+
+## Fase 4 — Banco de legendas, personalização e animações
+
+- **Banco de estilos:** 34 estilos em 7 categorias (Viral, YouTube, Podcast, Minimalista, Cinema, Elegante, Divertido), com as fontes da biblioteca. Galeria com prévia animada (passe o mouse) na aba Legendas e no Inspector. Os 8 estilos antigos mantêm id e visual.
+- **Meus estilos:** ajuste uma legenda e salve com um nome; o estilo fica no banco para qualquer projeto (por navegador/app) e pode ser apagado na galeria.
+- **Personalização** (Inspector da legenda): fonte e peso, tamanho, espaço entre letras, maiúsculas; cores do texto, da palavra falada e das palavras em destaque; contorno; caixa colorida atrás da palavra falada; sombra/brilho (cor, opacidade, desfoque, distância); fundo do bloco (cor, opacidade, folga, cantos); altura, largura máxima e entrelinha.
+- **Destaque de palavras:** clique nas palavras para destacá-las, ou "Automático" (números e palavras de ênfase). Estilos com cor de ênfase já geram as legendas destacadas.
+- **Animações:** modos bloco inteiro, palavra falada, uma palavra por vez e "aparece conforme a fala"; entrada e saída do bloco (fade, pop, zoom, sobe, desce, desfoque) com duração ajustável; animação da palavra (pop, quique, sobe, surge, tremida). Tudo calculado pelo tempo, então preview e export saem iguais.
+
+Teste: `npm run test:e2e:captions`.
+
+## Fase 5 — Motion Graphics Engine
+
+- **Elementos** (aba Elementos): grupos de camadas desenhados pelo editor, numa trilha de gráficos. 25 prontos em 6 categorias — Destaques (círculo desenhado, sublinhado, marca-texto, caixa de foco, certo/errado), Setas, Selos (NOVO, oferta, inscreva-se, AO VIVO), Formas, Partículas e Molduras — com prévia animada.
+- **Camadas:** retângulo (cantos), elipse, linha, seta, estrela, polígono, texto (fontes da biblioteca) e partículas. Cor, gradiente, contorno, sombra, posição, tamanho, rotação e opacidade; adicionar, duplicar, reordenar e apagar camadas no Inspector.
+- **Animação por camada:** entrada e saída (fade, pop, slides, desenhar o traço, revelar, girar) com duração e atraso; movimento contínuo (pulsar, girar, flutuar, piscar, balançar). Os **keyframes** do clipe movem o grupo inteiro.
+- **Partículas:** confete, neve, brilhos, bolhas, faíscas e corações — quantidade, cores, velocidade, tamanho e semente. Determinísticas: o mesmo instante gera o mesmo quadro no preview e no export.
+- **Máscaras** em clipes de vídeo/imagem (Inspector do clipe): elipse ou retângulo com cantos, borda suave e inverter; presets Círculo, Cantos arredondados, Oval suave e Faixa central. A máscara acompanha posição, escala e rotação do clipe (câmera redonda no canto).
+- Gráficos novos (títulos e elementos) nunca apagam outro: entram na primeira trilha "Gráficos" livre no trecho, ou numa nova ("Gráficos 2"…).
+
+Teste: `npm run test:e2e:elements`.
+
 ## Roadmap (13 fases)
 
 1. **Núcleo do editor** ✅
 2. **Mídia, cache, proxy e performance** ✅
-3. Texto, fontes e legendas — *parcial:* textos animados, fontes do sistema/importadas, legendas palavra a palavra com 8 estilos. Falta a biblioteca de fontes.
-4. Banco de legendas, personalização e animações.
-5. Motion Graphics Engine — *parcial:* keyframes e 4 templates de título. Falta formas, máscaras, partículas e grupos.
+3. **Texto, fontes e legendas** ✅ — textos animados, legendas palavra a palavra com 8 estilos e biblioteca de fontes (60 embutidas + Google Fonts).
+4. **Banco de legendas, personalização e animações** ✅ — 34 estilos em 7 categorias, Meus estilos, destaque de palavras, entrada/saída e animação por palavra.
+5. **Motion Graphics Engine** ✅ — keyframes, 4 templates de título, elementos (formas, texto, partículas em grupo, 25 prontos) e máscaras.
 6. Transições e efeitos.
 7. Cor e LUTs — *parcial:* correção de cor por shader, presets e cor automática. Falta LUT .cube.
 8. Áudio e voice enhancement — *parcial:* cadeia de voz, gate, compressor e normalização.
