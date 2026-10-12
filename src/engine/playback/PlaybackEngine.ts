@@ -406,7 +406,7 @@ export class PlaybackEngine {
       const img = a && isStill(a) ? this.media.get(a.id)?.image : this.media.previewThumb(c.assetId, sourceEnd(c) - 0.05);
       return img ? { source: img, width: img.width, height: img.height } : null;
     });
-    composite(ctx, W, H, withFx, { bypassColor: this.compareOriginal });
+    composite(ctx, W, H, withFx, { bypassColor: this.compareOriginal, project: p, time: t });
     metrics.frameDrawn();
     this.dirty = this.snap.playing || provisional;
   }

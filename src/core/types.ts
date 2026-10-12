@@ -4,9 +4,9 @@
 
 /**
  * Tipos de mídia. Previstos para fases futuras (sem suporte ainda):
- * 'lut' | 'effect' | 'transition' | 'motionTemplate'.
+ * 'effect' | 'transition' | 'motionTemplate'.
  */
-export type AssetKind = 'video' | 'audio' | 'image' | 'svg' | 'font';
+export type AssetKind = 'video' | 'audio' | 'image' | 'svg' | 'font' | 'lut';
 
 export interface Asset {
   id: string;
@@ -40,6 +40,8 @@ export interface Asset {
   sampleRate?: number;
   /** Fontes: nome da família registrada no navegador. */
   fontFamily?: string;
+  /** LUT (.cube): pontos por eixo da tabela 3D. */
+  lutSize?: number;
   /** Identidade do conteúdo (SHA-256 parcial): cache, relink e duplicatas. */
   hash?: string;
   metadata?: MediaMetadata;
@@ -253,6 +255,10 @@ export interface ColorSettings {
   temperature: number; // -1 (frio) .. 1 (quente)
   tint: number; // -1 (verde) .. 1 (magenta)
   vignette: number; // 0..1
+  /** Look criativo (Fase 7): id da LUT — asset importado (.cube) ou "look:<nome>" pronto. */
+  lut?: string;
+  /** Intensidade da LUT, 0..1 (padrão 1). */
+  lutAmount?: number;
 }
 
 // --- Áudio --------------------------------------------------------------------
@@ -384,6 +390,29 @@ export interface ClipMask {
   invert: boolean;
 }
 
+// --- Efeitos (Fase 6) ---------------------------------------------------------------------
+
+export type EffectType =
+  | 'blur' | 'glow' | 'bw' | 'sepia' | 'duotone' | 'invert' | 'hue' | 'pixelate' | 'rgbSplit' | 'glitch'
+  | 'shake' | 'zoomPulse' | 'flip' | 'grain' | 'vhs' | 'vignette' | 'letterbox' | 'lightLeak' | 'flash' | 'look';
+
+/** Um efeito da pilha de um clipe (ou de uma camada de efeito). */
+export interface EffectSpec {
+  id: string;
+  type: EffectType;
+  /** Intensidade 0..1. */
+  amount: number;
+  /** Desligado: fica na lista mas não desenha. */
+  enabled?: boolean;
+  /** Cores (duotone: sombras/luzes; light leak). */
+  color?: string;
+  color2?: string;
+  /** Ritmo (tremor, pulso, flash, glitch): multiplicador; pulso/flash em batidas por minuto ÷ 60. */
+  speed?: number;
+  /** Look (LUT): id da LUT (asset .cube ou "look:<nome>"). */
+  lut?: string;
+}
+
 /** assetId de clipes que não vêm de um arquivo (legendas, gráficos e elementos). */
 export const NO_ASSET = '';
 
@@ -416,6 +445,13 @@ export interface Clip {
   element?: ElementData;
   /** Máscara (só clipes de vídeo/imagem). */
   mask?: ClipMask;
+  /** Efeitos aplicados à imagem do clipe, na ordem (Fase 6). */
+  effects?: EffectSpec[];
+  /**
+   * Camada de efeito: clipe sem mídia que aplica `effects` em tudo que está nas trilhas de baixo
+   * durante o trecho. A opacidade (e seus keyframes) dosa a intensidade.
+   */
+  adjustment?: boolean;
   keyframes?: Keyframes;
   color?: ColorSettings;
   audio?: AudioFx;
@@ -494,5 +530,5 @@ export const SEQUENCE_PRESETS: { id: string; label: string; width: number; heigh
   { id: '4:5', label: '4:5 · 1080×1350', width: 1080, height: 1350 },
 ];
 
-/** Clipe desenhado pelo editor (legenda, título ou elemento), sem arquivo de mídia. */
-export const isGraphic = (c: Pick<Clip, 'caption' | 'title' | 'element'>) => !!(c.caption || c.title || c.element);
+/** Clipe desenhado pelo editor (legenda, título, elemento ou camada de efeito), sem arquivo de mídia. */
+export const isGraphic = (c: Pick<Clip, 'caption' | 'title' | 'element' | 'adjustment'>) => !!(c.caption || c.title || c.element || c.adjustment);

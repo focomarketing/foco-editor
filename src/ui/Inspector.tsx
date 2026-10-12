@@ -16,12 +16,14 @@ import { useEditor } from './hooks';
 import { FontSelect } from './FontSelect';
 import { AnimationSection, AudioSection, ColorSection, TitleInspector } from './InspectorFx';
 import { ElementInspector, MaskSection } from './ElementInspector';
+import { EffectsSection } from './EffectsSection';
+import { AdjustmentInspector } from './AdjustmentInspector';
 import { TransitionInspector } from './TransitionsPanel';
 
 export function Inspector() {
   const { project, selection } = useEditor();
   const clip = selection.length === 1 ? project.clips[selection[0]] : undefined;
-  const title = clip ? (clip.caption ? 'Legenda' : clip.title ? 'Gráfico' : clip.element ? 'Elemento' : 'Clipe') : selection.length > 1 ? `${selection.length} clipes` : 'Sequência';
+  const title = clip ? (clip.caption ? 'Legenda' : clip.title ? 'Gráfico' : clip.element ? 'Elemento' : clip.adjustment ? 'Camada de efeito' : 'Clipe') : selection.length > 1 ? `${selection.length} clipes` : 'Sequência';
 
   return (
     <section className="panel">
@@ -35,6 +37,8 @@ export function Inspector() {
           <TitleInspector clip={clip} />
         ) : clip?.element ? (
           <ElementInspector key={clip.id} clip={clip} />
+        ) : clip?.adjustment ? (
+          <AdjustmentInspector clip={clip} />
         ) : clip ? (
           <ClipInspector clip={clip} />
         ) : (
@@ -478,6 +482,7 @@ function ClipInspector({ clip }: { clip: Clip }) {
       )}
       {visual && <TransitionInspector clip={clip} />}
       {visual && <AnimationSection clip={clip} />}
+      {visual && <EffectsSection clip={clip} />}
       {visual && <MaskSection clip={clip} />}
       {visual && <ColorSection clip={clip} />}
       {asset?.hasAudio && <AudioSection clip={clip} />}

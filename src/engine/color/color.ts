@@ -2,6 +2,8 @@
 // e o processador WebGL2 que aplica a correção em cada quadro (preview e export).
 
 import type { ColorSettings } from '../../core/types';
+import { getLut } from './lut';
+import type { Lut } from './lut';
 
 export const NEUTRAL_COLOR: ColorSettings = {
   preset: 'none',
@@ -31,8 +33,19 @@ export const COLOR_PRESETS: { id: string; label: string; settings: ColorSettings
 
 export const colorPreset = (id: string) => COLOR_PRESETS.find((x) => x.id === id)?.settings ?? NEUTRAL_COLOR;
 
+/**
+ * Correção técnica e look são independentes: trocar o preset (ou a cor automática) mantém a LUT
+ * que o clipe já tinha. `next` undefined = volta ao original (fica só o look, se houver).
+ */
+export function keepLook(next: ColorSettings | undefined, prev: ColorSettings | undefined): ColorSettings | undefined {
+  if (!prev?.lut) return next;
+  return { ...(next ?? NEUTRAL_COLOR), lut: prev.lut, lutAmount: prev.lutAmount };
+}
+
+/** Nada a fazer: todos os ajustes em zero e sem LUT (ou LUT a 0%). */
 export function isNeutral(c: ColorSettings | undefined) {
   if (!c) return true;
+  if (c.lut && (c.lutAmount ?? 1) > 0.001) return false;
   return (Object.keys(NEUTRAL_COLOR) as (keyof ColorSettings)[]).every((k) => k === 'preset' || c[k] === 0);
 }
 
@@ -125,7 +138,10 @@ void main() { uv = (p + 1.0) * 0.5; gl_Position = vec4(p, 0.0, 1.0); }`;
 const FRAG = `#version 300 es
 precision highp float;
 uniform sampler2D tex;
+uniform highp sampler3D lut;
 uniform float exposure, contrast, highlights, shadows, saturation, vibrance, temperature, tint, vignette;
+uniform float lutAmount, lutSize;
+uniform vec3 lutMin, lutMax;
 in vec2 uv;
 out vec4 o;
 const vec3 W = vec3(0.2126, 0.7152, 0.0722);
@@ -142,17 +158,27 @@ void main() {
   l = dot(c, W);
   float sat = max(c.r, max(c.g, c.b)) - min(c.r, min(c.g, c.b));
   c = mix(vec3(l), c, 1.0 + saturation + vibrance * (1.0 - clamp(sat, 0.0, 1.0)));
+  // look criativo (LUT 3D) depois da correção técnica; meio texel de margem = interpolação exata
+  if (lutAmount > 0.0) {
+    vec3 n = clamp((clamp(c, 0.0, 1.0) - lutMin) / max(lutMax - lutMin, vec3(1e-5)), 0.0, 1.0);
+    vec3 look = texture(lut, n * ((lutSize - 1.0) / lutSize) + 0.5 / lutSize).rgb;
+    c = mix(c, look, lutAmount);
+  }
   vec2 d = uv - 0.5;
   c *= 1.0 - vignette * smoothstep(0.35, 0.85, length(d) * 1.25);
   o = vec4(clamp(c, 0.0, 1.0), 1.0);
 }`;
 
 const UNIFORMS = ['exposure', 'contrast', 'highlights', 'shadows', 'saturation', 'vibrance', 'temperature', 'tint', 'vignette'] as const;
+const LUT_UNIFORMS = ['lut', 'lutAmount', 'lutSize', 'lutMin', 'lutMax'] as const;
 
 export class ColorProcessor {
   private canvas: OffscreenCanvas;
   private gl: WebGL2RenderingContext | null;
   private loc: Record<string, WebGLUniformLocation | null> = {};
+  /** Textura 3D de cada LUT já enviada à GPU (enviada uma vez só). */
+  private lutTex = new Map<Lut, WebGLTexture>();
+  private emptyLut: WebGLTexture | null = null;
 
   constructor() {
     this.canvas = new OffscreenCanvas(2, 2);
@@ -183,7 +209,26 @@ export class ColorProcessor {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    for (const u of UNIFORMS) this.loc[u] = gl.getUniformLocation(prog, u);
+    for (const u of [...UNIFORMS, ...LUT_UNIFORMS]) this.loc[u] = gl.getUniformLocation(prog, u);
+    gl.uniform1i(gl.getUniformLocation(prog, 'tex'), 0);
+    gl.uniform1i(this.loc.lut, 1);
+    // LUT vazia (2³ identidade): o sampler 3D sempre tem uma textura válida
+    this.emptyLut = this.upload({ title: '', size: 2, data: Float32Array.from([0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1]), domainMin: [0, 0, 0], domainMax: [1, 1, 1] });
+  }
+
+  private upload(lut: Lut): WebGLTexture {
+    const gl = this.gl!;
+    const t = gl.createTexture()!;
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_3D, t);
+    gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    for (const w of [gl.TEXTURE_WRAP_S, gl.TEXTURE_WRAP_T, gl.TEXTURE_WRAP_R]) gl.texParameteri(gl.TEXTURE_3D, w, gl.CLAMP_TO_EDGE);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+    // RGB16F: filtrável em qualquer WebGL2 (float32 precisaria de extensão); o .cube vem em float
+    gl.texImage3D(gl.TEXTURE_3D, 0, gl.RGB16F, lut.size, lut.size, lut.size, 0, gl.RGB, gl.FLOAT, lut.data);
+    gl.activeTexture(gl.TEXTURE0);
+    return t;
   }
 
   get available() {
@@ -201,8 +246,23 @@ export class ColorProcessor {
       this.canvas.height = h;
     }
     gl.viewport(0, 0, w, h);
+    gl.activeTexture(gl.TEXTURE0);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
     for (const u of UNIFORMS) gl.uniform1f(this.loc[u], c[u]);
+    // LUT importada que ainda não carregou (ou sumiu): desenha sem ela em vez de falhar
+    const lut = getLut(c.lut);
+    let tex = this.emptyLut;
+    if (lut) {
+      tex = this.lutTex.get(lut) ?? null;
+      if (!tex) this.lutTex.set(lut, (tex = this.upload(lut)));
+    }
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_3D, tex);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.uniform1f(this.loc.lutAmount, lut ? Math.min(1, Math.max(0, c.lutAmount ?? 1)) : 0);
+    gl.uniform1f(this.loc.lutSize, lut?.size ?? 2);
+    gl.uniform3fv(this.loc.lutMin, lut?.domainMin ?? [0, 0, 0]);
+    gl.uniform3fv(this.loc.lutMax, lut?.domainMax ?? [1, 1, 1]);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     return this.canvas;
   }

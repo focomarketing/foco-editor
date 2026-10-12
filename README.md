@@ -167,6 +167,26 @@ Teste: `npm run test:e2e:captions`.
 
 Teste: `npm run test:e2e:elements`.
 
+## Fase 6 — Transições e efeitos
+
+- **Transições:** biblioteca de 53 modelos (aba Transições), aplicadas no início do clipe, com o mesmo motor no preview e no export.
+- **Efeitos de vídeo** (aba Efeitos): 19 efeitos em 5 categorias — Desfoque e luz (desfoque, brilho, light leak), Cor (preto e branco, sépia, duotone, inverter, girar cor), Estilo (pixelizar, RGB split, glitch, VHS, grão de filme), Movimento (tremor, pulso de zoom, espelhar) e Sobreposição (vinheta, barras de cinema, flash). Prévia animada de cada um.
+- **No clipe:** com um vídeo/imagem selecionado, o clique aplica o efeito nele. A pilha fica no Inspector: intensidade, ritmo, cores, ordem e ligar/desligar. Sobreposições (grão, vinheta, VHS…) ficam presas à área da imagem do clipe.
+- **Camada de efeito:** sem clipe selecionado, o clique cria uma camada de 3 s no playhead (trilha "Efeitos") que vale para tudo que está embaixo no trecho — como uma camada de ajuste. A **mistura** (opacidade, animável por keyframes) dosa a intensidade.
+- Efeitos com ritmo (glitch, tremor, pulso, flash) são calculados pelo tempo e por sementes fixas: o mesmo instante sai igual no preview e no export.
+
+Teste: `npm run test:e2e:effects`.
+
+## Fase 7 — Cor e LUTs
+
+- **LUT .cube:** importe pelo botão Importar (ou arrastando) como qualquer mídia — 3D ou 1D, com DOMAIN_MIN/MAX. A LUT aparece no Media Bin e vai junto com o projeto (volta sozinha ao reabrir). Arquivo quebrado é recusado com o motivo ("esperava 8 linhas, achei 1").
+- **Na GPU:** a LUT vira uma textura 3D no mesmo shader da correção de cor, com interpolação trilinear — preview e export idênticos. Entra **depois** da correção técnica (exposição, balanço de branco, contraste), como no fluxo de colorista.
+- **11 looks prontos** gerados por código (sem arquivos de terceiros): Teal & Orange, Filme quente, Bleach bypass, Matte, Noir, Azul noite, Vintage, Vívido, Hora dourada, Cyberpunk e Pastel.
+- **No clipe** (Inspector → Cor): "Look / LUT" + intensidade. Trocar o preset ou usar a cor automática mantém o look; "Nenhum" tira só o look.
+- **No vídeo inteiro:** efeito "Look (LUT)" numa camada de efeito (Fase 6), com a mistura animável.
+
+Teste: `npm run test:e2e:luts`.
+
 ## Roadmap (13 fases)
 
 1. **Núcleo do editor** ✅
@@ -174,8 +194,8 @@ Teste: `npm run test:e2e:elements`.
 3. **Texto, fontes e legendas** ✅ — textos animados, legendas palavra a palavra com 8 estilos e biblioteca de fontes (60 embutidas + Google Fonts).
 4. **Banco de legendas, personalização e animações** ✅ — 34 estilos em 7 categorias, Meus estilos, destaque de palavras, entrada/saída e animação por palavra.
 5. **Motion Graphics Engine** ✅ — keyframes, 4 templates de título, elementos (formas, texto, partículas em grupo, 25 prontos) e máscaras.
-6. Transições e efeitos.
-7. Cor e LUTs — *parcial:* correção de cor por shader, presets e cor automática. Falta LUT .cube.
+6. **Transições e efeitos** ✅ — 53 transições e 19 efeitos de vídeo, no clipe ou em camada de efeito.
+7. **Cor e LUTs** ✅ — correção por shader, presets, cor automática, LUT .cube (importada) e 11 looks prontos, no clipe ou em camada de efeito.
 8. Áudio e voice enhancement — *parcial:* cadeia de voz, gate, compressor e normalização.
 9. AI Editing — *parcial:* chat (Ollama/Claude), cortes de pausas e erros, smart zoom.
 10. Long → Shorts.

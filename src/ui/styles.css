@@ -553,3 +553,12 @@ button, input, select { font: inherit; color: inherit; }
 .el-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .el-tools { display: inline-flex; gap: 1px; opacity: .55; }
 .el-layer:hover .el-tools, .el-layer.on .el-tools { opacity: 1; }
+
+/* efeitos (Fase 6) */
+.clip.adjust { background: #5b3f7a; border-color: #a77fd6; }
+.fx-target { font-size: 12px; color: var(--text-1); line-height: 1.45; padding: 6px 8px; border: 1px dashed var(--line-2); border-radius: 6px; }
+.fx-add { margin-top: 6px; padding: 4px 8px 8px; border: 1px solid var(--line); border-radius: 6px; }
+.fx-item { margin-top: 6px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; display: flex; flex-direction: column; gap: 2px; }
+.fx-item.off { opacity: .55; }
+.fx-head { display: flex; align-items: center; justify-content: space-between; }
+.fx-head b { color: var(--text-0); font-weight: 600; }

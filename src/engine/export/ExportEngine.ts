@@ -167,7 +167,7 @@ export async function exportProject(
           else if (layer) layers.push(layer);
         }
         // mesmas transições do preview (o export é sequencial: a cauda sempre foi capturada)
-        composite(ctx, W, H, applyTransitions(p, t, layers));
+        composite(ctx, W, H, applyTransitions(p, t, layers), { project: p, time: t });
         await videoSource.add(t, 1 / fps);
         await frames.releaseFinished(i);
 

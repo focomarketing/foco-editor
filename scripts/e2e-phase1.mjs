@@ -38,6 +38,9 @@ try {
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
+  // o console só diz "Failed to load resource": registra também qual endereço falhou
+  // (cancelamentos de propósito — vídeo pulando para outro ponto — não contam)
+  page.on('requestfailed', (r) => r.failure()?.errorText !== 'net::ERR_ABORTED' && errors.push(`falhou: ${r.url().slice(0, 120)} (${r.failure()?.errorText})`));
   page.on('dialog', (d) => d.accept());
   await page.goto('http://localhost:5193/');
   await page.waitForFunction(() => window.__foco);

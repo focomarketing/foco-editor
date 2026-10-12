@@ -60,11 +60,18 @@ export const MOMENTS_SCHEMA = {
   },
 } as const;
 
-export function directorPrompt(opts: { kind: string; short: boolean; archive: boolean; count: number; min: number; max: number }) {
+export function directorPrompt(opts: { kind: string; short: boolean; archive: boolean; count: number; min: number; max: number; context?: string; imageStyle?: string }) {
   return `Você é o diretor de imagens de um editor de vídeo profissional. Recebe a fala do vídeo com tempos (segundos da timeline) e escolhe os momentos que ganham uma imagem de apoio (B-roll) por cima do vídeo.
 
 Tipo de vídeo: ${opts.kind}.
+${opts.context ? `
+MAPA NARRATIVO (siga a linha do vídeo: cada imagem serve à ideia do bloco em que está):
+${opts.context}
+` : ''}
 Regras:
+- A imagem ilustra a IDEIA da frase dentro da narrativa, nunca uma palavra solta ("passageira" não é ônibus, "superficial" não é queimadura, "podemos" não é partido político, "importante" não é uma paisagem qualquer). Se a frase não pede imagem forte, deixe o rosto.
+- Nada de imagem em chamada para ação (inscrição, compartilhar, link) nem em momento de emoção do apresentador. Melhor nenhuma imagem do que uma fora do contexto do canal.${opts.imageStyle ? `
+- Estilo das imagens deste canal: ${opts.imageStyle}` : ''}
 - Nenhuma imagem aleatória. Cada imagem tem que mostrar exatamente o que está sendo dito naquele momento (guerra → guerra; Bíblia/passagem → a cena da passagem; universo → cosmos; sofrimento → sofrimento contextualizado).
 - Escolha só momentos que se visualizam bem ou frases fortes (tese, pergunta, virada, conclusão, passagem citada). Frases comuns ficam com a pessoa na tela.
 - Cerca de ${opts.count} momentos, bem distribuídos, nunca dois seguidos. Cada um entre ${opts.min} e ${opts.max} s, dentro de uma frase (comece no início da frase).

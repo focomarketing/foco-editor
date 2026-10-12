@@ -36,7 +36,8 @@ export function trackKindForAsset(asset: Asset): TrackKind {
 export const isStill = (asset: Asset) => asset.kind === 'image' || asset.kind === 'svg';
 
 /** Pode ir para a timeline (fontes não). */
-export const isPlaceable = (asset: Asset) => asset.kind !== 'font';
+/** Fontes e LUTs não vão para a timeline (são usadas por textos e pela cor). */
+export const isPlaceable = (asset: Asset) => asset.kind !== 'font' && asset.kind !== 'lut';
 
 /** Imagens/SVG não têm duração própria (podem ser esticados à vontade). */
 export const hasTimeLimit = (asset: Asset) => asset.kind === 'video' || asset.kind === 'audio';

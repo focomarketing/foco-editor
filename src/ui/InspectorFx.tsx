@@ -8,13 +8,14 @@ import { formatTimecode } from '../core/time';
 import { toSource, toTimeline } from '../core/clipTime';
 import { media, playback, store } from '../app/editor';
 import { runManual } from '../app/aiEditor';
-import { COLOR_PRESETS, NEUTRAL_COLOR, colorPreset } from '../engine/color/color';
+import { COLOR_PRESETS, NEUTRAL_COLOR, colorPreset, keepLook } from '../engine/color/color';
 import { AUDIO_PRESETS, audioFxFromPreset } from '../engine/audio/audioFx';
 import { TITLE_TEMPLATES, defaultTitle } from '../engine/motion/titles';
 import { useAI } from './hooks';
 import { usePlayback } from './hooks';
 import { FontSelect } from './FontSelect';
 import { commit, live } from './clipEdit';
+import { LutSelect } from './LutSelect';
 
 /** Slider que vira um único passo de undo por arraste. */
 export function Range(props: { label: string; value: number; min: number; max: number; step: number; fmt?: (v: number) => string; onLive: (v: number) => void }) {
@@ -44,7 +45,7 @@ const signed = (v: number) => `${v > 0 ? '+' : ''}${v.toFixed(2)}`;
 
 // --- Cor ----------------------------------------------------------------------------
 
-const COLOR_FIELDS: { key: keyof Omit<ColorSettings, 'preset'>; label: string; min: number; max: number }[] = [
+const COLOR_FIELDS: { key: Exclude<keyof ColorSettings, 'preset' | 'lut' | 'lutAmount'>; label: string; min: number; max: number }[] = [
   { key: 'exposure', label: 'Exposição', min: -2, max: 2 },
   { key: 'contrast', label: 'Contraste', min: -1, max: 1 },
   { key: 'highlights', label: 'Altas luzes', min: -1, max: 1 },
@@ -66,7 +67,7 @@ export function ColorSection({ clip }: { clip: Clip }) {
         <label>Preset</label>
         <select
           value={COLOR_PRESETS.some((p) => p.id === c.preset) ? c.preset : c.preset === 'auto' ? 'auto' : 'none'}
-          onChange={(e) => commit(clip.id, 'Preset de cor', () => ({ color: e.target.value === 'none' ? undefined : { ...colorPreset(e.target.value) } }))}
+          onChange={(e) => commit(clip.id, 'Preset de cor', (cl) => ({ color: keepLook(e.target.value === 'none' ? undefined : { ...colorPreset(e.target.value) }, cl.color) }))}
         >
           <option value="none">Original</option>
           {c.preset === 'auto' && <option value="auto">Automática (IA)</option>}
@@ -74,6 +75,10 @@ export function ColorSection({ clip }: { clip: Clip }) {
           {COLOR_PRESETS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
         </select>
       </div>
+      <LutSelect value={c.lut} onChange={(lut) => commit(clip.id, lut ? 'Look de cor' : 'Sem look', (cl) => ({ color: { ...(cl.color ?? NEUTRAL_COLOR), lut, lutAmount: lut ? (cl.color?.lutAmount ?? 1) : undefined } }))} />
+      {c.lut && (
+        <Range label="Intensidade" value={c.lutAmount ?? 1} min={0} max={1} step={0.01} fmt={(v) => `${Math.round(v * 100)}%`} onLive={(v) => live(clip.id, (cl) => ({ color: { ...(cl.color ?? NEUTRAL_COLOR), lutAmount: v } }))} />
+      )}
       {COLOR_FIELDS.map((f) => (
         <Range
           key={f.key}

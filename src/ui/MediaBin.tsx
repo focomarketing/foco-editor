@@ -1,11 +1,11 @@
 import { useMemo, useState, useSyncExternalStore } from 'react';
 import {
-  AudioLines, ChevronLeft, Film, Folder as FolderIcon, FolderPlus, Image as ImageIcon, LayoutGrid, List, Pencil, Plus, Search, Shapes, Trash2, Type,
+  AudioLines, ChevronLeft, Film, Folder as FolderIcon, FolderPlus, Image as ImageIcon, LayoutGrid, List, Palette, Pencil, Plus, Search, Shapes, Trash2, Type,
 } from 'lucide-react';
 import type { Asset, AssetKind } from '../core/types';
 import { formatBytes, formatDuration } from '../core/time';
 import { actions, media } from '../app/editor';
-import { hasTimeLimit } from '../engine/timeline/operations';
+import { hasTimeLimit, isPlaceable } from '../engine/timeline/operations';
 import { jobs } from '../engine/jobs/JobQueue';
 import { describeAsset } from '../engine/media/probe';
 import { useEditor, useMediaVersion } from './hooks';
@@ -15,8 +15,8 @@ const ASSETS_MIME = 'application/x-foco-assets';
 
 type SortKey = 'name' | 'date' | 'duration' | 'type';
 
-const KIND_ICON: Record<AssetKind, typeof Film> = { video: Film, audio: AudioLines, image: ImageIcon, svg: Shapes, font: Type };
-const KIND_LABEL: Record<AssetKind, string> = { video: 'vídeo', audio: 'áudio', image: 'imagem', svg: 'SVG', font: 'fonte' };
+const KIND_ICON: Record<AssetKind, typeof Film> = { video: Film, audio: AudioLines, image: ImageIcon, svg: Shapes, font: Type, lut: Palette };
+const KIND_LABEL: Record<AssetKind, string> = { video: 'vídeo', audio: 'áudio', image: 'imagem', svg: 'SVG', font: 'fonte', lut: 'LUT' };
 
 function readPref<T extends string>(key: string, def: T): T {
   try {
@@ -287,7 +287,7 @@ function AssetItem(props: {
   const activeJobs = jobs.forAsset(asset.id).filter((j) => (j.status === 'queued' || j.status === 'processing') && j.type !== 'proxy');
   const proxy = entry?.proxy;
   const Icon = KIND_ICON[asset.kind];
-  const placeable = asset.kind !== 'font';
+  const placeable = isPlaceable(asset);
   const details = [
     KIND_LABEL[asset.kind],
     hasTimeLimit(asset) ? formatDuration(asset.duration) : null,

@@ -14,6 +14,9 @@ import { isProtected } from '../validation/validate';
 import { isShort, llmReady, sentences } from './common';
 import type { Sentence } from './common';
 import { isGraphic } from '../../core/types';
+import { briefText, isMetaTransition } from '../narrative/brief';
+import type { NarrativeBrief } from '../narrative/brief';
+import type { EditorialProfile } from '../narrative/profiles';
 
 export type MotionKind = 'title' | 'callout' | 'lowerThird';
 
@@ -65,6 +68,42 @@ export function heuristicPicks(list: Sentence[], style: MotionStyle, duration: n
   const last = list[list.length - 1];
   if (last && list.length > 3) cands.push({ sentence: last, kind: 'title', text: trimText(last.text, style.maxWords), why: 'fechamento', by: 'heuristic' });
   return spread(cands, style, duration);
+}
+
+/** Tira o conectivo do começo ("Então por que..." → "Por que..."), que não cabe num título. */
+export function titleText(text: string): string {
+  return text
+    .replace(/[“”"]/g, '')
+    .trim()
+    .replace(/^((e|mas|agora|então|entao|ou seja|porque|e aqui|ora),?\s+)+/i, '')
+    .replace(/^\p{Ll}/u, (c) => c.toUpperCase());
+}
+
+const wordCount = (t: string) => t.trim().split(/\s+/).filter(Boolean).length;
+
+/**
+ * Pelo mapa narrativo: o tema de cada bloco (lower third), as teses e o clímax curtos (título
+ * no centro) e a pergunta central quando cabe num destaque. Nada em chamada para ação. Prioridade
+ * para o que estrutura o vídeo; o ritmo do estilo decide quantos entram.
+ */
+export function briefPicks(b: NarrativeBrief, style: MotionStyle, duration: number, profile: EditorialProfile): MotionPick[] {
+  const cands: (MotionPick & { prio: number })[] = [];
+  const fits = (t: string, extra = 0) => wordCount(t) >= 2 && wordCount(t) <= style.maxWords + extra;
+  for (const s of b.sentences) {
+    if (s.role === 'cta' || s.end - s.start < 1.2) continue;
+    const text = titleText(s.text);
+    if (s.role === 'chapter' && !isMetaTransition(s.text) && fits(text, 2)) cands.push({ sentence: s, kind: 'lowerThird', text: trimText(text, style.maxWords + 2), why: `tema do bloco ${s.section}`, by: 'heuristic', prio: 3 });
+    else if ((s.role === 'thesis' || s.role === 'climax') && fits(text, 1)) cands.push({ sentence: s, kind: 'title', text: trimText(text, style.maxWords + 1), why: s.role === 'climax' ? 'a resposta do vídeo' : 'afirmação central do bloco', by: 'heuristic', prio: s.role === 'climax' ? 2.5 : 2 });
+    else if (profile.motion.callouts && s.role === 'question' && b.centralQuestion === s.text && fits(text)) cands.push({ sentence: s, kind: 'callout', text: trimText(text, style.maxWords), why: 'a pergunta que move o vídeo', by: 'heuristic', prio: 2.8 });
+  }
+  const limit = Math.min(style.max, Math.max(1, Math.floor(duration / style.every)));
+  const out: MotionPick[] = [];
+  for (const c of [...cands].sort((x, y) => y.prio - x.prio || x.sentence.start - y.sentence.start)) {
+    if (out.length >= limit) break;
+    if (out.some((q) => Math.abs(q.sentence.start - c.sentence.start) < style.every * 0.6)) continue;
+    out.push({ sentence: c.sentence, kind: c.kind, text: c.text, why: c.why, by: c.by });
+  }
+  return out.sort((x, y) => x.sentence.start - y.sentence.start);
 }
 
 /** Respeita o ritmo: no máximo um gráfico a cada `every` segundos e `max` no total. */
@@ -143,7 +182,9 @@ export const motionDesignerSkill: Skill = {
     const p = ctx.project();
     const short = isShort(ctx);
     const style = motionStyle(short);
-    const list = sentences(words);
+    const brief = await ctx.brief();
+    const profile = ctx.profile;
+    const list: (Sentence & { role?: string; section?: number })[] = brief?.sentences ?? sentences(words);
     const duration = Math.max(...words.map((w) => w.end));
     let picks: MotionPick[] = [];
     if (llmReady(ctx.ai)) {
@@ -152,8 +193,9 @@ export const motionDesignerSkill: Skill = {
         const limit = Math.min(style.max, Math.max(1, Math.floor(duration / style.every)));
         const raw = (await askJson(
           ctx.ai,
-          `Você é motion designer de ${short ? 'vídeos curtos (estilo forte, ritmo rápido)' : 'vídeos longos de YouTube (estilo discreto, elegante)'}. Escolha até ${limit} frases que carregam o vídeo: tese, pergunta, número, virada, conclusão. Para cada uma: kind (title = frase de impacto no centro; callout = destaque curto; lowerThird = nome/assunto na base), e text com no máximo ${style.maxWords} palavras COPIADAS da própria frase (não reescreva, não invente). Responda só o JSON.`,
-          list.map((s) => `${s.index} [${s.start.toFixed(1)}–${s.end.toFixed(1)}] ${s.text}`).join('\n'),
+          `Você é motion designer de ${short ? 'vídeos curtos (estilo forte, ritmo rápido)' : 'vídeos longos de YouTube (estilo discreto, elegante)'}.${brief ? `\n\nMAPA NARRATIVO (os gráficos marcam a estrutura do vídeo):\n${briefText(brief, profile)}\n` : ''}
+Escolha até ${limit} frases que carregam o vídeo e a sua estrutura. Para cada uma: kind (title = tese ou virada no centro; callout = a pergunta central ou um número; lowerThird = o TEMA de um bloco quando ele começa, ou a referência bíblica/fonte citada; nunca um pedaço solto de frase), e text com no máximo ${style.maxWords} palavras COPIADAS da própria frase, formando uma ideia completa (não reescreva, não invente, não corte no meio da ideia). Nunca em chamada para ação (inscrição, compartilhar, link). Responda só o JSON.`,
+          list.map((s) => `${s.index} [${s.start.toFixed(1)}–${s.end.toFixed(1)}]${s.role ? ` (bloco ${s.section} · ${s.role})` : ''} ${s.text}`).join('\n'),
           PICK_SCHEMA as unknown as Record<string, unknown>,
           ctx.signal,
         )) as { picks?: { sentence: number; kind: string; text: string; why: string }[] };
@@ -163,6 +205,7 @@ export const motionDesignerSkill: Skill = {
           const kind = (['title', 'callout', 'lowerThird'] as const).find((k) => k === r.kind);
           const text = trimText(String(r.text ?? ''), style.maxWords);
           if (!s || !kind || !textFromSpeech(text, s.text)) continue; // texto inventado: fora
+          if (s.role === 'cta') continue; // chamada para ação não vira título
           valid.push({ sentence: s, kind, text, why: String(r.why ?? '').slice(0, 140), by: 'llm' });
         }
         picks = spread(valid, style, duration);
@@ -171,7 +214,7 @@ export const motionDesignerSkill: Skill = {
         ctx.log(`diretor de IA indisponível: ${e instanceof Error ? e.message : e}`);
       }
     }
-    if (!picks.length) picks = heuristicPicks(list, style, duration);
+    if (!picks.length) picks = brief ? briefPicks(brief, style, duration, profile) : heuristicPicks(list, style, duration);
     if (!picks.length) return { commands: [], notes: ['Nenhuma frase pediu destaque animado.'] };
 
     const commands: EditCommand[] = [];
@@ -185,7 +228,9 @@ export const motionDesignerSkill: Skill = {
       const end = +Math.min(duration, Math.max(start + 1.8, Math.min(pk.sentence.end + 0.4, start + tplDur + 1))).toFixed(3);
       if (end - start < 1.2) continue;
       lastEnd = end;
-      const title = { ...defaultTitle(template, short ? pk.text.toUpperCase() : pk.text), accent: template === 'callout' ? style.accent : defaultTitle(template).accent };
+      // identidade do canal: fonte, cor e destaque do perfil
+      const look = profile.motion;
+      const title = { ...defaultTitle(template, short || look.upper ? pk.text.toUpperCase() : pk.text), fontFamily: template === 'title' ? look.titleFont : look.bodyFont, color: look.color, accent: look.accent };
       if (template === 'lowerThird') title.subtitle = '';
       commands.push({
         id: newId('k'),

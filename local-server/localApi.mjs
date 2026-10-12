@@ -13,6 +13,8 @@
 //   GET    /__foco/local/fonts/downloaded     → famílias já baixadas (faces.json de cada uma)
 //   GET    /__foco/local/fonts/family?name=   → baixa a família (se preciso) e devolve as faces
 //   GET    /__foco/local/fonts/file?f=<dir/arquivo> → um .woff2 baixado
+//   GET    /__foco/local/claude/status        → { available, path, loggedIn } do Claude Code
+//   POST   /__foco/local/claude/ask           → { system, user, schema, model } → { data, model }
 
 import fs from 'node:fs';
 import os from 'node:os';
@@ -23,7 +25,7 @@ const TYPES = {
   '.mp4': 'video/mp4', '.mov': 'video/quicktime', '.m4v': 'video/mp4', '.webm': 'video/webm', '.mkv': 'video/x-matroska',
   '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.m4a': 'audio/mp4', '.aac': 'audio/aac', '.ogg': 'audio/ogg', '.flac': 'audio/flac',
   '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.gif': 'image/gif', '.svg': 'image/svg+xml',
-  '.woff2': 'font/woff2',
+  '.woff2': 'font/woff2', '.cube': 'text/plain; charset=utf-8',
 };
 
 const base = () => process.env.FOCO_DATA_DIR || path.join(os.homedir(), 'Documents', 'FOCO Editor');
@@ -176,6 +178,24 @@ export async function handleLocal(req, res, url, opts = {}) {
       return json(res, 200, { path: target });
     }
     
+    // "Minha conta Claude" (Claude Code desta máquina). O cabeçalho próprio exige preflight de
+    // CORS: uma página qualquer aberta no navegador não consegue usar a conta da pessoa.
+    if (parts[0] === 'claude') {
+      if (req.headers['x-foco-local'] !== '1') return json(res, 403, { error: 'pedido sem o cabeçalho do editor' });
+      const { askClaude, claudeStatus } = await import('./claudeCode.mjs');
+      if (u.pathname === '/claude/status') return json(res, 200, claudeStatus());
+      if (u.pathname === '/claude/ask' && req.method === 'POST') {
+        const data = JSON.parse((await readBody(req)).toString('utf8'));
+        const abort = new AbortController();
+        res.on('close', () => !res.writableFinished && abort.abort()); // o editor cancelou
+        try {
+          return json(res, 200, await askClaude({ system: data.system, user: data.user, schema: data.schema, model: data.model, effort: data.effort }, abort.signal));
+        } catch (e) {
+          return json(res, e?.name === 'AbortError' ? 499 : 502, { error: e instanceof Error ? e.message : String(e) });
+        }
+      }
+    }
+
     // ==========================================
     // ROTA DA INTELIGÊNCIA ARTIFICIAL E AGENTE
     // ==========================================

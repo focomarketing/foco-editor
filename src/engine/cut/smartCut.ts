@@ -49,6 +49,11 @@ export interface SmartCutOptions {
   retakes: boolean;
   /** Preserva pausas de ênfase (modos natural e dinâmico). */
   keepEmphasis: boolean;
+  /**
+   * Trechos (tempo da timeline) que o mapa narrativo marcou como repetição intencional
+   * (anáfora, enumeração): ali só pausas são encurtadas; nenhuma frase sai.
+   */
+  protect?: [number, number][];
 }
 
 export const DEFAULT_OPTIONS: SmartCutOptions = { mode: 'natural', pauses: true, fillers: true, stutters: true, retakes: true, keepEmphasis: true };
@@ -169,12 +174,34 @@ function sentencesOf(words: TlWord[]): Sentence[] {
   return out;
 }
 
+/** Tamanho da maior subsequência comum. */
+function lcs(a: string[], b: string[]): number {
+  const dp = Array.from({ length: a.length + 1 }, () => new Array<number>(b.length + 1).fill(0));
+  for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) dp[i][j] = a[i - 1] === b[j - 1] ? dp[i - 1][j - 1] + 1 : Math.max(dp[i - 1][j], dp[i][j - 1]);
+  return dp[a.length][b.length];
+}
+
 /** Semelhança entre frases: maior subsequência comum / tamanho da maior (0..1). */
 export function similarity(a: string[], b: string[]): number {
   if (!a.length || !b.length) return 0;
-  const dp = Array.from({ length: a.length + 1 }, () => new Array<number>(b.length + 1).fill(0));
-  for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) dp[i][j] = a[i - 1] === b[j - 1] ? dp[i - 1][j - 1] + 1 : Math.max(dp[i - 1][j], dp[i][j - 1]);
-  return dp[a.length][b.length] / Math.max(a.length, b.length);
+  return lcs(a, b) / Math.max(a.length, b.length);
+}
+
+/** Quanto de A está dito de novo em B (0..1): o começo falso costuma estar inteiro na retomada. */
+export function coverage(a: string[], b: string[]): number {
+  return a.length ? lcs(a, b) / a.length : 0;
+}
+
+/**
+ * Paralelismo intencional: duas frases completas, mesmo começo, e cada uma com palavras de
+ * conteúdo que a outra não tem ("Por que ainda existem guerras?" / "...doenças?";
+ * "Ele curou alguns" / "Ele ressuscitou alguns"). É recurso de fala, não erro de gravação.
+ */
+export function isParallel(a: string[], b: string[], aComplete: boolean, bComplete: boolean): boolean {
+  if (!aComplete || !bComplete || a.length < 3 || b.length < 3) return false;
+  // palavra própria: de conteúdo e sem parente na outra frase ("mercado"/"supermercado" é a mesma)
+  const own = (x: string[], y: string[]) => x.filter((w) => w.length > 3 && !y.some((v) => v.length > 3 && (v.includes(w) || w.includes(v)))).length;
+  return own(a, b) >= 1 && own(b, a) >= 1;
 }
 
 /** Qualidade de uma tomada: completa, sem vícios/gagueira, sem buracos longos. */
@@ -229,8 +256,10 @@ export function planSmartCuts(rawWords: TlWord[], waves: Map<string, Float32Arra
         const sim = similarity(A.tokens, B.tokens);
         let drop: Sentence | null = null;
         let kind: SmartCutKind = 'retake';
-        if (sameStart && A.tokens.length < B.tokens.length * 0.8) {
-          drop = A; // abandonou no meio e recomeçou
+        if (isParallel(A.tokens, B.tokens, A.complete, B.complete)) continue; // anáfora, enumeração
+        // abandonou no meio e recomeçou: a primeira ficou incompleta ou está inteira na segunda
+        if (sameStart && A.tokens.length < B.tokens.length * 0.8 && (!A.complete || coverage(A.tokens, B.tokens) >= 0.8)) {
+          drop = A;
           kind = 'falseStart';
         } else if (sim >= 0.75) {
           // disse de novo: fica a melhor; empate, fica a última (a "tomada boa" costuma vir depois)
@@ -285,7 +314,9 @@ export function planSmartCuts(rawWords: TlWord[], waves: Map<string, Float32Arra
     }
   }
 
-  const merged = mergeCuts(cuts);
+  // repetição intencional marcada pelo mapa narrativo: ali nenhuma palavra sai, só pausas encurtam
+  const guarded = opts.protect?.length ? cuts.filter((c) => c.kind === 'pause' || !opts.protect!.some(([a, b]) => c.start < b && c.end > a)) : cuts;
+  const merged = mergeCuts(guarded);
   return { cuts: merged, removed: merged.reduce((s, c) => s + (c.end - c.start), 0) };
 }
 

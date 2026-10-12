@@ -1,10 +1,11 @@
-// "Cérebros" do AI Editor. Os dois devolvem JSON no mesmo schema (RESPONSE_SCHEMA);
+// "Cérebros" do AI Editor: Claude pela API (chave), Claude pela conta da pessoa (Claude Code
+// desta máquina, via API local do editor) ou Ollama local. Todos devolvem JSON no schema pedido;
 // a validação dos comandos acontece depois, no validador — nunca confiamos no modelo.
 
 import Anthropic from '@anthropic-ai/sdk';
 import { RESPONSE_SCHEMA } from './commands';
 
-export type ProviderId = 'claude' | 'ollama';
+export type ProviderId = 'claude' | 'claude-code' | 'ollama';
 
 export interface AISettings {
   provider: ProviderId;
@@ -24,6 +25,45 @@ export const DEFAULT_AI_SETTINGS: AISettings = {
   ollamaModel: 'qwen3:4b',
   cloudConsent: false,
 };
+
+/** Há um modelo de linguagem configurado para as etapas automáticas? */
+export const llmAvailable = (s: AISettings) => s.provider === 'ollama' || s.provider === 'claude-code' || (s.provider === 'claude' && !!s.claudeKey && s.cloudConsent);
+
+// --- Minha conta Claude (Claude Code desta máquina) --------------------------------------------
+
+const CLAUDE_LOCAL = '/__foco/local/claude';
+const LOCAL_HEADERS = { 'Content-Type': 'application/json', 'X-Foco-Local': '1' };
+
+export interface ClaudeCodeStatus {
+  available: boolean;
+  path: string | null;
+  loggedIn: boolean;
+}
+
+/** O Claude Code está instalado e logado neste computador? */
+export async function claudeCodeStatus(): Promise<ClaudeCodeStatus> {
+  try {
+    const res = await fetch(`${CLAUDE_LOCAL}/status`, { headers: LOCAL_HEADERS });
+    if (!res.ok) throw new Error(String(res.status));
+    return (await res.json()) as ClaudeCodeStatus;
+  } catch {
+    return { available: false, path: null, loggedIn: false };
+  }
+}
+
+/** Pergunta estruturada pela conta da pessoa (o editor roda o Claude Code isolado, sem ferramentas). */
+export async function askClaudeCode(s: AISettings, system: string, user: string, schema: Record<string, unknown>, signal?: AbortSignal, effort: 'low' | 'medium' | 'high' = 'medium'): Promise<{ data: unknown; model: string }> {
+  let res: Response;
+  try {
+    res = await fetch(`${CLAUDE_LOCAL}/ask`, { method: 'POST', headers: LOCAL_HEADERS, signal, body: JSON.stringify({ system, user, schema, model: s.claudeModel, effort }) });
+  } catch (e) {
+    if (e instanceof DOMException && e.name === 'AbortError') throw e;
+    throw new Error('Não consegui falar com o Claude Code deste computador (o editor está rodando pelo app ou pelo npm run dev?).');
+  }
+  const body = (await res.json().catch(() => ({}))) as { data?: unknown; model?: string; error?: string };
+  if (!res.ok) throw new Error(body.error ?? `Claude Code respondeu ${res.status}`);
+  return { data: body.data, model: body.model ?? s.claudeModel };
+}
 
 export interface ChatTurn {
   role: 'user' | 'assistant';
@@ -74,6 +114,14 @@ export async function planWithClaude(s: AISettings, system: string, history: Cha
   }
 }
 
+/** Chat do AI Editor pela conta da pessoa: o histórico vai como texto numa pergunta só. */
+export async function planWithClaudeCode(s: AISettings, system: string, history: ChatTurn[], signal?: AbortSignal): Promise<PlanResult> {
+  const user = history.map((t) => `${t.role === 'user' ? 'PESSOA' : 'VOCÊ (resposta anterior)'}:\n${t.content}`).join('\n\n');
+  const r = await askClaudeCode(s, system, user, RESPONSE_SCHEMA as unknown as Record<string, unknown>, signal, 'low');
+  const data = (r.data ?? {}) as { reply?: unknown; commands?: unknown };
+  return { reply: typeof data.reply === 'string' ? data.reply : '', commands: data.commands ?? [], model: r.model };
+}
+
 export async function planWithOllama(s: AISettings, system: string, history: ChatTurn[], signal?: AbortSignal): Promise<PlanResult> {
   let res: Response;
   try {
@@ -108,6 +156,7 @@ export async function planWithOllama(s: AISettings, system: string, history: Cha
  * O chamador valida o resultado; o modelo nunca é confiável sozinho.
  */
 export async function askJson(s: AISettings, system: string, user: string, schema: Record<string, unknown>, signal?: AbortSignal): Promise<unknown> {
+  if (s.provider === 'claude-code') return (await askClaudeCode(s, system, user, schema, signal)).data;
   if (s.provider === 'claude') {
     if (!s.claudeKey) throw new Error('Informe a chave da API Anthropic nas configurações da IA.');
     if (!s.cloudConsent) throw new Error('Autorize o envio do texto para a API da Anthropic nas configurações da IA.');

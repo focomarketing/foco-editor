@@ -16,9 +16,10 @@ import { MediaBin, MediaReconnectBanner } from './MediaBin';
 import { AIPanel } from './AIPanel';
 import { TextPanel } from './TextPanel';
 import { ElementsPanel } from './ElementsPanel';
+import { EffectsPanel } from './EffectsPanel';
 import { CutPanel } from './CutPanel';
 
-type ToolId = 'media' | 'cut' | 'audio' | 'text' | 'captions' | 'transitions' | 'elements' | 'director' | 'ai';
+type ToolId = 'media' | 'cut' | 'audio' | 'text' | 'captions' | 'transitions' | 'effects' | 'elements' | 'director' | 'ai';
 
 const TOOLS: { id: ToolId | null; label: string; icon: typeof Film; phase?: string }[] = [
   { id: 'media', label: 'Mídia', icon: Film },
@@ -27,7 +28,7 @@ const TOOLS: { id: ToolId | null; label: string; icon: typeof Film; phase?: stri
   { id: 'text', label: 'Texto', icon: Type },
   { id: 'captions', label: 'Legendas', icon: Captions },
   { id: 'transitions', label: 'Transições', icon: Blend },
-  { id: null, label: 'Efeitos', icon: Wand, phase: 'Fase 6' },
+  { id: 'effects', label: 'Efeitos', icon: Wand },
   { id: 'elements', label: 'Elementos', icon: Shapes },
   { id: null, label: 'Templates', icon: LayoutTemplate, phase: 'Fase 11' },
   { id: 'director', label: 'Diretor', icon: Clapperboard },
@@ -154,6 +155,7 @@ function ToolSidebar() {
         )}
         {tool === 'audio' && <MediaBin only={['audio']} title="Áudio" />}
         {tool === 'text' && <TextPanel />}
+        {tool === 'effects' && <EffectsPanel />}
         {tool === 'elements' && <ElementsPanel />}
         {tool === 'captions' && (
           <section className="panel">

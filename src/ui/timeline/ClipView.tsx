@@ -9,6 +9,7 @@ import { presetFor } from '../../video-editor/transitions/library';
 import { keyframeTimes } from '../../core/animation';
 import { sourceEnd, speedOf, toSource, toTimeline } from '../../core/clipTime';
 import { isGraphic } from '../../core/types';
+import { EFFECTS } from '../../engine/effects/effects';
 
 interface Props {
   clip: Clip;
@@ -25,9 +26,9 @@ export const ClipView = memo(function ClipView({ clip, asset, zoom, view, select
   const entry = useSyncExternalStore(media.subscribe, () => (asset ? media.get(asset.id) : undefined));
   const left = clip.start * zoom;
   const width = Math.max(2, clip.duration * zoom);
-  const kind = clip.caption ? 'caption' : clip.title || clip.element ? 'title' : (asset?.kind ?? 'video');
+  const kind = clip.caption ? 'caption' : clip.title || clip.element ? 'title' : clip.adjustment ? 'adjust' : (asset?.kind ?? 'video');
   const online = !!clip.caption || !!clip.title || entry?.status === 'ready';
-  const label = clip.caption ? captionText(clip) : clip.title ? `◆ ${clip.title.text}` : clip.element ? `✦ ${clip.element.name}` : (asset?.name ?? '?');
+  const label = clip.caption ? captionText(clip) : clip.title ? `◆ ${clip.title.text}` : clip.element ? `✦ ${clip.element.name}` : clip.adjustment ? `◐ ${(clip.effects ?? []).map((e) => EFFECTS[e.type].label).join(' + ') || 'Camada de efeito'}` : (asset?.name ?? '?');
   const kfs = keyframeTimes(clip.keyframes).filter((t) => t >= clip.sourceIn && t <= sourceEnd(clip));
 
   return (

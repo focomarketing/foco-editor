@@ -40,7 +40,7 @@ export async function renderStill(p: Project, t: number, W: number, H: number, f
     if (!a) continue;
     tails.set(tail.clip.id, a.kind === 'image' ? frames.image(a.id) : await frames.video(a.id, sourceEnd(tail.clip) - 0.04, width));
   }
-  composite(ctx, W, H, applyTransitions(p, t, layers, (c: Clip) => tails.get(c.id) ?? null));
+  composite(ctx, W, H, applyTransitions(p, t, layers, (c: Clip) => tails.get(c.id) ?? null), { project: p, time: t });
   return canvas;
 }
 

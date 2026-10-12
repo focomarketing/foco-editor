@@ -28,12 +28,13 @@ export const fsAccessSupported = typeof w.showOpenFilePicker === 'function' && t
 
 export const MEDIA_TYPES: FilePickerType[] = [
   {
-    description: 'Vídeo, áudio, imagem, SVG e fontes',
+    description: 'Vídeo, áudio, imagem, SVG, fontes e LUTs',
     accept: {
       'video/*': ['.mp4', '.mov', '.m4v', '.webm', '.mkv'],
       'audio/*': ['.mp3', '.wav', '.m4a', '.aac', '.ogg', '.flac'],
       'image/*': ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg'],
       'font/*': ['.ttf', '.otf', '.woff', '.woff2'],
+      'application/octet-stream': ['.cube'],
     },
   },
 ];

@@ -40,7 +40,10 @@ export const roughCutSkill: Skill = {
     // aggressive-cut habilitado no preset (curtos) força o ritmo seco
     const aggressive = ctx.workflow?.enabledSkills?.includes('aggressive-cut') && ctx.workflow?.track === 'short';
     const mode = aggressive ? 'dry' : (ctx.workflow?.defaults.cutMode ?? 'natural');
-    const { cuts } = planSmartCuts(words, waves, { ...DEFAULT_OPTIONS, mode });
+    // repetições intencionais (anáfora, enumeração) que o mapa narrativo achou: nenhuma frase sai dali
+    const brief = await ctx.brief();
+    const protect = (brief?.rhetoric ?? []).map((r) => [r.start, r.end] as [number, number]);
+    const { cuts } = planSmartCuts(words, waves, { ...DEFAULT_OPTIONS, mode, protect });
     const p = ctx.project();
     const commands: EditCommand[] = cuts.map((c) => ({
       id: newId('k'),
@@ -58,7 +61,10 @@ export const roughCutSkill: Skill = {
     const removed = cuts.reduce((s, c) => s + c.end - c.start, 0);
     return {
       commands,
-      notes: [cuts.length ? `${cuts.length} trechos para cortar (${removed.toFixed(1).replace('.', ',')} s) no ritmo ${mode}.` : 'A fala já está limpa neste ritmo: nada a cortar.'],
+      notes: [
+        cuts.length ? `${cuts.length} trechos para cortar (${removed.toFixed(1).replace('.', ',')} s) no ritmo ${mode}.` : 'A fala já está limpa neste ritmo: nada a cortar.',
+        ...(protect.length ? [`${protect.length} repetição(ões) intencional(is) da fala preservada(s).`] : []),
+      ],
     };
   },
 };

@@ -14,6 +14,7 @@ import { cache } from '../cache/CacheEngine';
 import { mediaHash } from './hash';
 import { loadFromDisk, loadPath, saveToDisk } from '../platform/localFiles';
 import { probe, rasterizeSvg, registerFont, fontFamilyFor } from './probe';
+import { parseCube, registerLut } from '../color/lut';
 import { makeAssetThumbnail, makeSprites, makeWaveform, waveformFromBlob, waveformMipmaps, waveformToBlob, WAVEFORM_RATE } from './generators';
 import type { SpriteResult } from './generators';
 import { autoResolution, buildProxy, proxyKey } from './proxy';
@@ -279,6 +280,14 @@ export class MediaEngine {
     }
     if (asset.kind === 'font') {
       registerFont(file, asset.fontFamily ?? fontFamilyFor(asset.name)).catch((e) => this.patch(asset.id, { status: 'error', warning: `Fonte ilegível: ${e}` }));
+      return;
+    }
+    if (asset.kind === 'lut') {
+      // ao reabrir o projeto: a LUT volta para o registro (preview e export)
+      file
+        .text()
+        .then((text) => registerLut(asset.id, parseCube(text)))
+        .catch((e) => this.patch(asset.id, { status: 'error', warning: `LUT ilegível: ${e instanceof Error ? e.message : e}` }));
       return;
     }
     void this.scheduleDerived(asset, file);

@@ -3,12 +3,14 @@
 import { ALL_FORMATS, BlobSource, Input } from 'mediabunny';
 import type { Asset, MediaMetadata } from '../../core/types';
 import { newId } from '../../core/time';
+import { parseCube, registerLut } from '../color/lut';
 
 export const VIDEO_EXT = /\.(mp4|m4v|mov|webm|mkv)$/i;
 export const AUDIO_EXT = /\.(mp3|wav|aac|m4a|flac|ogg|oga|opus)$/i;
 export const IMAGE_EXT = /\.(png|jpe?g|webp|gif|bmp|avif)$/i;
 export const SVG_EXT = /\.svg$/i;
 export const FONT_EXT = /\.(ttf|otf|woff2?)$/i;
+export const LUT_EXT = /\.cube$/i;
 /** Formatos conhecidos que o decodificador do navegador ainda não lê. */
 const KNOWN_UNSUPPORTED: [RegExp, string][] = [
   [/\.avi$/i, 'AVI ainda não é suportado pelo decodificador do editor. Converta para MP4 ou MOV.'],
@@ -19,7 +21,7 @@ const KNOWN_UNSUPPORTED: [RegExp, string][] = [
 export function validateFile(file: File) {
   if (file.size === 0) throw new Error('O arquivo está vazio.');
   for (const [re, msg] of KNOWN_UNSUPPORTED) if (re.test(file.name)) throw new Error(msg);
-  const known = VIDEO_EXT.test(file.name) || AUDIO_EXT.test(file.name) || IMAGE_EXT.test(file.name) || SVG_EXT.test(file.name) || FONT_EXT.test(file.name);
+  const known = VIDEO_EXT.test(file.name) || AUDIO_EXT.test(file.name) || IMAGE_EXT.test(file.name) || SVG_EXT.test(file.name) || FONT_EXT.test(file.name) || LUT_EXT.test(file.name);
   const knownMime = /^(video|audio|image|font)\//.test(file.type);
   if (!known && !knownMime) throw new Error(`Tipo de arquivo não suportado (${file.name.split('.').pop() || 'sem extensão'}).`);
 }
@@ -62,6 +64,16 @@ export async function probe(file: File, hash?: string): Promise<Asset> {
     });
     bitmap.close();
     return { ...base, ...still, kind: 'svg', width, height, hasVideo: true, videoDecodable: true };
+  }
+  if (LUT_EXT.test(file.name)) {
+    let lut;
+    try {
+      lut = parseCube(await file.text());
+    } catch (e) {
+      throw new Error(`LUT .cube inválida: ${e instanceof Error ? e.message : String(e)}`);
+    }
+    registerLut(base.id, lut);
+    return { ...base, ...still, kind: 'lut', width: 0, height: 0, hasVideo: false, videoDecodable: false, lutSize: lut.size };
   }
   if (FONT_EXT.test(file.name) || file.type.startsWith('font/')) {
     const family = fontFamilyFor(file.name);

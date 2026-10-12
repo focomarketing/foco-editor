@@ -42,7 +42,13 @@ export function DirectorPanel() {
             <input type="number" min={0.5} max={20} step={0.5} value={budget} onChange={(e) => { const v = Number(e.target.value); setBudget(v); if (v > 0) directorBudget.set(v); }} />
             <span className="ro">US$</span>
           </div>
-          {!ready && <p className="note bad">O Diretor usa o Claude: configure a chave da API e autorize o envio na aba IA → configurações.</p>}
+          {!ready && (
+            <p className="note bad">
+              {ai.provider === 'claude-code'
+                ? 'O Diretor (agente com ferramentas) ainda precisa da chave da API. Com "Minha conta Claude", use as etapas guiadas (Corte, Imagens, Transições, Motion): elas já usam a sua conta.'
+                : 'O Diretor usa o Claude: configure a chave da API e autorize o envio na aba IA → configurações.'}
+            </p>
+          )}
           <button className="btn primary" disabled={!ready} onClick={() => void startDirector(brief)} data-testid="director-start">
             <Clapperboard size={14} /> Editar com o Diretor
           </button>

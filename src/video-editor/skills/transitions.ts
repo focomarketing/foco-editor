@@ -13,7 +13,9 @@ import type { Skill, SkillContext } from '../orchestrator/orchestrator';
 import { colorName, detectBeats, energyAt, globalShift, meanColor, motionDirection, motionMatches, toGray, visualDistance } from '../transitions/analysis';
 import type { Pixels } from '../transitions/analysis';
 import { decide, formatFor, newDirectorState } from '../transitions/director';
-import type { CutFeatures, DecisionType, EditFormat } from '../transitions/director';
+import type { CutFeatures, CutNarrative, DecisionType, EditFormat } from '../transitions/director';
+import { sectionStartNear, sentenceAt } from '../narrative/brief';
+import type { NarrativeBrief } from '../narrative/brief';
 import { transitionById } from '../transitions/library';
 
 /** Níveis de áudio: 100 valores por segundo (WAVEFORM_RATE). */
@@ -86,6 +88,20 @@ export async function cutFeatures(ctx: SkillContext, a: Clip, b: Clip, role: 'ma
   };
 }
 
+/** Onde o corte cai na narrativa: abertura de bloco, entrada da chamada final, papel da frase seguinte. */
+export function cutNarrative(b: NarrativeBrief, cut: number): CutNarrative {
+  const next = sentenceAt(b, cut + 0.05);
+  const prev = b.sentences.filter((s) => s.end <= cut + 0.05).pop() ?? null;
+  const last = b.sections.at(-1);
+  return {
+    sectionStart: !!sectionStartNear(b, cut),
+    // só a chamada final encerra; a do meio do vídeo é um bloco como os outros
+    toCta: next?.role === 'cta' && !!prev && prev.role !== 'cta' && last?.kind === 'cta' && next.section === last.index,
+    nextRole: next?.role ?? null,
+    inRhetoric: b.rhetoric.some((r) => cut > r.start && cut < r.end),
+  };
+}
+
 export function formatOfProject(ctx: SkillContext): EditFormat {
   const p = ctx.project();
   return formatFor(ctx.workflow?.template, ctx.workflow?.subtype, p.settings.height > p.settings.width);
@@ -117,6 +133,8 @@ export const transitionDesignerSkill: Skill = {
     const beats = await musicBeats(ctx);
     const roleOf = (trackId: string) => (p.tracks.find((t) => t.id === trackId)?.name === 'B-roll' ? 'broll' : 'main');
     const state = newDirectorState();
+    const brief = await ctx.brief();
+    const style = ctx.profile.transitions;
     const commands: EditCommand[] = [];
     const tally = new Map<DecisionType, number>();
     let kept = 0;
@@ -129,7 +147,8 @@ export const transitionDesignerSkill: Skill = {
         continue;
       }
       const f = await cutFeatures(ctx, a, b, roleOf(trackId), beats);
-      const d = decide(f, format, state, pairs.length);
+      if (brief && f.role === 'main') f.narrative = cutNarrative(brief, f.cut);
+      const d = decide(f, format, state, pairs.length, style);
       tally.set(d.type, (tally.get(d.type) ?? 0) + 1);
       if (!d.presetId) continue;
       const preset = transitionById(d.presetId)!;

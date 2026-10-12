@@ -199,7 +199,7 @@ export function applyTransitions(p: Project, t: number, layers: DrawLayer[], fal
     for (const tail of tf.tails.filter((x) => x.under === l.clipId)) {
       const cached = tails.get(tail.clip.id);
       const src: FrameSource | null = cached ? { source: cached.canvas, width: cached.width, height: cached.height } : (fallback?.(tail.clip) ?? null);
-      if (src) out.push({ kind: 'media', ...src, transform: transformAt(tail.clip, sourceEnd(tail.clip) - 1e-3), color: tail.clip.color, crop: tail.clip.crop, blendMode: tail.clip.blendMode, mask: tail.clip.mask, fx: tail.fx });
+      if (src) out.push({ kind: 'media', ...src, transform: transformAt(tail.clip, sourceEnd(tail.clip) - 1e-3), color: tail.clip.color, crop: tail.clip.crop, blendMode: tail.clip.blendMode, mask: tail.clip.mask, clipId: tail.clip.id, fx: tail.fx });
     }
     const fx = tf.fx.get(l.clipId);
     out.push(fx ? { ...l, fx } : l);

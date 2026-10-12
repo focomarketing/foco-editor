@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { Check, CloudCog, Cpu, Send, Settings2, Square, Trash2, X } from 'lucide-react';
+import { Check, CloudCog, Cpu, Send, Settings2, Sparkles, Square, Trash2, X } from 'lucide-react';
 import { cancelAI, clearChat, saveSettings, sendMessage } from '../app/aiEditor';
 import { useAI } from './hooks';
 import type { ChatMessage } from '../app/aiEditor';
-import { listOllamaModels } from '../engine/ai/providers';
-import type { AISettings } from '../engine/ai/providers';
+import { claudeCodeStatus, listOllamaModels } from '../engine/ai/providers';
+import type { AISettings, ClaudeCodeStatus } from '../engine/ai/providers';
 
 
 const EXAMPLES = [
@@ -39,7 +39,7 @@ export function AIChat() {
       <div className="row-between">
         <h4 style={{ margin: 0 }}>AI Editor</h4>
         <span className="chat-provider" title="Quem interpreta os pedidos">
-          {s.provider === 'claude' ? <><CloudCog size={12} /> Claude</> : <><Cpu size={12} /> {s.ollamaModel} · local</>}
+          {s.provider === 'claude' ? <><CloudCog size={12} /> Claude</> : s.provider === 'claude-code' ? <><Sparkles size={12} /> Minha conta Claude</> : <><Cpu size={12} /> {s.ollamaModel} · local</>}
           <button className="btn icon sm" title="Configurações da IA" onClick={() => setShowSettings(true)}><Settings2 size={13} /></button>
           {ai.messages.length > 0 && (
             <button className="btn icon sm" title="Limpar conversa" onClick={clearChat}><Trash2 size={12} /></button>
@@ -115,6 +115,11 @@ function AISettingsDialog({ settings, onClose }: { settings: AISettings; onClose
   const [draft, setDraft] = useState(settings);
   const [models, setModels] = useState<string[] | null>(null);
   const [ollamaError, setOllamaError] = useState<string | null>(null);
+  const [cc, setCc] = useState<ClaudeCodeStatus | null>(null);
+
+  useEffect(() => {
+    if (draft.provider === 'claude-code') claudeCodeStatus().then(setCc);
+  }, [draft.provider]);
 
   useEffect(() => {
     listOllamaModels(draft.ollamaUrl)
@@ -134,12 +139,34 @@ function AISettingsDialog({ settings, onClose }: { settings: AISettings; onClose
             <button className={`btn sm${draft.provider === 'ollama' ? ' active' : ''}`} onClick={() => setDraft({ ...draft, provider: 'ollama' })}>
               <Cpu size={13} /> Local (Ollama)
             </button>
+            <button className={`btn sm${draft.provider === 'claude-code' ? ' active' : ''}`} onClick={() => setDraft({ ...draft, provider: 'claude-code' })}>
+              <Sparkles size={13} /> Minha conta Claude
+            </button>
             <button className={`btn sm${draft.provider === 'claude' ? ' active' : ''}`} onClick={() => setDraft({ ...draft, provider: 'claude' })}>
               <CloudCog size={13} /> Claude (API)
             </button>
           </div>
 
-          {draft.provider === 'ollama' ? (
+          {draft.provider === 'claude-code' ? (
+            <>
+              <div className="field">
+                <label>Modelo</label>
+                <select value={draft.claudeModel} onChange={(e) => setDraft({ ...draft, claudeModel: e.target.value })}>
+                  <option value="claude-opus-5-5">Claude Opus 5.5 (padrão, mais profundo)</option>
+                  <option value="claude-sonnet-5-5">Claude Sonnet 5.5 (mais rápido)</option>
+                </select>
+              </div>
+              <p className="note">
+                {cc === null
+                  ? 'Procurando o Claude Code neste computador…'
+                  : !cc.available
+                    ? 'Claude Code não encontrado. Instale o Claude Code e entre com a sua conta (rode "claude" uma vez no terminal).'
+                    : !cc.loggedIn
+                      ? 'Claude Code encontrado, mas sem login. Rode "claude" no terminal e entre com a sua conta.'
+                      : 'Pronto: usa o Claude Code deste computador com a sua assinatura, sem chave de API. Vai só o texto da transcrição e dos pedidos; o vídeo e o áudio ficam aqui.'}
+              </p>
+            </>
+          ) : draft.provider === 'ollama' ? (
             <>
               <div className="field">
                 <label>Endereço</label>

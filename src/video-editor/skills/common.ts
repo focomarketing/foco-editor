@@ -2,7 +2,7 @@
 // (takes que não estão na timeline), índice semântico com visão opcional.
 
 import type { Asset, Project } from '../../core/types';
-import { askJsonVision } from '../../engine/ai/providers';
+import { askJsonVision, llmAvailable } from '../../engine/ai/providers';
 import type { AISettings } from '../../engine/ai/providers';
 import { manifestFromName, VISION_SCHEMA, withVision } from '../media-analysis/manifest';
 import type { MediaManifest } from '../media-analysis/manifest';
@@ -32,7 +32,7 @@ export function sentences(words: { text: string; start: number; end: number }[])
   return out;
 }
 
-export const llmReady = (s: AISettings) => s.provider === 'ollama' || (!!s.claudeKey && s.cloudConsent);
+export const llmReady = (s: AISettings) => llmAvailable(s);
 export const visionReady = (s: AISettings) => s.provider === 'claude' && !!s.claudeKey && s.cloudConsent;
 
 /** Vídeos e imagens do projeto que não estão em nenhuma faixa: os takes de apoio. */

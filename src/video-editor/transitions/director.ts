@@ -48,7 +48,32 @@ export interface CutFeatures {
   energy: number;
   /** Há legenda na tela no corte. */
   captions: boolean;
+  /** Onde o corte cai na narrativa (mapa do editorial-director); só na faixa principal. */
+  narrative?: CutNarrative;
 }
+
+export interface CutNarrative {
+  /** O corte abre um bloco novo do vídeo. */
+  sectionStart: boolean;
+  /** O corte entra na chamada para ação final (encerramento do vídeo). */
+  toCta: boolean;
+  /** Papel da frase que começa depois do corte. */
+  nextRole: string | null;
+  /** O corte está dentro de uma repetição intencional (anáfora, enumeração). */
+  inRhetoric: boolean;
+}
+
+/** Vocabulário de transições do canal (perfil editorial). */
+export interface TransitionStyle {
+  chapter: string;
+  outro: string;
+  jumpCut: 'seco' | 'punch-enfase' | 'punch-alternado';
+  /** Só estes presets entram (vazio = todos). */
+  allowed: string[];
+}
+
+/** Frases que merecem o punch-in de ênfase. */
+const EMPHASIS_ROLES = new Set(['thesis', 'climax', 'question', 'chapter', 'scripture']);
 
 export interface DirectorState {
   lastTransitionAt: number;
@@ -88,7 +113,7 @@ const none = (type: DecisionType, reason: string, confidence = 0.8): Decision =>
 const whipDir = (d: Direction): 'left' | 'right' | 'up' | 'down' => (d === 'right' ? 'right' : d === 'up' ? 'up' : d === 'down' ? 'down' : 'left');
 
 /** Primeira escolha para o corte, antes das regras de ritmo da sequência. */
-export function choose(f: CutFeatures, format: EditFormat, s: DirectorState): Decision {
+export function choose(f: CutFeatures, format: EditFormat, s: DirectorState, style?: TransitionStyle): Decision {
   if (Math.min(f.aDuration, f.bDuration) < 0.4) return none('nenhuma', 'clipes curtos demais para transição', 0.9);
   if (f.cutInWord) return none('nenhuma', 'o corte cai dentro de uma palavra: um efeito só chamaria atenção para ele', 0.9);
   const pick = (id: string, type: DecisionType, confidence: number, reason: string, extra: Partial<Decision> = {}): Decision => {
@@ -97,10 +122,28 @@ export function choose(f: CutFeatures, format: EditFormat, s: DirectorState): De
   };
   const onBeat = f.beat !== null;
   const beatOffset = onBeat ? f.beat! - f.cut : 0;
+  const n = f.role === 'main' ? f.narrative : undefined;
+
+  // a narrativa manda primeiro: bloco novo e encerramento ganham a transição do canal
+  // (corte de salto = mesma câmera: dissolver ou escurecer sobre a fala deixa "fantasma" do rosto;
+  // ali o bloco novo é marcado mudando o enquadramento)
+  if (n && style && format !== 'shorts' && (n.toCta || n.sectionStart)) {
+    if (f.jumpCut) {
+      s.jumpCuts++;
+      return pick('punch-in', 'corte-por-acao', 0.8, n.toCta ? 'entra na chamada final: muda o enquadramento' : 'abre um bloco novo da narrativa: muda o enquadramento', { intensity: 0.35 });
+    }
+    if (n.toCta && transitionById(style.outro)) return pick(style.outro, 'estilizada', 0.78, 'a fala sai do conteúdo e entra na chamada final: marca o encerramento');
+    if (n.sectionStart && transitionById(style.chapter)) return pick(style.chapter, 'estilizada', 0.8, 'abre um bloco novo da narrativa: a transição marca a mudança de assunto');
+  }
 
   if (f.jumpCut) {
     s.jumpCuts++;
     const odd = s.jumpCuts % 2 === 1;
+    if (n && style && format !== 'shorts' && style.jumpCut !== 'punch-alternado') {
+      if (n.inRhetoric) return none('corte-seco', 'dentro de uma repetição intencional da fala: corte seco mantém o ritmo da frase', 0.85);
+      if (style.jumpCut === 'punch-enfase' && n.nextRole && EMPHASIS_ROLES.has(n.nextRole)) return pick('punch-in', 'corte-por-acao', 0.78, 'corte de salto antes de uma frase-chave: o punch-in dá ênfase à ideia', { intensity: 0.35 });
+      return none('corte-seco', 'corte de salto no meio do mesmo raciocínio: corte seco, sem chamar atenção', 0.8);
+    }
     if (format === 'shorts') {
       if (onBeat) return pick('beat-zoom', 'audio', 0.85, 'corte de salto na batida: zoom no tempo da música', { offset: beatOffset });
       return odd ? pick('punch-in', 'corte-por-acao', 0.74, 'corte de salto: punch-in esconde o pulo e dá ritmo') : none('corte-seco', 'corte de salto alternado: volta ao enquadramento aberto', 0.7);
@@ -150,10 +193,11 @@ export function choose(f: CutFeatures, format: EditFormat, s: DirectorState): De
 }
 
 /** Decisão final: aplica as regras de ritmo da sequência e de qualidade (fala, legenda, densidade). */
-export function decide(f: CutFeatures, format: EditFormat, s: DirectorState, totalCuts: number): Decision {
+export function decide(f: CutFeatures, format: EditFormat, s: DirectorState, totalCuts: number, style?: TransitionStyle): Decision {
   s.analyzed++;
-  let d = choose(f, format, s);
+  let d = choose(f, format, s, style);
   if (!d.presetId) return d;
+  if (style?.allowed.length && !style.allowed.includes(d.presetId)) return none('corte-seco', `${transitionById(d.presetId)?.name ?? d.presetId} não combina com o estilo do canal: corte seco`, 0.75);
   const preset = transitionById(d.presetId)!;
   const rules = FORMAT_RULES[format];
   const hold = preset.align === 'hold';

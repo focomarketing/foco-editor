@@ -8,6 +8,7 @@ import type { AISettings } from '../../engine/ai/providers';
 import { readWorkflow } from '../../core/workflow';
 import { formatFor, FORMAT_RULES } from '../transitions/director';
 import { methodFor, methodText } from './methods';
+import { profileFor } from '../narrative/profiles';
 import { DIRECTOR_TOOLS } from './tools';
 import type { DirectorTools } from './tools';
 import type { Draft } from './draft';
@@ -70,6 +71,9 @@ export function directorSystem(draft: Draft): string {
     '5. Entregue com finish só quando verify não tiver erros (ou explique o que ficou e por quê).',
     '',
     'REGRAS',
+    '- Siga o MAPA NARRATIVO (project_overview e read_transcript mostram o bloco e o papel de cada frase): cada corte, imagem, transição e título serve à linha do vídeo e ao tom do canal.',
+    '- Repetições intencionais (anáfora, enumeração, perguntas em série) são recurso de fala: nunca corte essas frases como se fossem erro.',
+    '- Imagem ilustra a IDEIA da frase dentro do bloco, nunca uma palavra solta; nada fora do contexto do canal. Melhor o rosto do que uma imagem aleatória.',
     '- Nunca invente fatos, números ou falas: títulos e destaques usam palavras ditas no vídeo.',
     '- Preserve o sentido: não corte frases pela metade, não junte ideias que mudam o significado.',
     '- Menos é mais: corte seco por padrão; cada efeito, título ou transição precisa de motivo editorial (escreva no reason).',
@@ -80,6 +84,8 @@ export function directorSystem(draft: Draft): string {
     `FORMATO: ${format} · ${p.settings.width}×${p.settings.height} · transição no máximo em ~${Math.round(rules.maxShare * 100)}% dos cortes, espaço mínimo ${rules.minSpacing} s entre elas.`,
     '',
     methodText(methodFor(wf?.template, wf?.subtype, vertical)),
+    '',
+    `CANAL: ${profileFor(wf).voice}`,
   ].join('\n');
 }
 

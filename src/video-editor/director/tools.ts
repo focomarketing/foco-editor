@@ -20,6 +20,9 @@ import { presetFor, transitionById } from '../transitions/library';
 import { formatFor } from '../transitions/director';
 import { zoomKeyframes } from '../skills/motion';
 import { sentences } from '../skills/common';
+import { briefText, quickBrief } from '../narrative/brief';
+import type { StoredNarrative } from '../narrative/brief';
+import { profileFor } from '../narrative/profiles';
 import { contactSheet } from './still';
 import type { FrameReader } from './still';
 import { issuesText, verifyProject } from './verify';
@@ -249,7 +252,12 @@ export class DirectorTools {
     if (wf?.script) lines.push('', 'Roteiro:', wf.script.slice(0, 4000));
     const ops = readOperations(p).slice(-8);
     if (ops.length) lines.push('', 'Últimas operações:', ...ops.map((o) => `- ${o.id} · ${o.stage ?? ''} · ${o.skill ?? ''} · ${o.status} · ${o.commands.length} item(ns)`));
-    if (!this.env.words(p).length) lines.push('', 'Atenção: a fala ainda não foi transcrita (run_skill cut transcreve).');
+    const words = this.env.words(p);
+    if (!words.length) lines.push('', 'Atenção: a fala ainda não foi transcrita (run_skill cut transcreve).');
+    else {
+      const profile = profileFor(wf);
+      lines.push('', 'MAPA NARRATIVO (siga esta linha em cada corte, imagem, transição e título):', briefText(quickBrief(words, profile, p.metadata?.narrative as StoredNarrative | undefined), profile));
+    }
     return lines.join('\n');
   }
 
@@ -257,9 +265,16 @@ export class DirectorTools {
     const words = this.env.words(this.p).filter((w) => w.end > from && w.start < to);
     if (!words.length) return 'Sem fala transcrita neste trecho. Rode run_skill {stage:"cut"} para transcrever e cortar, ou confira se há áudio.';
     const list = sentences(words);
+    // papel de cada frase na narrativa (o mapa olha o vídeo inteiro, não só o trecho pedido)
+    const all = this.env.words(this.p);
+    const brief = quickBrief(all, profileFor(readWorkflow(this.p.metadata)), this.p.metadata?.narrative as StoredNarrative | undefined);
+    const tag = (t: number) => {
+      const b = brief.sentences.find((x) => Math.abs(x.start - t) < 0.05);
+      return b ? ` (bloco ${b.section} · ${b.role}${b.themes.length ? ` · ${b.themes.slice(0, 2).join(', ')}` : ''})` : '';
+    };
     const out: string[] = [];
     for (const [i, s] of list.entries()) {
-      out.push(`[${fmt(s.start)}–${fmt(s.end)}] ${s.text}`);
+      out.push(`[${fmt(s.start)}–${fmt(s.end)}]${tag(s.start)} ${s.text}`);
       const next = list[i + 1];
       if (next && next.start - s.end >= 0.6) out.push(`   (pausa ${(next.start - s.end).toFixed(1)} s)`);
     }

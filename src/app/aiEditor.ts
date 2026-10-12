@@ -10,12 +10,12 @@ import { notify } from './notify';
 import type { AICommand, AspectRatio } from '../engine/ai/commands';
 import { COMMAND_DOCS, describeCommand, validateCommands } from '../engine/ai/commands';
 import type { AISettings, ChatTurn } from '../engine/ai/providers';
-import { DEFAULT_AI_SETTINGS, planWithClaude, planWithOllama } from '../engine/ai/providers';
+import { DEFAULT_AI_SETTINGS, planWithClaude, planWithClaudeCode, planWithOllama } from '../engine/ai/providers';
 import { CUT_KIND_LABEL, suggestCuts, summarize } from '../engine/analysis/cuts';
 import type { CutKind } from '../engine/analysis/cuts';
 import { smartZoomKeyframes, sentencesOf } from '../engine/analysis/zoom';
 import { getPreset, segmentWords, timelineWords } from '../engine/captions/captions';
-import { colorPreset } from '../engine/color/color';
+import { colorPreset, keepLook } from '../engine/color/color';
 import { analyzeAssetColor } from '../engine/color/analyze';
 import { audioFxFromPreset, AUDIO_PRESETS } from '../engine/audio/audioFx';
 import { WHISPER_MODELS } from '../engine/transcript/TranscriptEngine';
@@ -193,14 +193,17 @@ export async function sendMessage(text: string) {
     .filter((m) => m.role !== 'status')
     .slice(-9, -1)
     .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.role === 'assistant' && m.raw ? m.raw : m.text }));
-  history.push({ role: 'user', content: `${contextBlock(p, s.provider === 'claude' ? 20000 : 2500)}\n\nPedido: ${request}` });
+  const cloud = s.provider === 'claude' || s.provider === 'claude-code';
+  history.push({ role: 'user', content: `${contextBlock(p, cloud ? 20000 : 2500)}\n\nPedido: ${request}` });
 
   abort = new AbortController();
-  set({ busy: s.provider === 'claude' ? 'Interpretando com Claude…' : `Interpretando com ${s.ollamaModel} (local)…` });
+  set({ busy: s.provider === 'claude' ? 'Interpretando com Claude…' : s.provider === 'claude-code' ? 'Interpretando com a sua conta Claude…' : `Interpretando com ${s.ollamaModel} (local)…` });
   try {
     const plan = s.provider === 'claude'
       ? await planWithClaude(s, SYSTEM, history, abort.signal)
-      : await planWithOllama(s, SYSTEM, history, abort.signal);
+      : s.provider === 'claude-code'
+        ? await planWithClaudeCode(s, SYSTEM, history, abort.signal)
+        : await planWithOllama(s, SYSTEM, history, abort.signal);
     const { commands, errors } = validateCommands(plan.commands, { duration: projectDuration(p) });
     if (!commands.length) {
       const reply = plan.reply || 'Não encontrei uma edição para fazer com esse pedido.';
@@ -337,7 +340,7 @@ function planOne(p: Project, c: AICommand, d: Prepared): Plan {
       const values = perClip(
         p,
         (_c, a) => a.hasVideo && (c.type === 'color_preset' || d.colorByAsset.has(a.id)),
-        (_c, a): ColorSettings => (c.type === 'color_preset' ? { ...colorPreset(c.preset) } : { ...d.colorByAsset.get(a.id)! }),
+        (cl, a): ColorSettings => keepLook(c.type === 'color_preset' ? { ...colorPreset(c.preset) } : { ...d.colorByAsset.get(a.id)! }, cl.color)!,
       );
       const n = Object.keys(values).length;
       if (!n) return { error: 'nenhum clipe de vídeo/imagem para corrigir' };

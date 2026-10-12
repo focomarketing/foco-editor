@@ -6,11 +6,16 @@ import type { Project } from '../../core/types';
 import { readWorkflow } from '../../core/workflow';
 import type { PhaseId, Workflow } from '../../core/workflow';
 import type { AISettings } from '../../engine/ai/providers';
+import { llmAvailable } from '../../engine/ai/providers';
 import type { TlWord } from '../../engine/cut/smartCut';
 import type { EditCommand, EditOperation } from '../commands/types';
 import type { EditMode } from '../presets';
 import { applyOperation, createOperation, readOperations, revertOperation } from '../history/operations';
 import type { EditorPort } from '../history/operations';
+import { buildBrief } from '../narrative/brief';
+import type { NarrativeBrief, StoredNarrative } from '../narrative/brief';
+import { profileFor } from '../narrative/profiles';
+import type { EditorialProfile } from '../narrative/profiles';
 
 export interface SkillContext {
   project: () => Project;
@@ -24,6 +29,10 @@ export interface SkillContext {
   log(msg: string): void;
   /** Sugestões já feitas por skills anteriores desta etapa (para não disputar o mesmo trecho). */
   planned: EditCommand[];
+  /** Perfil editorial da categoria do vídeo (tom, imagens, títulos, transições). */
+  profile: EditorialProfile;
+  /** Mapa narrativo do vídeo (editorial-director), montado uma vez por etapa; null sem fala. */
+  brief(): Promise<NarrativeBrief | null>;
   /** Serviços do app que a skill pode usar (transcrever, importar mídia, níveis do áudio...). */
   services: SkillServices;
 }
@@ -84,7 +93,7 @@ export interface StageResult {
   messages: string[];
 }
 
-export async function runStage(port: EditorPort, stage: PhaseId, deps: Omit<SkillContext, 'project' | 'workflow' | 'mode' | 'log' | 'planned'> & { log?: (m: string) => void }, opts: RunOptions): Promise<StageResult> {
+export async function runStage(port: EditorPort, stage: PhaseId, deps: Omit<SkillContext, 'project' | 'workflow' | 'mode' | 'log' | 'planned' | 'profile' | 'brief'> & { log?: (m: string) => void }, opts: RunOptions): Promise<StageResult> {
   const messages: string[] = [];
   const log = (m: string) => {
     messages.push(m);
@@ -100,7 +109,30 @@ export async function runStage(port: EditorPort, stage: PhaseId, deps: Omit<Skil
   }
   const wf = readWorkflow(port.getProject().metadata);
   const commands: EditCommand[] = [];
-  const ctx: SkillContext = { ...deps, project: port.getProject, workflow: wf, mode: wf?.mode ?? 'manual-assisted', log, planned: commands };
+  const profile = profileFor(wf);
+  let briefRun: Promise<NarrativeBrief | null> | null = null;
+  const brief = () =>
+    (briefRun ??= (async () => {
+      const words = deps.words();
+      if (!words.length) return null;
+      const p = port.getProject();
+      const vertical = p.settings.height > p.settings.width;
+      const r = await buildBrief({
+        words,
+        profile,
+        kind: `${wf?.track === 'short' || vertical ? 'vídeo curto vertical' : 'vídeo longo de YouTube'} · ${profile.label}`,
+        ai: deps.ai,
+        llm: llmAvailable(deps.ai),
+        stored: p.metadata?.narrative as StoredNarrative | undefined,
+        signal: deps.signal,
+        log,
+        progress: (step) => deps.progress(step),
+      });
+      if (r.store) port.setMeta('narrative', r.store);
+      log(`mapa narrativo (${r.brief.by === 'llm' ? 'diretor de IA' : 'regras locais'}): ${r.brief.sections.length} blocos, ${r.brief.rhetoric.length} repetições intencionais protegidas`);
+      return r.brief;
+    })());
+  const ctx: SkillContext = { ...deps, project: port.getProject, workflow: wf, mode: wf?.mode ?? 'manual-assisted', log, planned: commands, profile, brief };
   const skills = plannedSkills(stage, ctx);
   if (!skills.length) {
     log('nenhuma skill habilitada para esta etapa neste projeto');

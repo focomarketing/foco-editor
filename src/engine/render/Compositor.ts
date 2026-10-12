@@ -10,6 +10,8 @@ import { clipEnd } from '../timeline/operations';
 import { drawCaption } from '../captions/renderCaption';
 import { drawTitle } from '../motion/titles';
 import { drawElement } from '../motion/elements';
+import { activeEffects, applyEffects } from '../effects/effects';
+import { speedOf } from '../../core/clipTime';
 import { colorProcessor, isNeutral } from '../color/color';
 import type { LayerFx, OverlaySpec } from './transitions';
 import { drawOverlay, drawSlices, maskBand, maskPath, rgbSplit } from './transitionDraw';
@@ -81,6 +83,8 @@ export type DrawLayer =
   | { kind: 'caption'; clip: Clip; time: number }
   | { kind: 'title'; clip: Clip; time: number }
   | { kind: 'element'; clip: Clip; time: number }
+  /** Camada de efeito: aplica os efeitos do clipe ao que já foi desenhado por baixo. */
+  | { kind: 'adjust'; clip: Clip; time: number }
   | { kind: 'overlay'; overlay: OverlaySpec };
 
 /** Monta a camada de um clipe ativo que não é mídia (legenda/título/elemento). */
@@ -88,6 +92,7 @@ export function graphicLayer(a: ActiveClip): DrawLayer | null {
   if (a.clip.caption) return { kind: 'caption', clip: a.clip, time: a.sourceTime };
   if (a.clip.title) return { kind: 'title', clip: a.clip, time: a.sourceTime };
   if (a.clip.element) return { kind: 'element', clip: a.clip, time: a.sourceTime };
+  if (a.clip.adjustment) return { kind: 'adjust', clip: a.clip, time: a.sourceTime };
   return null;
 }
 
@@ -99,6 +104,9 @@ type Ctx2D = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
 export interface CompositeOptions {
   /** Mostra o original sem correção de cor (comparação ORIGINAL vs AI COLOR). */
   bypassColor?: boolean;
+  /** Projeto e instante (timeline): achar os efeitos de cada clipe pelo clipId. */
+  project?: Project;
+  time?: number;
 }
 
 let surfaceCanvas: OffscreenCanvas | null = null;
@@ -131,6 +139,10 @@ export function composite(ctx: Ctx2D, W: number, H: number, layers: DrawLayer[],
     }
     if (l.kind === 'element') {
       drawElement(ctx, W, H, l.clip, l.time);
+      continue;
+    }
+    if (l.kind === 'adjust') {
+      drawAdjustment(ctx, W, H, l.clip, l.time);
       continue;
     }
     if (l.kind === 'overlay') {
@@ -172,8 +184,11 @@ export function composite(ctx: Ctx2D, W: number, H: number, layers: DrawLayer[],
     // Com desfoque, a camada inteira (com as cópias espelhadas) é montada numa superfície e
     // desfocada de uma vez: sem emenda escura entre cópias nem borda puxando o preto de fora.
     const blurPx = fx?.blur && fx.blur > 0.0005 ? fx.blur * W : 0;
-    // máscara do clipe também é recortada numa superfície própria (borda suave)
-    const surface = blurPx || l.mask ? fxSurface(W, H) : null;
+    // efeitos do clipe (Fase 6): pela camada, acha o clipe no projeto
+    const fxClip = l.clipId && opts.project ? opts.project.clips[l.clipId] : undefined;
+    const effects = activeEffects(fxClip?.effects);
+    // máscara e efeitos do clipe também são montados numa superfície própria
+    const surface = blurPx || l.mask || effects.length ? fxSurface(W, H) : null;
     const target: Ctx2D = surface ? surface.getContext('2d')! : ctx;
     if (surface) {
       target.setTransform(1, 0, 0, 1, 0, 0);
@@ -207,6 +222,7 @@ export function composite(ctx: Ctx2D, W: number, H: number, layers: DrawLayer[],
     }
     if (fx?.rgb && fx.rgb > 0.0005) rgbSplit(target, source, srcW, srcH, x0, y0, dw, dh, fx.rgb * W);
     if (surface && l.mask) applyMask(target, l.mask, x0, y0, dw, dh);
+    if (surface && effects.length) applyEffects(surface, effects, Math.max(0, (opts.time ?? 0) - fxClip!.start));
     if (surface) {
       ctx.save();
       ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -250,4 +266,33 @@ function applyMask(target: Ctx2D, m: ClipMask, x0: number, y0: number, dw: numbe
   else target.roundRect(cx - w / 2, cy - h / 2, w, h, Math.max(0, Math.min(0.5, m.radius)) * Math.min(w, h));
   target.fill();
   target.restore();
+}
+
+let adjustCanvas: OffscreenCanvas | null = null;
+/**
+ * Camada de efeito: copia o que já está no quadro, aplica os efeitos e desenha por cima.
+ * A opacidade do clipe (com keyframes) dosa a mistura com o original.
+ */
+function drawAdjustment(ctx: Ctx2D, W: number, H: number, clip: Clip, sourceTime: number) {
+  const effects = activeEffects(clip.effects);
+  const opacity = Math.min(1, Math.max(0, transformAt(clip, sourceTime).opacity));
+  if (!effects.length || opacity <= 0.001) return;
+  adjustCanvas ??= new OffscreenCanvas(W, H);
+  if (adjustCanvas.width !== W || adjustCanvas.height !== H) {
+    adjustCanvas.width = W;
+    adjustCanvas.height = H;
+  }
+  const a = adjustCanvas.getContext('2d')!;
+  a.setTransform(1, 0, 0, 1, 0, 0);
+  a.globalAlpha = 1;
+  a.globalCompositeOperation = 'copy';
+  a.drawImage(ctx.canvas, 0, 0, W, H);
+  a.globalCompositeOperation = 'source-over';
+  applyEffects(adjustCanvas, effects, (sourceTime - clip.sourceIn) / speedOf(clip));
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = opacity;
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.drawImage(adjustCanvas, 0, 0);
+  ctx.restore();
 }
