@@ -1,5 +1,6 @@
-import { memo, useEffect, useRef, useState } from 'react';
-import { Captions, FileText, Scissors, Sparkles, Square } from 'lucide-react';
+﻿import { memo, useEffect, useRef, useState } from 'react';
+import { Captions, FileText, Scissors, Sparkles, Square, Mic, Wand2 } from 'lucide-react';
+import { VoiceGenerator } from './VoiceGenerator';
 import type { Asset, Transcript } from '../core/types';
 import { formatDuration, formatTimecode } from '../core/time';
 import { toSource } from '../core/clipTime';
@@ -17,7 +18,6 @@ import { useAI } from './hooks';
 import { runManual } from '../app/aiEditor';
 import { AUDIO_PRESETS } from '../engine/audio/audioFx';
 import type { ZoomIntensity } from '../engine/analysis/zoom';
-import { Wand2 } from 'lucide-react';
 import { askText } from '../app/dialogs';
 
 const LEVELS: { id: CutLevel; label: string; hint: string }[] = [
@@ -31,6 +31,7 @@ export function AIPanel({ mode }: { mode: 'ai' | 'captions' }) {
   useMediaVersion();
   useTranscriptsVersion();
   const analysis = useAnalysis();
+  const [tab, setTab] = useState<'voice' | 'assistant' | 'cuts'>('voice');
 
   const audioAssets = Object.values(project.assets).filter((a) => a.hasAudio && a.audioDecodable);
   const fromSelection = selection.length === 1 ? project.clips[selection[0]]?.assetId : undefined;
@@ -44,35 +45,94 @@ export function AIPanel({ mode }: { mode: 'ai' | 'captions' }) {
     null;
   const asset = assetId ? project.assets[assetId] : undefined;
 
-  if (!asset) {
+  if (mode === 'captions') {
+    if (!asset) {
+      return (
+        <div className="insp ai">
+          <div className="empty">
+            Importe um vídeo ou áudio com fala para gerar legendas automáticas.
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="insp ai">
-        {mode === 'ai' && <AIChat />}
-        <div className="empty">
-          Importe um vídeo ou áudio com fala para transcrever, detectar pausas e erros e gerar legendas.
+        <div className="field wide">
+          <label>Mídia</label>
+          <select value={asset.id} onChange={(e) => setPicked(e.target.value)}>
+            {audioAssets.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+                {onTimeline.has(a.id) ? '' : ' (fora da timeline)'}
+              </option>
+            ))}
+          </select>
         </div>
+        <TranscriptSection asset={asset} />
+        <CaptionsSection asset={asset} />
       </div>
     );
   }
 
   return (
     <div className="insp ai">
-      {mode === 'ai' && <AIChat />}
-      {mode === 'ai' && <QuickActions />}
-      <div className="field wide">
-        <label>Mídia</label>
-        <select value={asset.id} onChange={(e) => setPicked(e.target.value)}>
-          {audioAssets.map((a) => (
-            <option key={a.id} value={a.id}>
-              {a.name}
-              {onTimeline.has(a.id) ? '' : ' (fora da timeline)'}
-            </option>
-          ))}
-        </select>
+      {/* Abas no topo do painel de IA */}
+      <div style={{ display: 'flex', gap: '4px', marginBottom: '12px', background: 'rgba(255,255,255,0.04)', padding: '3px', borderRadius: '6px' }}>
+        <button
+          className={`btn sm ${tab === 'voice' ? 'primary' : 'outline'}`}
+          style={{ flex: 1, fontSize: '11px', padding: '5px 4px', border: tab === 'voice' ? 'none' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
+          onClick={() => setTab('voice')}
+        >
+          <Mic size={12} /> Narração
+        </button>
+        <button
+          className={`btn sm ${tab === 'assistant' ? 'primary' : 'outline'}`}
+          style={{ flex: 1, fontSize: '11px', padding: '5px 4px', border: tab === 'assistant' ? 'none' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
+          onClick={() => setTab('assistant')}
+        >
+          <Sparkles size={12} /> Chat IA
+        </button>
+        <button
+          className={`btn sm ${tab === 'cuts' ? 'primary' : 'outline'}`}
+          style={{ flex: 1, fontSize: '11px', padding: '5px 4px', border: tab === 'cuts' ? 'none' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
+          onClick={() => setTab('cuts')}
+        >
+          <Scissors size={12} /> Cortes
+        </button>
       </div>
-      <TranscriptSection asset={asset} />
-      {mode === 'ai' && <CutsSection asset={asset} analysis={analysis} />}
-      {mode === 'captions' && <CaptionsSection asset={asset} />}
+
+      {tab === 'voice' && <VoiceGenerator />}
+
+      {tab === 'assistant' && (
+        <>
+          <AIChat />
+          <QuickActions />
+        </>
+      )}
+
+      {tab === 'cuts' && (
+        asset ? (
+          <>
+            <div className="field wide">
+              <label>Mídia</label>
+              <select value={asset.id} onChange={(e) => setPicked(e.target.value)}>
+                {audioAssets.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}
+                    {onTimeline.has(a.id) ? '' : ' (fora da timeline)'}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <TranscriptSection asset={asset} />
+            <CutsSection asset={asset} analysis={analysis} />
+          </>
+        ) : (
+          <div className="empty">
+            Importe um vídeo ou áudio com fala para transcrever e detectar cortes.
+          </div>
+        )
+      )}
     </div>
   );
 }
@@ -87,16 +147,16 @@ function QuickActions() {
   const busy = !!ai.busy;
   return (
     <section>
-      <h4><Wand2 size={12} /> Ações rápidas</h4>
+      <h4><Wand2 size={12} /> AÃ§Ãµes rÃ¡pidas</h4>
       <div className="quick">
         <select value={audio} onChange={(e) => setAudio(e.target.value)} disabled={busy}>
           {AUDIO_PRESETS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
         </select>
-        <button className="btn sm outline" disabled={busy} onClick={() => void runManual({ type: 'enhance_audio', preset: audio })}>Melhorar áudio</button>
+        <button className="btn sm outline" disabled={busy} onClick={() => void runManual({ type: 'enhance_audio', preset: audio })}>Melhorar Ã¡udio</button>
       </div>
       <div className="quick">
         <span />
-        <button className="btn sm outline" disabled={busy} onClick={() => void runManual({ type: 'auto_color' })}>Cor automática</button>
+        <button className="btn sm outline" disabled={busy} onClick={() => void runManual({ type: 'auto_color' })}>Cor automÃ¡tica</button>
       </div>
       <div className="quick">
         <select value={zoom} onChange={(e) => setZoom(e.target.value as ZoomIntensity)} disabled={busy}>
@@ -120,7 +180,7 @@ function TranscriptSection({ asset }: { asset: Asset }) {
 
   return (
     <section>
-      <h4><FileText size={12} /> Transcrição</h4>
+      <h4><FileText size={12} /> TranscriÃ§Ã£o</h4>
       {!running && (
         <>
           <div className="field wide">
@@ -153,7 +213,7 @@ function TranscriptSection({ asset }: { asset: Asset }) {
             <Sparkles size={13} /> {t ? 'Transcrever de novo' : 'Transcrever'}
           </button>
           <p className="note">
-            Roda neste computador — o áudio não é enviado para a internet. Na primeira vez o modelo é baixado
+            Roda neste computador â€” o Ã¡udio nÃ£o Ã© enviado para a internet. Na primeira vez o modelo Ã© baixado
             (~{m.mbGpu} MB com GPU, ~{m.mbCpu} MB sem) e fica guardado no navegador.
           </p>
         </>
@@ -161,14 +221,14 @@ function TranscriptSection({ asset }: { asset: Asset }) {
       {job?.phase === 'loading-model' && (
         <Progress
           value={job.total ? job.loaded / job.total : 0}
-          label={job.total ? `Baixando modelo · ${(job.loaded / 1e6).toFixed(0)} de ${(job.total / 1e6).toFixed(0)} MB` : 'Carregando modelo…'}
+          label={job.total ? `Baixando modelo Â· ${(job.loaded / 1e6).toFixed(0)} de ${(job.total / 1e6).toFixed(0)} MB` : 'Carregando modeloâ€¦'}
           onCancel={() => transcripts.cancel(asset.id)}
         />
       )}
       {job?.phase === 'transcribing' && (
         <Progress
           value={job.done / Math.max(1, job.total)}
-          label={`Transcrevendo trecho ${job.done + 1} de ${job.total} · ${job.device === 'webgpu' ? 'GPU' : 'CPU'}${etaLabel(job)}`}
+          label={`Transcrevendo trecho ${job.done + 1} de ${job.total} Â· ${job.device === 'webgpu' ? 'GPU' : 'CPU'}${etaLabel(job)}`}
           onCancel={() => transcripts.cancel(asset.id)}
         />
       )}
@@ -181,7 +241,7 @@ function TranscriptSection({ asset }: { asset: Asset }) {
 function etaLabel(job: { done: number; total: number; startedAt: number }) {
   if (job.done < 1) return '';
   const elapsed = (performance.now() - job.startedAt) / 1000;
-  return ` · ~${formatDuration((elapsed / job.done) * (job.total - job.done))} restantes`;
+  return ` Â· ~${formatDuration((elapsed / job.done) * (job.total - job.done))} restantes`;
 }
 
 function Progress({ value, label, onCancel }: { value: number; label: string; onCancel: () => void }) {
@@ -196,7 +256,7 @@ function Progress({ value, label, onCancel }: { value: number; label: string; on
   );
 }
 
-/** Texto clicável; a palavra que está tocando fica destacada. Duplo clique edita. */
+/** Texto clicÃ¡vel; a palavra que estÃ¡ tocando fica destacada. Duplo clique edita. */
 const TranscriptView = memo(function TranscriptView({ transcript, asset }: { transcript: Transcript; asset: Asset }) {
   const ref = useRef<HTMLDivElement>(null);
   const words = transcript.words;
@@ -206,7 +266,7 @@ const TranscriptView = memo(function TranscriptView({ transcript, asset }: { tra
     const update = () => {
       const p = store.getState().project;
       const t = playback.getSnapshot().time;
-      // tempo da timeline -> tempo da mídia (clipe deste asset sob o playhead)
+      // tempo da timeline -> tempo da mÃ­dia (clipe deste asset sob o playhead)
       const clip = Object.values(p.clips).find((c) => c.assetId === asset.id && !c.caption && t >= c.start && t < c.start + c.duration);
       let el: HTMLElement | null = null;
       if (clip) {
@@ -252,7 +312,7 @@ const TranscriptView = memo(function TranscriptView({ transcript, asset }: { tra
   return (
     <>
       <div className="muted" style={{ margin: '6px 0 4px' }}>
-        {words.length} palavras · {transcript.model.split('/').pop()?.replace('_timestamped', '')} · clique para ir, duplo clique para corrigir
+        {words.length} palavras Â· {transcript.model.split('/').pop()?.replace('_timestamped', '')} Â· clique para ir, duplo clique para corrigir
       </div>
       <div className="transcript" ref={ref} data-testid="transcript">
         {words.length === 0 && <span className="muted">Nenhuma fala reconhecida.</span>}
@@ -280,7 +340,7 @@ function CutsSection({ asset, analysis }: { asset: Asset; analysis: ReturnType<t
 
   return (
     <section>
-      <h4><Scissors size={12} /> Cortes automáticos</h4>
+      <h4><Scissors size={12} /> Cortes automÃ¡ticos</h4>
       <div className="seg">
         {LEVELS.map((l) => (
           <button key={l.id} className={`btn sm${level === l.id ? ' active' : ''}`} title={l.hint} onClick={() => setLevel(l.id)}>
@@ -293,14 +353,14 @@ function CutsSection({ asset, analysis }: { asset: Asset; analysis: ReturnType<t
       </button>
       <p className="note">
         {hasTranscript
-          ? 'Usa o áudio (pausas, hesitações) e a transcrição (vícios, gagueira, frases repetidas).'
-          : 'Sem transcrição, detecta só pausas pelo áudio. Transcreva para detectar erros de fala.'}
+          ? 'Usa o Ã¡udio (pausas, hesitaÃ§Ãµes) e a transcriÃ§Ã£o (vÃ­cios, gagueira, frases repetidas).'
+          : 'Sem transcriÃ§Ã£o, detecta sÃ³ pausas pelo Ã¡udio. Transcreva para detectar erros de fala.'}
       </p>
 
       {mine && list.length > 0 && (
         <>
           <div className="cut-summary">
-            <b>{chosen.length}</b> de {list.length} marcados · <b>{sum.seconds.toFixed(1)} s</b> a remover
+            <b>{chosen.length}</b> de {list.length} marcados Â· <b>{sum.seconds.toFixed(1)} s</b> a remover
             <div className="chips">
               {(Object.entries(summarize(list).counts) as [CutKind, number][]).map(([k, n]) => (
                 <span key={k} className={`chip k-${k}`}>{CUT_KIND_LABEL[k]} {n}</span>
@@ -324,11 +384,11 @@ function CutsSection({ asset, analysis }: { asset: Asset; analysis: ReturnType<t
                   <input type="checkbox" checked={analysis.selected.has(s.id)} onChange={() => analysisStore.toggle(s.id)} />
                   <button
                     className="cut-main"
-                    title={tl === null ? 'Este trecho não está na timeline' : 'Ir para o trecho (1 s antes)'}
+                    title={tl === null ? 'Este trecho nÃ£o estÃ¡ na timeline' : 'Ir para o trecho (1 s antes)'}
                     onClick={() => tl !== null && playback.seek(Math.max(0, tl - 1))}
                   >
                     <span className={`chip k-${s.kind}`}>{CUT_KIND_LABEL[s.kind]}</span>
-                    <span className="tc">{tl === null ? '—' : formatTimecode(tl, fps).slice(3)}</span>
+                    <span className="tc">{tl === null ? 'â€”' : formatTimecode(tl, fps).slice(3)}</span>
                     <span className="dur">{(s.end - s.start).toFixed(1)} s</span>
                     <span className="why">{s.reason}</span>
                   </button>
@@ -341,13 +401,13 @@ function CutsSection({ asset, analysis }: { asset: Asset; analysis: ReturnType<t
 
       {analysis.lastEdit && (
         <div className="edit-summary" data-testid="edit-summary">
-          <b>Última edição automática</b>
+          <b>Ãšltima ediÃ§Ã£o automÃ¡tica</b>
           <ul>
             {(Object.entries(analysis.lastEdit.counts) as [CutKind, number][]).map(([k, n]) => (
-              <li key={k}>{n}× {CUT_KIND_LABEL[k].toLowerCase()}</li>
+              <li key={k}>{n}Ã— {CUT_KIND_LABEL[k].toLowerCase()}</li>
             ))}
           </ul>
-          {analysis.lastEdit.cuts} corte(s) na timeline · {analysis.lastEdit.seconds.toFixed(1)} s removidos. Ctrl+Z desfaz.
+          {analysis.lastEdit.cuts} corte(s) na timeline Â· {analysis.lastEdit.seconds.toFixed(1)} s removidos. Ctrl+Z desfaz.
         </div>
       )}
     </section>
@@ -374,11 +434,12 @@ function CaptionsSection({ asset }: { asset: Asset }) {
       </div>
       <p className="note">
         {has
-          ? `Cria uma trilha "Legendas" com cada bloco editável. Palavras com tempo próprio — o destaque acompanha a fala, mesmo depois de cortes.`
-          : 'Transcreva a mídia primeiro.'}
+          ? `Cria uma trilha "Legendas" com cada bloco editÃ¡vel. Palavras com tempo prÃ³prio â€” o destaque acompanha a fala, mesmo depois de cortes.`
+          : 'Transcreva a mÃ­dia primeiro.'}
         {count > 0 && ` ${count} legenda(s) na timeline.`}
       </p>
     </section>
   );
 }
+
 
