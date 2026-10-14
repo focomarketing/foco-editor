@@ -7,6 +7,7 @@ import { Clapperboard, FileText } from 'lucide-react';
 import type { Workflow } from '../core/workflow';
 import { setBriefing } from '../app/workflow';
 import { runAll } from '../app/phases';
+import { MUSIC_CHOICES, TONES } from '../video-editor/narrative/tones';
 import { useAI, usePhaseRun } from './hooks';
 
 export function BriefingCard({ wf, hasMedia }: { wf: Workflow; hasMedia: boolean }) {
@@ -14,7 +15,7 @@ export function BriefingCard({ wf, hasMedia }: { wf: Workflow; hasMedia: boolean
   const ai = useAI().settings;
   const busy = !!usePhaseRun()?.running;
   const who = ai.provider === 'claude-code' ? 'com a sua conta Claude' : ai.provider === 'claude' ? 'com o Claude (API)' : 'com a IA local';
-  const filled = [wf.brief ? 'briefing' : '', wf.reference || wf.script ? 'roteiro' : ''].filter(Boolean);
+  const filled = [wf.brief ? 'briefing' : '', wf.reference || wf.script ? 'roteiro' : '', wf.tone ? `tom ${TONES.find((t) => t.id === wf.tone)?.label.toLowerCase()}` : ''].filter(Boolean);
   return (
     <div className="insp" data-testid="briefing-card">
       <p className="note">
@@ -35,11 +36,26 @@ export function BriefingCard({ wf, hasMedia }: { wf: Workflow; hasMedia: boolean
 function BriefingDialog({ wf, onClose }: { wf: Workflow; onClose: () => void }) {
   const [brief, setBrief] = useState(wf.brief ?? '');
   const [reference, setReference] = useState(wf.reference ?? '');
+  const [tone, setTone] = useState(wf.tone ?? 'auto');
+  const [music, setMusic] = useState(wf.music ?? 'auto');
   return (
     <div className="backdrop" onPointerDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="dialog" role="dialog" aria-label="Briefing e roteiro">
         <div className="dialog-head">Briefing e roteiro</div>
         <div className="dialog-body">
+          <div className="field">
+            <label>Tom do vídeo</label>
+            <select value={tone} onChange={(e) => setTone(e.target.value)} data-testid="briefing-tone">
+              {TONES.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+            </select>
+          </div>
+          <p className="note">{TONES.find((t) => t.id === tone)?.hint}. Trilha, ritmo, efeitos, transições e motion casam com o tom.</p>
+          <div className="field">
+            <label>Música</label>
+            <select value={music} onChange={(e) => setMusic(e.target.value)} data-testid="briefing-music">
+              {MUSIC_CHOICES.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
+            </select>
+          </div>
           <label className="director-label">Briefing</label>
           <textarea
             className="text-input area"
@@ -69,7 +85,7 @@ function BriefingDialog({ wf, onClose }: { wf: Workflow; onClose: () => void }) 
           <button
             className="btn primary"
             onClick={() => {
-              setBriefing(brief, reference);
+              setBriefing(brief, reference, tone, music);
               onClose();
             }}
             data-testid="briefing-save"

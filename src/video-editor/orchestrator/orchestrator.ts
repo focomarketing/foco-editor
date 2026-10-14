@@ -15,6 +15,8 @@ import type { EditorPort } from '../history/operations';
 import { buildBrief } from '../narrative/brief';
 import type { NarrativeBrief, StoredNarrative } from '../narrative/brief';
 import { profileFor } from '../narrative/profiles';
+import { primeSkills } from '../knowledge/skills';
+import { applyTone, toneBrief } from '../narrative/tones';
 import type { EditorialProfile } from '../narrative/profiles';
 
 export interface SkillContext {
@@ -45,6 +47,8 @@ export interface SkillServices {
   frames?(assetId: string, times: number[]): Promise<string[]>;
   /** Pixels RGBA de um quadro (largura pedida): análise de movimento e cor das transições. */
   pixels?(assetId: string, time: number, width: number): Promise<{ data: Uint8ClampedArray; width: number; height: number } | null>;
+  /** Medição de cor de uma mídia (médias, percentis, croma) e a correção automática da matemática do editor. */
+  color?(assetId: string): Promise<{ settings: import('../../core/types').ColorSettings; stats: import('../../engine/color/color').FrameStats } | null>;
   /** Som da biblioteca do FOCO (trilha, efeito, ambiente) como arquivo WAV. */
   sound?(id: string, opts: { duration?: number }): Promise<File>;
 }
@@ -87,6 +91,8 @@ export interface RunOptions {
   autoApply: boolean;
   /** Antes de rodar, desfaz as operações anteriores desta etapa (só itens da IA não editados). */
   regenerate?: boolean;
+  /** Aplica tudo o que passa na validação, não só o de confiança alta (edição completa pedida pela pessoa). */
+  applyAll?: boolean;
 }
 
 export interface StageResult {
@@ -110,8 +116,11 @@ export async function runStage(port: EditorPort, stage: PhaseId, deps: Omit<Skil
     }
   }
   const wf = readWorkflow(port.getProject().metadata);
+  await primeSkills(); // as skills de vídeo da pessoa entram nos prompts das etapas
   const commands: EditCommand[] = [];
-  const profile = profileFor(wf);
+  const vertical0 = port.getProject().settings.height > port.getProject().settings.width;
+  // perfil do canal + tom e música do briefing
+  const profile = applyTone(profileFor(wf), wf?.tone, wf?.music, wf?.track === 'short' || vertical0);
   let briefRun: Promise<NarrativeBrief | null> | null = null;
   const brief = () =>
     (briefRun ??= (async () => {
@@ -129,7 +138,7 @@ export async function runStage(port: EditorPort, stage: PhaseId, deps: Omit<Skil
         llm: llmAvailable(deps.ai) && deps.ai.provider !== 'ollama',
         stored: p.metadata?.narrative as StoredNarrative | undefined,
         // no modo pelo roteiro, o próprio roteiro é a referência
-        inputs: { briefing: wf?.brief, reference: wf?.reference || wf?.script },
+        inputs: { briefing: [toneBrief(wf?.tone, wf?.music), wf?.brief].filter(Boolean).join('\n') || undefined, reference: wf?.reference || wf?.script },
         signal: deps.signal,
         log,
         progress: (step) => deps.progress(step),
@@ -160,8 +169,8 @@ export async function runStage(port: EditorPort, stage: PhaseId, deps: Omit<Skil
     return { op: null, skills: skills.map((s) => s.id), messages: [...notes, ...warnings] };
   }
   let op = createOperation(port, { stage, skill: skills.filter((s) => !s.core).map((s) => s.id).join(' + ') || skills[0].id, commands, notes, warnings });
-  if (opts.autoApply && op.selected?.length) {
-    const r = applyOperation(port, op.id, 'selected');
+  if (opts.autoApply && (opts.applyAll || op.selected?.length)) {
+    const r = applyOperation(port, op.id, opts.applyAll ? 'all' : 'selected');
     op = r.op ?? op;
     log(`aplicado: ${op.selected?.length ?? 0} de ${commands.length} sugestões${r.rejected.length ? ` (${r.rejected.length} recusadas na validação)` : ''}`);
   }

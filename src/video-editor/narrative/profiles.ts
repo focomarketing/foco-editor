@@ -33,6 +33,16 @@ export interface EditorialProfile {
   brollRoles: BeatRole[];
   /** Ritmo das imagens no vídeo longo: duração mínima/máxima (s) e uma imagem a cada `every` s. */
   brollPace?: { min: number; max: number; every: number };
+  /** Ritmo dos títulos/lettering no vídeo longo: um a cada `every` s, até `max`. */
+  motionPace?: { every: number; max: number };
+  /** Ritmo de agência: com o rosto na tela, um punch-in (troca de enquadramento) se passar disto (s) sem mudança visual. */
+  punchEvery?: number;
+  /** Zoom no rosto: aproximação lenta (push) ou troca seca de enquadramento (punch). */
+  zoomStyle?: 'push' | 'punch';
+  /** Tipografia cinética das frases de impacto (palavra por palavra, no tempo da fala, ao lado do rosto). */
+  lettering?: LetteringStyle;
+  /** Botão de chamada: discreto (elegante) ou no estilo YouTube (vermelho, com cursor). */
+  ctaStyle?: 'elegante' | 'youtube';
   motion: {
     titleFont: string;
     bodyFont: string;
@@ -59,13 +69,26 @@ export interface EditorialProfile {
   };
 }
 
+export interface LetteringStyle {
+  fontFamily: string;
+  fontWeight: number;
+  /** Tamanho em fração do lado menor do quadro. */
+  fontSize: number;
+  color: string;
+  /** Palavra-chave da frase. */
+  emphasisColor: string;
+  uppercase: boolean;
+  letterSpacing: number;
+  wordAnim: 'fade' | 'rise' | 'pop';
+}
+
 export interface SoundStyle {
   /** Clima da trilha por tipo de bloco (ids da biblioteca de sons); lista = alterna entre os blocos; null = sem música. */
   music: Partial<Record<'abertura' | 'bloco' | 'conclusao' | 'cta', string | string[] | null>>;
   /** Volume da trilha sob a voz (0..1). */
   level: number;
   /** Efeito na abertura de cada bloco, na entrada de título e na entrada de imagem (null = nenhum). */
-  sfx: { chapter: string | null; title: string | null; broll: string | null };
+  sfx: { chapter: string | null; title: string | null; broll: string | null; cta?: boolean };
   sfxLevel: number;
 }
 
@@ -115,11 +138,18 @@ const christian: EditorialProfile = {
   themes: CHRISTIAN_THEMES,
   forbidden: forbidden(String.raw`serpents?|snakes?|snake handling|occult\w*|satan\w*|demons?|tarot|witch\w*|horror|halloween|cartoons?|memes?|party|parties|nightclub|beer|wine bottle`),
   brollRoles: ALL_ROLES.filter((r) => !NO_BROLL.includes(r)),
-  // contemplativo: a imagem respira (4–8 s) e não atropela a fala
-  brollPace: { min: 4, max: 8, every: 40 },
+  // ritmo de agência (4–8 s entre mudanças visuais): imagem a cada ~14 s, lettering 2–3 por minuto,
+  // punch-in de enquadramento nos trechos de rosto que passam de 7 s sem mudança
+  brollPace: { min: 3.5, max: 6, every: 14 },
+  motionPace: { every: 22, max: 40 },
+  punchEvery: 7,
   motion: { titleFont: '"Playfair Display", Georgia, serif', bodyFont: '"Playfair Display", Georgia, serif', color: '#f5efe3', accent: '#d4a85a', callouts: true, upper: false },
   // trilha discreta: séria na pergunta, contemplativa nos blocos, esperança na conclusão
-  sound: { music: { abertura: 'reflexao', cta: 'contemplativa', bloco: ['contemplativa', 'reflexao'], conclusao: 'esperanca' }, level: 0.1, sfx: { chapter: 'swell', title: 'brilho', broll: null }, sfxLevel: 0.3 },
+  // trilha 22–24 dB abaixo da voz (regra das skills de som)
+  sound: { music: { abertura: 'contemplativa', cta: 'contemplativa', bloco: 'contemplativa', conclusao: 'esperanca' }, level: 0.05, sfx: { chapter: null, title: null, broll: null }, sfxLevel: 0.25 },
+  zoomStyle: 'push',
+  lettering: { fontFamily: '"Playfair Display", Georgia, serif', fontWeight: 700, fontSize: 0.068, color: '#f7f2e8', emphasisColor: '#e2b867', uppercase: false, letterSpacing: 0, wordAnim: 'rise' },
+  ctaStyle: 'elegante',
   captionPreset: 'reflexao',
   transitions: { chapter: 'cinematic-dissolve', outro: 'dip-black', jumpCut: 'punch-enfase', allowed: ['punch-in', 'cross-dissolve', 'cinematic-dissolve', 'dip-black', 'chapter-transition', 'broll-bridge', 'seamless-cut', 'focus-transition', 'rack-focus', 'clean-dissolve'] },
 };
@@ -148,7 +178,10 @@ const documentary: EditorialProfile = {
   // a imagem é a espinha do ensaio: mais imagens, mais longas
   brollPace: { min: 4, max: 9, every: 22 },
   motion: { titleFont: '"Playfair Display", Georgia, serif', bodyFont: 'Georgia, "Times New Roman", serif', color: '#f0f0f0', accent: '#c9a96e', callouts: false, upper: false },
-  sound: { music: { abertura: 'tensao', cta: 'reflexao', bloco: ['epica', 'reflexao'], conclusao: 'esperanca' }, level: 0.14, sfx: { chapter: 'whoosh-suave', title: null, broll: 'whoosh-suave' }, sfxLevel: 0.25 },
+  sound: { music: { abertura: 'reflexao', cta: 'reflexao', bloco: 'reflexao', conclusao: 'epica' }, level: 0.07, sfx: { chapter: null, title: null, broll: null }, sfxLevel: 0.2 },
+  zoomStyle: 'push',
+  lettering: { fontFamily: '"Playfair Display", Georgia, serif', fontWeight: 500, fontSize: 0.062, color: '#f0f0f0', emphasisColor: '#c9a96e', uppercase: false, letterSpacing: 0, wordAnim: 'fade' },
+  ctaStyle: 'elegante',
   captionPreset: 'cinema',
   transitions: { chapter: 'cinematic-dissolve', outro: 'dip-black', jumpCut: 'seco', allowed: ['cross-dissolve', 'cinematic-dissolve', 'dip-black', 'chapter-transition', 'broll-bridge', 'seamless-cut', 'focus-transition', 'rack-focus'] },
 };
@@ -175,7 +208,13 @@ const educational: EditorialProfile = {
   forbidden: forbidden(),
   brollRoles: ['example', 'argument', 'scripture', 'chapter', 'thesis'],
   motion: { titleFont: '"Arial Black", "Segoe UI Black", sans-serif', bodyFont: '"Segoe UI", Arial, sans-serif', color: '#ffffff', accent: '#4f8cff', callouts: true, upper: false },
-  sound: { music: { abertura: 'lofi', cta: 'lofi', bloco: 'lofi', conclusao: 'lofi' }, level: 0.1, sfx: { chapter: 'whoosh', title: 'pop', broll: 'whoosh-suave' }, sfxLevel: 0.3 },
+  sound: { music: { abertura: 'lofi', cta: 'lofi', bloco: 'lofi', conclusao: 'lofi' }, level: 0.06, sfx: { chapter: 'whoosh-suave', title: null, broll: null, cta: true }, sfxLevel: 0.22 },
+  zoomStyle: 'punch',
+  lettering: { fontFamily: '"Montserrat", "Segoe UI", Arial, sans-serif', fontWeight: 800, fontSize: 0.062, color: '#ffffff', emphasisColor: '#4f8cff', uppercase: false, letterSpacing: -0.01, wordAnim: 'rise' },
+  ctaStyle: 'youtube',
+  brollPace: { min: 3, max: 6, every: 12 },
+  motionPace: { every: 18, max: 45 },
+  punchEvery: 6,
   transitions: { chapter: 'chapter-transition', outro: 'dip-black', jumpCut: 'punch-alternado', allowed: ['punch-in', 'cross-dissolve', 'chapter-transition', 'broll-bridge', 'seamless-cut', 'subtle-push', 'zoom-clean', 'dip-black', 'animated-wipe'] },
 };
 
@@ -194,7 +233,10 @@ const short: EditorialProfile = {
   forbidden: forbidden(),
   brollRoles: ALL_ROLES.filter((r) => r !== 'cta'),
   motion: { titleFont: '"Arial Black", "Segoe UI Black", sans-serif', bodyFont: '"Arial Black", "Segoe UI Black", sans-serif', color: '#ffffff', accent: '#ffd400', callouts: true, upper: true },
-  sound: { music: { abertura: 'energia', cta: 'energia', bloco: 'energia', conclusao: 'energia' }, level: 0.2, sfx: { chapter: 'whoosh', title: 'pop', broll: 'whoosh' }, sfxLevel: 0.35 },
+  sound: { music: { abertura: 'energia', cta: 'energia', bloco: 'energia', conclusao: 'energia' }, level: 0.12, sfx: { chapter: 'whoosh', title: null, broll: 'whoosh', cta: true }, sfxLevel: 0.3 },
+  zoomStyle: 'punch',
+  lettering: { fontFamily: '"Montserrat", "Arial Black", sans-serif', fontWeight: 900, fontSize: 0.08, color: '#ffffff', emphasisColor: '#ffd400', uppercase: true, letterSpacing: 0.01, wordAnim: 'pop' },
+  ctaStyle: 'youtube',
   transitions: { chapter: 'zoom-clean', outro: 'cta-reveal', jumpCut: 'punch-alternado', allowed: [] },
 };
 

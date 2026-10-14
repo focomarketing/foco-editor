@@ -2,7 +2,7 @@
 // execução de skill é uma EditOperation (um passo de undo ao aplicar). O editor continua sendo
 // a fonte da verdade: ao aplicar, cada comando vira os comandos nomeados do editor (Cmd).
 
-import type { CaptionData, ColorSettings, Keyframes, TitleData, TransitionSpec } from '../../core/types';
+import type { CaptionData, ColorSettings, ElementData, Keyframes, TitleData, TransitionSpec } from '../../core/types';
 
 export type EditCommandType =
   | 'add_clip'
@@ -21,7 +21,7 @@ export type EditCommandType =
   | 'ripple_remove';
 
 /** Papel da faixa: a IA não escolhe "V3", escolhe a função; o editor cria/acha a faixa. */
-export type TrackRole = 'main' | 'broll' | 'overlay' | 'captions' | 'voice' | 'narration' | 'music' | 'sfx' | 'ambience';
+export type TrackRole = 'main' | 'broll' | 'overlay' | 'cta' | 'elements' | 'captions' | 'voice' | 'narration' | 'music' | 'sfx' | 'ambience';
 
 export interface EditCommand {
   id: string;
@@ -51,7 +51,12 @@ export type EditPayload = Record<string, unknown> &
     fadeOut: number;
     keyframes: Keyframes;
     scale: number;
+    /** Posição da sobreposição (deslocamento do centro, em fração do quadro). */
+    x: number;
+    y: number;
     title: TitleData;
+    // add_overlay de elemento animado (botão, seta, selo)
+    element: ElementData;
     // add_caption
     caption: CaptionData;
     // remove/trim/move/split/add_effect/add_transition

@@ -120,6 +120,10 @@ export interface Workflow {
   brief?: string;
   /** Roteiro de referência no modo pela fala: o texto gravado (títulos em caixa alta = blocos). */
   reference?: string;
+  /** Tom do vídeo (emocional, energético, dramático, contemplativo, inspirador): tudo casa com ele. */
+  tone?: string;
+  /** Música da trilha: id da biblioteca de sons, "auto" (pelo tom) ou "none". */
+  music?: string;
 }
 
 export function createWorkflow(track: TrackId, subtype: string | null, opts: { mode?: EditMode; script?: string } = {}): Workflow {

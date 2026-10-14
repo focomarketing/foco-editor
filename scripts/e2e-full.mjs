@@ -55,7 +55,7 @@ try {
   // a etapa de corte começa sozinha (transcreve); espera ela acabar antes do comando único
   await page.waitForFunction(() => window.__foco.phases.phaseRunStore.get()?.phase === 'cut', null, { timeout: 60_000 });
   await page.waitForFunction(() => !window.__foco.phases.phaseRunStore.get()?.running, null, { timeout: 20 * 60_000, polling: 1000 });
-  await page.evaluate((ref) => window.__foco.workflow.setBriefing('Canal cristão moderno com uma narrativa diferente do normal. Prender a atenção, imagens coerentes com cada bloco, motion elegante.', ref), reference);
+  await page.evaluate((ref) => window.__foco.workflow.setBriefing('Canal cristão moderno com uma narrativa diferente do normal. Prender a atenção, imagens coerentes com cada bloco, motion elegante.', ref, 'emocional', 'auto'), reference);
   console.log('Editar vídeo inteiro…');
   const t0 = Date.now();
   await page.locator('[data-testid="run-all"]').click();
@@ -70,7 +70,32 @@ try {
     if (Date.now() - t0 > 40 * 60_000) throw new Error('demorou demais');
     await page.waitForTimeout(1500);
   }
-  console.log(`    terminou em ${((Date.now() - t0) / 1000).toFixed(0)} s`);
+  console.log(`    etapas em ${((Date.now() - t0) / 1000).toFixed(0)} s`);
+  // revisão final do Diretor (pela conta Claude): espera entregar
+  await page.waitForFunction(() => window.__foco.director.directorStore.get().status !== 'idle', null, { timeout: 15_000 }).catch(() => {});
+  const review = await page.evaluate(() => window.__foco.director.directorStore.get().status);
+  if (review !== 'idle') {
+    console.log('Revisão do Diretor…');
+    let n = 0;
+    for (;;) {
+      const d = await page.evaluate(() => {
+        const s = window.__foco.director.directorStore.get();
+        return { status: s.status, turns: s.turns, stopped: s.stopped, message: s.message, last: s.log.at(-1)?.text?.slice(0, 120), finished: s.finished };
+      });
+      if (d.turns !== n) {
+        n = d.turns;
+        console.log(`    passo ${n} · ${d.last ?? ''}`);
+      }
+      if (d.status !== 'running') {
+        console.log(`    Diretor: ${d.stopped} ${d.message ?? ''}`);
+        if (d.finished) console.log(`    entregou: ${d.finished.summary}`, ...(d.finished.changes ?? []).map((c) => `\n      - ${c}`));
+        check(d.stopped === 'finished', 'Diretor revisou e entregou pela conta Claude', d.stopped);
+        break;
+      }
+      if (Date.now() - t0 > 60 * 60_000) throw new Error('revisão demorou demais');
+      await page.waitForTimeout(3000);
+    }
+  }
   const r = await page.evaluate(() => {
     const p = window.__foco.store.getState().project;
     const by = (name) => {
@@ -89,6 +114,8 @@ try {
       broll: by('B-roll').map((c) => `${c.start.toFixed(1)} ${p.assets[c.assetId]?.name}`),
       ops,
       sidebar: localStorage.getItem('foco.sidebar'),
+      ctas: by('Chamadas').map((c) => `${c.start.toFixed(1)} ${c.element?.name}`),
+      color: Object.values(p.clips).filter((c) => c.color?.preset === 'colorista').map((c) => JSON.stringify(Object.fromEntries(Object.entries(c.color).filter(([k, v]) => typeof v === 'number' && v !== 0)))),
     };
   });
   for (const o of r.ops) console.log(`    [${o.stage}] ${o.status} · ${o.n} · ${o.notes} ${o.warnings}`);
@@ -96,6 +123,8 @@ try {
   console.log(`    imagens: ${r.broll.join(' | ')}`);
   console.log(`    trilha: ${r.music.map((m) => `${m.start.toFixed(1)}+${m.dur.toFixed(1)}s ${m.name} vol ${m.vol}`).join(' | ')}`);
   console.log(`    efeitos: ${r.sfx.map((s) => `${s.start.toFixed(1)} ${s.name}`).join(' | ')}`);
+  console.log(`    chamadas: ${r.ctas.join(' | ')}`);
+  console.log(`    cor: ${r.color.join(' | ') || 'sem correção'}`);
   console.log(`    legendas (${r.captions.length}, ${r.captionFont}): ${r.captions.slice(0, 6).join(' / ')}`);
   check(!r.error, 'nenhuma etapa falhou', r.error ?? '');
   check(r.wf === 'editor', 'terminou na timeline (Editor)', r.wf);
@@ -103,6 +132,8 @@ try {
   check(r.music.length > 0 && r.music.every((m) => m.vol <= 0.2), 'trilha na faixa Música, baixa sob a voz', r.music.length);
   check(r.captions.length > 0, 'legendas na faixa Legendas', r.captions.length);
   check(r.titles.length > 0, 'títulos do motion na faixa Gráficos', r.titles.length);
+  check(r.ctas.some((c) => /Inscreva/.test(c)), 'botão de inscrição na tela na palavra "inscreve"', r.ctas.join(', '));
+  check(r.sfx.some((s) => /pop/.test(s.name)), 'som de pop na chamada');
   check(await page.locator('[data-testid="adjust-first"]').isVisible(), 'campo "Pedir ajuste na edição" visível');
   if (shots) {
     fs.mkdirSync(shots, { recursive: true });
@@ -115,6 +146,16 @@ try {
       await page.waitForTimeout(800);
       await page.screenshot({ path: path.join(shots, `full-${i + 1}-${tt.toFixed(0)}s.png`) });
     }
+  }
+  // vídeo final para assistir: aplica a revisão do Diretor e exporta em 720p
+  if (process.env.FULL_EXPORT) {
+    await page.evaluate(() => window.__foco.director.directorStore.get().hasDraft && window.__foco.director.applyDirector());
+    console.log('Exportando…');
+    const info = await page.evaluate(() => window.__foco.exportAndProbe({ width: 1280, height: 720, fps: 30, bitrate: 650_000, codec: 'avc' }));
+    const b64 = await page.evaluate(() => window.__foco.exportedBase64());
+    fs.writeFileSync(process.env.FULL_EXPORT, Buffer.from(b64, 'base64'));
+    console.log(`    ${process.env.FULL_EXPORT} · ${(info.bytes / 1e6).toFixed(1)} MB · ${info.duration.toFixed(1)} s`);
+    check(info.duration > 10 && info.audioDuration > 10, 'vídeo exportado com imagem e som', `${info.duration.toFixed(1)} s`);
   }
   check(errors.length === 0, 'sem erros de página', errors.slice(0, 3).join(' | '));
 } catch (e) {

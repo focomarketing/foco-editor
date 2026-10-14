@@ -13,9 +13,10 @@ import type { Skill, SkillContext } from '../orchestrator/orchestrator';
 import { findImage, relevantTo } from '../assets/hub';
 import { briefText } from '../narrative/brief';
 import type { BriefSentence, NarrativeBrief } from '../narrative/brief';
-import { imageAllowed, themeById } from '../narrative/profiles';
+import { imageAllowed, themeById, themesOf } from '../narrative/profiles';
 import type { BeatRole, EditorialProfile } from '../narrative/profiles';
 import { llmReady } from './common';
+import { skillsFor } from '../knowledge/skills';
 
 /** Frases com tempo, uma por linha, para o diretor. */
 export function speechLines(words: { text: string; start: number; end: number }[]): string[] {
@@ -93,7 +94,7 @@ export function briefMoments(b: NarrativeBrief, profile: EditorialProfile, d: D,
 export function paceFor(profile: EditorialProfile, short: boolean, duration: number): D {
   const d = density({ short, duration });
   const pace = !short && profile.brollPace;
-  return pace ? { ...d, min: pace.min, max: pace.max, count: Math.max(2, Math.min(30, Math.round(duration / pace.every))) } : d;
+  return pace ? { ...d, min: pace.min, max: pace.max, gap: Math.min(d.gap, pace.every / 3), count: Math.max(2, Math.min(80, Math.round(duration / pace.every))) } : d;
 }
 
 /** Frase do mapa que contém o instante (para conferir o momento que o diretor devolveu). */
@@ -108,9 +109,9 @@ export async function chooseMoments(ctx: SkillContext): Promise<{ moments: Momen
   if (!brief) return { moments: [], by: 'heuristic' };
   const profile = ctx.profile;
   const d = paceFor(profile, short, duration);
-  // o diretor editorial (IA) já disse o que mostrar em cada frase: usa direto
+  // o diretor editorial (IA) já disse o que mostrar nas frases fortes; os temas do perfil completam o ritmo
   if (brief.by === 'llm') {
-    const fromBrief = briefMoments({ ...brief, sentences: brief.sentences.map((s) => ({ ...s, themes: s.query ? s.themes : [] })) }, profile, d, duration);
+    const fromBrief = briefMoments(brief, profile, d, duration);
     if (fromBrief.length >= Math.min(d.count, 3)) return { moments: fromBrief, by: 'llm' };
   }
   if (llmReady(ctx.ai) && words.length) {
@@ -119,7 +120,7 @@ export async function chooseMoments(ctx: SkillContext): Promise<{ moments: Momen
       const kind = `${short ? 'vídeo curto vertical' : 'vídeo longo'} · ${profile.label}`;
       const raw = await askJson(
         ctx.ai,
-        directorPrompt({ kind, short, archive: profile.archive, count: d.count, min: d.min, max: d.max, context: briefText(brief, profile), imageStyle: profile.imageStyle }),
+        `${directorPrompt({ kind, short, archive: profile.archive, count: d.count, min: d.min, max: d.max, context: briefText(brief, profile), imageStyle: profile.imageStyle })}\n\n${skillsFor('broll', 15000)}`,
         `Duração: ${duration.toFixed(1)} s\n\n${briefLines(brief).join('\n')}`,
         MOMENTS_SCHEMA as unknown as Record<string, unknown>,
         ctx.signal,
@@ -163,7 +164,9 @@ export const brollSelectorSkill: Skill = {
     for (const [i, m] of moments.entries()) {
       ctx.signal.throwIfAborted();
       ctx.progress(`Buscando imagem ${i + 1} de ${moments.length}: "${m.query}"`, i, moments.length);
-      const hit = await findImage([m.query, m.queryAlt].filter(Boolean), { vertical, preferArchive: profile.archive, exclude: used, signal: ctx.signal, accept });
+      // terceira tentativa: as buscas curadas do tema da frase no perfil do canal
+      const themed = themesOf(m.text, profile).flatMap((id) => themeById(profile, id)?.queries ?? []).slice(0, 2);
+      const hit = await findImage([...new Set([m.query, m.queryAlt, ...themed].filter(Boolean))], { vertical, preferArchive: profile.archive, exclude: used, signal: ctx.signal, accept });
       if (!hit) continue;
       used.add(hit.license.sourceUrl);
       picked.push({ m, file: hit.file, license: hit.license, title: hit.title });

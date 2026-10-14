@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { PROJECT_PRESETS, autoAssembles, presetById } from './presets';
 import { TRACKS, createWorkflow, readWorkflow, trackForTemplate } from '../core/workflow';
+import { registerAllSkills } from './skills';
+import { skillsFor as stageSkills } from './orchestrator/orchestrator';
 
 describe('presets de projeto', () => {
   it('os quatro cards existem e o avatar segue "em breve"', () => {
@@ -15,7 +17,7 @@ describe('presets de projeto', () => {
     expect(p.aspectRatio).toBe('16:9');
     expect(p.modes).toEqual(['audio-led', 'script-led']);
     expect(p.defaultSettings.pacing).toBe('natural');
-    expect(p.enabledSkills).toEqual(expect.arrayContaining(['edit-interview-with-broll', 'edit-script-to-video', 'chapter-generator', 'quality-control']));
+    expect(p.enabledSkills).toEqual(expect.arrayContaining(['edit-interview-with-broll', 'edit-script-to-video', 'broll-selector', 'audio-designer', 'caption-designer']));
     const w = createWorkflow(trackForTemplate('youtube-long').id, 'educativo');
     expect(w.template).toBe('youtube-long');
     expect(w.mode).toBe('audio-led');
@@ -29,7 +31,7 @@ describe('presets de projeto', () => {
     expect(w.mode).toBe('script-led');
     expect(w.script).toMatch(/Gancho/);
     expect(w.defaults).toMatchObject({ aspect: '9:16', cutMode: 'dry', captionPreset: 'shorts', pacing: 'fast' });
-    expect(w.enabledSkills).toEqual(expect.arrayContaining(['hook-generator', 'aggressive-cut', 'platform-adapter']));
+    expect(w.enabledSkills).toEqual(expect.arrayContaining(['aggressive-cut', 'caption-designer', 'motion-graphics-designer']));
   });
 
   it('Manual: manual-assisted, sem montagem automática, direto no editor', () => {
@@ -49,5 +51,14 @@ describe('presets de projeto', () => {
     expect(w?.template).toBe('youtube-long');
     expect(w?.mode).toBe('audio-led');
     expect(w?.enabledSkills?.length).toBeGreaterThan(5);
+  });
+});
+
+
+describe('preset só promete skills que existem', () => {
+  it('toda skill habilitada está registrada (aggressive-cut é chave do corte)', () => {
+    registerAllSkills();
+    const real = new Set((['cut', 'images', 'transitions', 'motion', 'audio', 'captions'] as const).flatMap((s) => stageSkills(s).map((k) => k.id)));
+    for (const pr of PROJECT_PRESETS.filter((x) => x.available)) for (const id of pr.enabledSkills) if (id !== 'aggressive-cut') expect(real.has(id), `${pr.id}: ${id}`).toBe(true);
   });
 });

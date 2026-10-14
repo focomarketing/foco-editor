@@ -219,6 +219,14 @@ export async function askJson(s: AISettings, system: string, user: string, schem
  * com o Ollama local a chamada falha e quem chama usa outra estratégia (ex.: nome do arquivo).
  */
 export async function askJsonVision(s: AISettings, system: string, user: string, images: { base64: string; mediaType: 'image/jpeg' | 'image/png' }[], schema: Record<string, unknown>, signal?: AbortSignal): Promise<unknown> {
+  if (s.provider === 'claude-code') {
+    // pela conta da pessoa: as imagens vão como arquivos que o Claude abre com Read
+    const files = images.map((im, i) => ({ name: `imagem-${i + 1}.${im.mediaType === 'image/png' ? 'png' : 'jpg'}`, base64: im.base64 }));
+    const list = files.map((f) => f.name).join(', ');
+    return (await askClaudeCode(s, system, `${user}
+
+IMAGENS (abra cada uma com Read antes de responder): ${list}`, schema, signal, 'medium', files)).data;
+  }
   if (s.provider !== 'claude' || !s.claudeKey || !s.cloudConsent) throw new Error('Análise de imagem precisa do Claude configurado (chave e autorização).');
   const client = new Anthropic({ apiKey: s.claudeKey, dangerouslyAllowBrowser: true, maxRetries: 2 });
   const response = await client.beta.messages.create(

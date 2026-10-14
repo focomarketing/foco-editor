@@ -175,4 +175,13 @@ async function exportAndProbe(settings: { width: number; height: number; fps: nu
   return result;
 }
 
-Object.assign(window, { __foco: { store, media, playback, actions, transcripts, analysisStore, toSRT, ai, insert, ops, anim, commands, Cmd, createdIds, prefsStore, projectFile, serialize, deserialize, makeTestVideo, makeTestAudio, exportAndProbe, playExported, exportedPixel, exportedPixelAt, makeLongVideo, clearLoadFiles, metrics, measureSeek, jobs, cache, probeBlob, smartCut, workflow, viewStore, phases, director } });
+/** Último vídeo exportado em base64 (para o teste salvar em disco). */
+async function exportedBase64() {
+  if (!lastExport) return null;
+  const buf = new Uint8Array(await lastExport.arrayBuffer());
+  let s = '';
+  for (let i = 0; i < buf.length; i += 0x8000) s += String.fromCharCode(...buf.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+
+Object.assign(window, { __foco: { exportedBase64, store, media, playback, actions, transcripts, analysisStore, toSRT, ai, insert, ops, anim, commands, Cmd, createdIds, prefsStore, projectFile, serialize, deserialize, makeTestVideo, makeTestAudio, exportAndProbe, playExported, exportedPixel, exportedPixelAt, makeLongVideo, clearLoadFiles, metrics, measureSeek, jobs, cache, probeBlob, smartCut, workflow, viewStore, phases, director } });

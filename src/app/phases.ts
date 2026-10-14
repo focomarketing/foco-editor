@@ -22,6 +22,7 @@ import { timelineSpeech } from './smartCut';
 import { currentWorkflow, finishPhase, markRan, setPhase } from './workflow';
 import { blobToBase64, framePixels, grabFramesBase64 } from '../engine/media/generators';
 import { soundFile } from '../engine/audio/soundLibrary';
+import { analyzeAssetColor } from '../engine/color/analyze';
 
 export interface PhaseRun {
   phase: PhaseId;
@@ -117,6 +118,10 @@ export const skillServices: SkillServices = {
     return track ? grabFramesBase64(track, times) : [];
   },
   sound: (id, opts) => soundFile(id, opts),
+  async color(id) {
+    const a = store.getState().project.assets[id];
+    return a ? analyzeAssetColor(media, a) : null;
+  },
   async pixels(id, time, width) {
     const entry = media.get(id);
     if (entry?.image) {
@@ -156,7 +161,7 @@ export async function runAll() {
       batch = { index: i + 1, total: steps.length };
       markRan(phase); // a fase não roda de novo sozinha ao abrir
       setPhase(phase);
-      await runPhase(phase, { regenerate: true });
+      await runPhase(phase, { regenerate: true, applyAll: true });
       if (state?.error) {
         notify(`Edição parou em ${phase}: ${state.error}`, 'error', 8000);
         return;
@@ -170,14 +175,20 @@ export async function runAll() {
       /* sem armazenamento: abre na ferramenta padrão */
     }
     setPhase('editor');
-    notify('Vídeo editado do início ao fim. Revise na timeline e peça ajustes no painel do Diretor.', 'info', 9000);
+    // passada final de editor sênior (precisa de uma IA que enxergue os quadros)
+    const ai = aiStore.get().settings;
+    if (ai.provider === 'claude-code' || (ai.provider === 'claude' && ai.claudeKey && ai.cloudConsent)) {
+      notify('Etapas prontas. O Diretor está revisando a edição como editor sênior (alguns minutos); depois é só ver e aplicar.', 'info', 10000);
+      const { startDirector } = await import('./director');
+      void startDirector(currentWorkflow()?.brief ?? '', { review: true });
+    } else notify('Vídeo editado do início ao fim. Revise na timeline e peça ajustes no painel do Diretor.', 'info', 9000);
   } finally {
     batch = null;
     for (const l of listeners) l();
   }
 }
 
-export async function runPhase(phase: PhaseId, opts: { regenerate?: boolean; autoApply?: boolean } = {}) {
+export async function runPhase(phase: PhaseId, opts: { regenerate?: boolean; autoApply?: boolean; applyAll?: boolean } = {}) {
   if (state?.running) return;
   abort = new AbortController();
   const tag = () => (batch ? `Etapa ${batch.index} de ${batch.total} · ` : '');
@@ -194,7 +205,7 @@ export async function runPhase(phase: PhaseId, opts: { regenerate?: boolean; aut
         words: () => timelineSpeech(store.getState().project).words,
         services: skillServices,
       },
-      { autoApply: opts.autoApply ?? true, regenerate: opts.regenerate },
+      { autoApply: opts.autoApply ?? true, regenerate: opts.regenerate, applyAll: opts.applyAll },
     );
     const op = r.op;
     const applied = op?.status === 'applied' ? op.selected?.length ?? 0 : 0;

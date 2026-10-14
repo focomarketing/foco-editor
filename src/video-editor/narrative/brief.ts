@@ -14,6 +14,7 @@ import { sentences } from '../skills/common';
 import type { Sentence } from '../skills/common';
 import { plain, themesOf } from './profiles';
 import { applyReference, inputsKey, parseReference } from './reference';
+import { skillsFor } from '../knowledge/skills';
 import type { BeatRole, EditorialProfile } from './profiles';
 
 export type SectionKind = 'abertura' | 'bloco' | 'conclusao' | 'cta';
@@ -405,7 +406,7 @@ export async function buildBrief(d: BriefDeps): Promise<{ brief: NarrativeBrief;
   if (d.llm && list.length) {
     try {
       d.progress(`O diretor editorial está lendo o vídeo inteiro${d.ai.provider === 'claude-code' ? ' com a sua conta Claude' : ''} (narrativa, blocos e tese; cerca de 1 minuto)…`);
-      const raw = await askJson(d.ai, briefPrompt(d.profile, d.kind, d.inputs), list.map((s) => `${s.index} [${s.start.toFixed(1)}] ${s.text}`).join('\n'), BRIEF_SCHEMA as unknown as Record<string, unknown>, d.signal);
+      const raw = await askJson(d.ai, `${briefPrompt(d.profile, d.kind, d.inputs)}\n\n${skillsFor('broll', 12000)}`, list.map((s) => `${s.index} [${s.start.toFixed(1)}] ${s.text}`).join('\n'), BRIEF_SCHEMA as unknown as Record<string, unknown>, d.signal);
       const stored = storeFromLlm(raw, list, d.profile);
       if (stored) {
         const store = { ...stored, ...(key ? { inputs: key } : {}) };

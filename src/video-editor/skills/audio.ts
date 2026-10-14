@@ -24,6 +24,8 @@ export interface SfxCue {
   at: number;
   duration: number;
   why: string;
+  /** Som da chamada na tela: entra mesmo perto de outro (tem prioridade). */
+  force?: boolean;
 }
 
 export interface SoundPlan {
@@ -74,11 +76,19 @@ export function sfxCues(p: Project, b: NarrativeBrief, profile: EditorialProfile
   for (const c of Object.values(p.clips)) {
     if (fx.title && c.title && c.origin?.by === 'ai') cues.push({ id: fx.title, at: c.start, duration: dur(fx.title), why: `entrada do título "${c.title.text.slice(0, 40)}"` });
     if (fx.broll && tracks.get(c.trackId) === 'B-roll' && !c.title) cues.push({ id: fx.broll, at: Math.max(0, c.start - 0.25), duration: dur(fx.broll), why: 'entrada da imagem' });
+    // chamada na tela: pop quando o botão entra e clique quando o cursor chega (inscrição)
+    if (fx.cta && c.element && tracks.get(c.trackId) === 'Chamadas') {
+      cues.push({ id: 'pop', at: c.start, duration: dur('pop'), why: `entrada de "${c.element.name}"`, force: true });
+      if (c.element.preset === 'cta-inscreva') cues.push({ id: 'click', at: c.start + 0.6, duration: dur('click'), why: 'clique no botão de inscrição', force: true });
+    }
   }
   const out: SfxCue[] = [];
   for (const c of cues.sort((a, b2) => a.at - b2.at)) {
     const prev = out.at(-1);
-    if (prev && c.at < prev.at + prev.duration + 0.3) continue; // um efeito por vez
+    if (prev && c.at < prev.at + prev.duration + 0.3) {
+      // um efeito por vez; o da chamada na tela tem prioridade sobre o outro
+      if (!c.force || prev.force || c.at < prev.at + prev.duration) continue;
+    }
     out.push(c);
   }
   return out;

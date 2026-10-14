@@ -33,7 +33,7 @@ export function sentences(words: { text: string; start: number; end: number }[])
 }
 
 export const llmReady = (s: AISettings) => llmAvailable(s);
-export const visionReady = (s: AISettings) => s.provider === 'claude' && !!s.claudeKey && s.cloudConsent;
+export const visionReady = (s: AISettings) => s.provider === 'claude-code' || (s.provider === 'claude' && !!s.claudeKey && s.cloudConsent);
 
 /** Vídeos e imagens do projeto que não estão em nenhuma faixa: os takes de apoio. */
 export function supportMedia(p: Project): Asset[] {

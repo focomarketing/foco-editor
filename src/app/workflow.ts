@@ -92,10 +92,16 @@ export function finishPhase(how: 'done' | 'skipped' = 'done') {
 }
 
 /** Briefing e roteiro de referência da edição automática (vazio apaga). O mapa narrativo é refeito. */
-export function setBriefing(brief: string, reference: string) {
+export function setBriefing(brief: string, reference: string, tone?: string, music?: string) {
   const wf = currentWorkflow();
   if (!wf) return;
-  setWorkflow({ ...wf, brief: brief.trim() || undefined, reference: reference.trim() || undefined });
+  setWorkflow({
+    ...wf,
+    brief: brief.trim() || undefined,
+    reference: reference.trim() || undefined,
+    tone: tone && tone !== 'auto' ? tone : undefined,
+    music: music && music !== 'auto' ? music : undefined,
+  });
   void persist();
 }
 

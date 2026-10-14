@@ -14,6 +14,7 @@
 //   GET    /__foco/local/fonts/family?name=   → baixa a família (se preciso) e devolve as faces
 //   GET    /__foco/local/fonts/file?f=<dir/arquivo> → um .woff2 baixado
 //   GET    /__foco/local/claude/status        → { available, path, loggedIn } do Claude Code
+//   GET    /__foco/local/claude/skills        → { parts } skills de vídeo da pessoa (base de conhecimento)
 //   POST   /__foco/local/claude/ask           → { system, user, schema, model } → { data, model }
 
 import fs from 'node:fs';
@@ -184,6 +185,7 @@ export async function handleLocal(req, res, url, opts = {}) {
       if (req.headers['x-foco-local'] !== '1') return json(res, 403, { error: 'pedido sem o cabeçalho do editor' });
       const { askClaude, claudeStatus } = await import('./claudeCode.mjs');
       if (u.pathname === '/claude/status') return json(res, 200, claudeStatus());
+      if (u.pathname === '/claude/skills') return json(res, 200, (await import('./skillsKnowledge.mjs')).loadSkills());
       if (u.pathname === '/claude/ask' && req.method === 'POST') {
         const data = JSON.parse((await readBody(req)).toString('utf8'));
         const abort = new AbortController();

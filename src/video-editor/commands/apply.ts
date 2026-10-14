@@ -15,6 +15,8 @@ export const ROLE_TRACK: Record<TrackRole, { name: string; kind: TrackKind }> = 
   main: { name: 'V1', kind: 'video' },
   broll: { name: 'B-roll', kind: 'video' },
   overlay: { name: 'Gráficos', kind: 'video' },
+  cta: { name: 'Chamadas', kind: 'video' },
+  elements: { name: 'Elementos', kind: 'video' },
   captions: { name: 'Legendas', kind: 'video' },
   voice: { name: 'A1', kind: 'audio' },
   narration: { name: 'Narração', kind: 'audio' },
@@ -77,19 +79,20 @@ export function toEditorCommands(p: Project, list: EditCommand[], operationId: s
         const trackId = resolved.trackId ?? trackFor(role);
         const clip: Clip = {
           id: newId('c'),
-          assetId: pl.title || pl.caption ? NO_ASSET : pl.assetId!,
+          assetId: pl.title || pl.caption || pl.element ? NO_ASSET : pl.assetId!,
           trackId,
           start: cmd.start!,
           duration: cmd.end! - cmd.start!,
           sourceIn: pl.sourceIn ?? 0,
-          volume: pl.volume ?? (cmd.type === 'add_overlay' || pl.title || pl.caption ? 0 : 1),
+          volume: pl.volume ?? (cmd.type === 'add_overlay' || pl.title || pl.caption || pl.element ? 0 : 1),
           speed: 1,
           fadeIn: pl.fadeIn ?? 0,
           fadeOut: pl.fadeOut ?? 0,
-          transform: { ...DEFAULT_TRANSFORM, scale: pl.scale ?? 1 },
+          transform: { ...DEFAULT_TRANSFORM, scale: pl.scale ?? 1, x: typeof pl.x === 'number' ? pl.x : 0, y: typeof pl.y === 'number' ? pl.y : 0 },
           ...(pl.keyframes ? { keyframes: pl.keyframes } : {}),
           ...(pl.title ? { title: pl.title } : {}),
           ...(pl.caption ? { caption: pl.caption } : {}),
+          ...(pl.element ? { element: pl.element } : {}),
         };
         clip.origin = { ...origin, stamp: clipStamp(clip) };
         out.commands.push(Cmd.addClip(clip));

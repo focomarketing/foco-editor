@@ -18,11 +18,19 @@ import { runStage } from '../orchestrator/orchestrator';
 import type { SkillServices } from '../orchestrator/orchestrator';
 import { presetFor, transitionById } from '../transitions/library';
 import { formatFor } from '../transitions/director';
-import { zoomKeyframes } from '../skills/motion';
+import { DEFAULT_LETTERING, letteringCaption, phraseWords, zoomKeyframes } from '../skills/motion';
+import { freeZone } from '../skills/face';
+import { findImage, relevantTo } from '../assets/hub';
+import { imageAllowed } from '../narrative/profiles';
+import { ELEMENT_PRESETS, elementFromPreset, getElementPreset } from '../../engine/motion/elementLibrary';
+import { readSkill } from '../knowledge/skills';
+import { qualityReport, reportText } from './quality';
+import { cachedFace, faceAnchorOffset } from '../skills/face';
 import { sentences } from '../skills/common';
 import { briefText, quickBrief } from '../narrative/brief';
 import type { StoredNarrative } from '../narrative/brief';
 import { profileFor } from '../narrative/profiles';
+import { applyTone, toneBrief } from '../narrative/tones';
 import { contactSheet } from './still';
 import type { FrameReader } from './still';
 import { issuesText, verifyProject } from './verify';
@@ -114,6 +122,8 @@ export const DIRECTOR_TOOLS: Anthropic.Beta.Messages.BetaTool[] = [
       '- transition {clip_id,preset_id,duration?,intensity?,direction?}: transição de entrada no clipe que entra (preset_id da biblioteca: cross-dissolve, dip-black, zoom-clean, punch-in, whip-transition, beat-zoom, flash-cut, light-sweep...);',
       '- zoom {clip_id,start,end,amount (1.03–1.3),style: punch|push}: aproximação no rosto nas frases indicadas;',
       '- volume {clip_id,volume}; trim {clip_id,edge:start|end,time}; remove {clip_id} (só itens criados pela IA).',
+      '- lettering {start,end,text}: tipografia cinética da frase DITA (palavra por palavra no tempo da fala, sem caixa, palavra-chave em destaque, ao lado do rosto). text = as palavras exatas do trecho (até ~9). É o jeito de pôr frase de impacto na tela; prefira a title.',
+      `- element {preset,start,end,text?}: elemento gráfico animado da biblioteca (${ELEMENT_PRESETS.map((e) => e.id).join(', ')}); text troca o texto do elemento quando ele tem texto. Use com motivo: destacar, apontar, marcar, celebrar.`,
       'Toda ação leva reason (o porquê editorial).',
     ].join('\n'),
     input_schema: obj(
@@ -124,7 +134,8 @@ export const DIRECTOR_TOOLS: Anthropic.Beta.Messages.BetaTool[] = [
           items: {
             type: 'object',
             properties: {
-              action: { type: 'string', enum: ['cut', 'title', 'broll', 'music', 'transition', 'zoom', 'volume', 'trim', 'remove'] },
+              action: { type: 'string', enum: ['cut', 'title', 'lettering', 'element', 'broll', 'music', 'transition', 'zoom', 'volume', 'trim', 'remove'] },
+              preset: { type: 'string' },
               reason: { type: 'string' },
               ranges: { type: 'array', items: { type: 'array', items: { type: 'number' }, minItems: 2, maxItems: 2 } },
               start: { type: 'number' },
@@ -151,6 +162,21 @@ export const DIRECTOR_TOOLS: Anthropic.Beta.Messages.BetaTool[] = [
       },
       ['edits'],
     ),
+  },
+  {
+    name: 'find_image',
+    description: 'Busca nos acervos (Wikimedia/Pexels/Pixabay) uma imagem que mostre a IDEIA do trecho e coloca no B-roll entre start e end (com movimento lento). A imagem passa pelo filtro do canal (nada fora de contexto) e precisa corresponder à busca. Use termos concretos em inglês no estilo do canal (ex.: "Rembrandt Raising of Lazarus", "bombed city ruins 1945 photograph"); query_alt é a segunda tentativa.',
+    input_schema: obj({ query: { type: 'string' }, query_alt: { type: 'string' }, start: { type: 'number' }, end: { type: 'number' }, why: { type: 'string' } }, ['query', 'start', 'end', 'why']),
+  },
+  {
+    name: 'read_skill',
+    description: 'Lê INTEIRA uma skill ou referência das skills de edição da pessoa (ids no índice do seu sistema). Leia as referências da etapa antes de decidir (direção por blocos, lettering, animação, som...). Textos longos vêm em partes: use from.',
+    input_schema: obj({ id: { type: 'string' }, from: { type: 'number' } }, ['id']),
+  },
+  {
+    name: 'quality_report',
+    description: 'Métricas da edição contra as metas do canal: maior trecho sem mudança visual, cobertura de imagens, lettering por minuto, imagens repetidas, legenda, trilha e efeitos. O finish só é aceito com o portão aprovado.',
+    input_schema: obj({}),
   },
   { name: 'undo_last', description: 'Desfaz a última alteração feita no rascunho (sua ou de uma skill aceita).', input_schema: obj({}) },
   { name: 'verify', description: 'Conferência automática do rascunho: corte no meio de palavra, tela preta, B-roll no gancho, títulos sobrepostos, transições demais, voz estourada/baixa, música alta, duração e trechos parados. Rode antes de entregar e corrija os erros.', input_schema: obj({}) },
@@ -217,8 +243,16 @@ export class DirectorTools {
           return { content: await this.verify() };
         case 'set_plan':
           return { content: this.setPlan(input) };
-        case 'finish':
-          return { content: this.finish(input) };
+        case 'finish': {
+          const r = this.finish(input);
+          return { content: r.text, isError: !r.ok };
+        }
+        case 'read_skill':
+          return { content: readSkill(String(input.id ?? ''), num(input.from) ? input.from : 0) };
+        case 'quality_report':
+          return { content: reportText(qualityReport(this.p, this.profile())) };
+        case 'find_image':
+          return { content: await this.findImageAt(input) };
         default:
           return { content: `Ferramenta desconhecida: ${name}`, isError: true };
       }
@@ -255,8 +289,9 @@ export class DirectorTools {
     const words = this.env.words(p);
     if (!words.length) lines.push('', 'Atenção: a fala ainda não foi transcrita (run_skill cut transcreve).');
     else {
-      const profile = profileFor(wf);
-      lines.push('', 'MAPA NARRATIVO (siga esta linha em cada corte, imagem, transição e título):', briefText(quickBrief(words, profile, p.metadata?.narrative as StoredNarrative | undefined, { briefing: wf?.brief, reference: wf?.reference || wf?.script }), profile));
+      const profile = applyTone(profileFor(wf), wf?.tone, wf?.music);
+      const inputs = { briefing: [toneBrief(wf?.tone, wf?.music), wf?.brief].filter(Boolean).join('\n') || undefined, reference: wf?.reference || wf?.script };
+      lines.push('', 'MAPA NARRATIVO (siga esta linha em cada corte, imagem, transição e título):', briefText(quickBrief(words, profile, p.metadata?.narrative as StoredNarrative | undefined, inputs), profile));
     }
     return lines.join('\n');
   }
@@ -268,7 +303,7 @@ export class DirectorTools {
     // papel de cada frase na narrativa (o mapa olha o vídeo inteiro, não só o trecho pedido)
     const all = this.env.words(this.p);
     const wf = readWorkflow(this.p.metadata);
-    const brief = quickBrief(all, profileFor(wf), this.p.metadata?.narrative as StoredNarrative | undefined, { briefing: wf?.brief, reference: wf?.reference || wf?.script });
+    const brief = quickBrief(all, applyTone(profileFor(wf), wf?.tone, wf?.music), this.p.metadata?.narrative as StoredNarrative | undefined, { briefing: [toneBrief(wf?.tone, wf?.music), wf?.brief].filter(Boolean).join('\n') || undefined, reference: wf?.reference || wf?.script });
     const tag = (t: number) => {
       const b = brief.sentences.find((x) => Math.abs(x.start - t) < 0.05);
       return b ? ` (bloco ${b.section} · ${b.role}${b.themes.length ? ` · ${b.themes.slice(0, 2).join(', ')}` : ''})` : '';
@@ -457,6 +492,39 @@ export class DirectorTools {
           zoomSpans.set(clip.id, z);
           break;
         }
+        case 'lettering': {
+          if (!num(e.start) || !num(e.end) || !str(e.text)) {
+            errors.push(`${tag}: precisa de start, end e text`);
+            break;
+          }
+          const ws = this.env.words(p);
+          const phrase = phraseWords(ws, { start: e.start - 0.3, end: e.end + 0.3 }, e.text);
+          if (!phrase.length) {
+            errors.push(`${tag}: não achei essas palavras na fala entre ${fmt(e.start)} e ${fmt(e.end)}`);
+            break;
+          }
+          const prof = this.profile();
+          const mainClip = Object.values(p.clips).find((c) => p.assets[c.assetId]?.kind === 'video' && c.origin?.by !== 'ai');
+          const zone = freeZone(cachedFace(mainClip?.assetId ?? ''));
+          const s0 = Math.max(0, phrase[0].start - 0.12);
+          const caption = letteringCaption(phrase, s0, prof.lettering ?? DEFAULT_LETTERING, zone, false, p.settings.height > p.settings.width);
+          commands.push({ ...base(e), type: 'add_overlay', start: +s0.toFixed(3), end: +Math.max(e.end, phrase[phrase.length - 1].end + 1.2).toFixed(3), payload: { role: 'overlay', caption, x: +(zone.cx - 0.5).toFixed(3), label: e.text } });
+          break;
+        }
+        case 'element': {
+          const pr = str(e.preset) ? getElementPreset(e.preset) : undefined;
+          if (!pr || !num(e.start) || !num(e.end)) {
+            errors.push(`${tag}: precisa de preset válido (${ELEMENT_PRESETS.map((x) => x.id).join(', ')}), start e end`);
+            break;
+          }
+          const el = elementFromPreset(pr);
+          if (str(e.text)) {
+            const t = el.layers.find((l) => l.kind === 'text');
+            if (t) t.text = e.text.slice(0, 40);
+          }
+          commands.push({ ...base(e), type: 'add_overlay', start: e.start, end: e.end, payload: { role: 'elements', element: el, label: pr.label } });
+          break;
+        }
         case 'volume': {
           if (!clip || !num(e.volume)) {
             errors.push(`${tag}: precisa de clip_id e volume`);
@@ -479,12 +547,23 @@ export class DirectorTools {
       }
     }
     for (const z of zoomSpans.values()) {
-      const scale = zoomKeyframes(z.clip, z.spans, { every: 0, max: 0, zoom: z.amount, punch: z.punch, accent: '', maxWords: 0 });
-      if (!scale.length) {
+      const fresh = zoomKeyframes({ ...z.clip, keyframes: undefined }, z.spans, { every: 0, max: 0, zoom: z.amount, punch: z.punch, accent: '', maxWords: 0 });
+      if (!fresh.length) {
         errors.push(`zoom em ${z.clip.id}: trechos fora do clipe ou curtos demais`);
         continue;
       }
-      commands.push({ id: newId('k'), projectId: p.id, createdBy: 'ai', skill: 'director', confidence: 0.9, reason: z.reason, reversible: true, type: 'add_effect', start: z.spans[0][0], payload: { clipId: z.clip.id, keyframes: { scale }, prevKeyframes: z.clip.keyframes ?? null, label: 'Zoom' } });
+      // soma aos zooms que o clipe já tem: só os pontos dentro dos trechos novos são trocados
+      const speed = z.clip.speed || 1;
+      const src = (t: number) => z.clip.sourceIn + (t - z.clip.start) * speed;
+      const windows = z.spans.map(([a, b]) => [src(a) - 0.6, src(b) + 0.6] as const);
+      const kept = (z.clip.keyframes?.scale ?? []).filter((k) => !windows.some(([a, b]) => k.t >= a && k.t <= b));
+      const scale = [...kept, ...fresh.slice(kept.length ? 1 : 0)].sort((a, b) => a.t - b.t).filter((k, i, arr) => i === 0 || k.t > arr[i - 1].t);
+      // ancorado no rosto (o rosto fica parado e a imagem cresce em volta)
+      const face = cachedFace(z.clip.assetId);
+      const base = z.clip.transform.scale;
+      const x = scale.map((k) => ({ ...k, v: +(z.clip.transform.x + faceAnchorOffset(face, 1 + (k.v - base)).x).toFixed(4) }));
+      const y = scale.map((k) => ({ ...k, v: +(z.clip.transform.y + faceAnchorOffset(face, 1 + (k.v - base)).y).toFixed(4) }));
+      commands.push({ id: newId('k'), projectId: p.id, createdBy: 'ai', skill: 'director', confidence: 0.9, reason: z.reason, reversible: true, type: 'add_effect', start: z.spans[0][0], payload: { clipId: z.clip.id, keyframes: { ...z.clip.keyframes, scale, x, y }, prevKeyframes: z.clip.keyframes ?? null, label: 'Zoom' } });
     }
     let applied = 0;
     const rejected: string[] = [];
@@ -529,9 +608,52 @@ export class DirectorTools {
     return `Plano registrado (${structure.length} parte(s)).`;
   }
 
-  finish(input: Record<string, unknown>): string {
+  private gateTries = 0;
+
+  /** Entrega só com o portão de qualidade aprovado; na segunda tentativa reprovada, entrega com as pendências declaradas. */
+  finish(input: Record<string, unknown>): { ok: boolean; text: string } {
     const list = (v: unknown) => (Array.isArray(v) ? v.filter(str).map((s) => s.slice(0, 300)) : []);
-    this.state.finished = { summary: str(input.summary) ? input.summary.slice(0, 3000) : '', changes: list(input.changes), openQuestions: list(input.open_questions) };
-    return 'Entregue para aprovação.';
+    const q = qualityReport(this.p, this.profile());
+    if (!q.ok && this.gateTries++ < 1) return { ok: false, text: `${reportText(q)}\n\nNão entregue ainda: corrija os itens ✗ (find_image, edit_timeline lettering/zoom/element) e chame finish de novo.` };
+    const pend = q.ok ? [] : q.checks.filter((c) => !c.ok).map((c) => `Pendente: ${c.name} ${c.value} (meta ${c.target})`);
+    this.state.finished = { summary: str(input.summary) ? input.summary.slice(0, 3000) : '', changes: list(input.changes), openQuestions: [...list(input.open_questions), ...pend] };
+    return { ok: true, text: q.ok ? 'Entregue para aprovação (portão de qualidade aprovado).' : 'Entregue com pendências declaradas.' };
+  }
+
+  /** Perfil do canal com o tom e a música do briefing. */
+  profile() {
+    const wf = readWorkflow(this.p.metadata);
+    return applyTone(profileFor(wf), wf?.tone, wf?.music, wf?.track === 'short' || this.p.settings.height > this.p.settings.width);
+  }
+
+  /** Busca uma imagem no contexto do canal e coloca no B-roll do rascunho. */
+  async findImageAt(input: Record<string, unknown>): Promise<string> {
+    const q = str(input.query) ? input.query.trim() : '';
+    if (!q || !num(input.start) || !num(input.end) || input.end - input.start < 1) return 'Preciso de query, start e end (pelo menos 1 s).';
+    const env = this.env;
+    const draft = env.draft;
+    const p = this.p;
+    const profile = this.profile();
+    const vertical = p.settings.height > p.settings.width;
+    env.progress(`Buscando imagem: "${q}"`);
+    const hit = await findImage([q, str(input.query_alt) ? input.query_alt : ''].filter(Boolean), {
+      vertical,
+      preferArchive: profile.archive,
+      signal: env.signal,
+      accept: (title, query) => imageAllowed(title, profile) && relevantTo(title, query),
+    });
+    if (!hit) return `Nenhuma imagem dos acervos coube no contexto para "${q}". Tente outra busca mais concreta (obra, lugar, objeto, época) ou deixe o rosto.`;
+    const imported = await env.services.importFiles([hit.file]);
+    draft.addAssets(env.liveAssets());
+    const info = imported.get(hit.file.name);
+    const a = info ? this.p.assets[info.id] : undefined;
+    if (!a || !a.width) return 'A imagem baixou mas não entrou no projeto.';
+    if (Math.min(a.width, a.height) < 600) return `A imagem "${hit.title}" é pequena demais para tela cheia; tente outra busca.`;
+    const kb = kenBurns(a.width, a.height, p.settings.width, p.settings.height, input.end - input.start, Object.keys(p.clips).length);
+    const cmd: EditCommand = { id: newId('k'), projectId: p.id, createdBy: 'ai', skill: 'director', confidence: 0.9, reason: str(input.why) ? input.why.slice(0, 200) : 'imagem', reversible: true, type: 'add_overlay', start: input.start, end: input.end, payload: { assetId: a.id, role: 'broll', scale: kb.scale, keyframes: kb.keyframes, license: hit.license, label: hit.query } };
+    const op = createOperation(draft.port, { stage: 'director', skill: 'director', commands: [cmd] });
+    const r = applyOperation(draft.port, op.id, 'all');
+    if (r.rejected.length) return `Recusada: ${r.rejected[0].reason}. Escolha outro trecho (o B-roll não pode sobrepor outra imagem).`;
+    return `Colocada "${hit.title}" (busca "${hit.query}") de ${fmt(input.start)} a ${fmt(input.end)} no B-roll.`;
   }
 }

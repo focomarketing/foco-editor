@@ -10,8 +10,9 @@ import { motionDesignerSkill } from './motion';
 import { transitionDesignerSkill } from './transitions';
 import { audioDesignerSkill } from './audio';
 import { captionDesignerSkill } from './captions';
+import { coloristSkill } from './color';
 
 export function registerAllSkills() {
-  for (const s of [transcriptionSkill, roughCutSkill, interviewBrollSkill, scriptToVideoSkill, brollSelectorSkill, transitionDesignerSkill, motionDesignerSkill, audioDesignerSkill, captionDesignerSkill]) registerSkill(s);
+  for (const s of [transcriptionSkill, roughCutSkill, coloristSkill, interviewBrollSkill, scriptToVideoSkill, brollSelectorSkill, transitionDesignerSkill, motionDesignerSkill, audioDesignerSkill, captionDesignerSkill]) registerSkill(s);
 }
 registerAllSkills();

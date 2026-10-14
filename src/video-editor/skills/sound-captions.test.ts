@@ -7,6 +7,10 @@ import { heuristicBrief } from '../narrative/brief';
 import { profileFor } from '../narrative/profiles';
 import { fixWords } from '../narrative/reference';
 import { musicSpans, sfxCues } from './audio';
+import { applyTone } from '../narrative/tones';
+import { ctaCues, ctaElement } from './cta';
+import { punchSpans, wordStart } from './motion';
+import { safeCorrection } from './color';
 import { serialize } from '../director/claudeCode';
 
 const cristao = profileFor({ track: 'youtube', subtype: 'cristao' });
@@ -61,23 +65,33 @@ const VIDEO = [
 describe('trilha e efeitos pela narrativa', () => {
   const b = heuristicBrief(speak(VIDEO), cristao);
   const end = b.sentences.at(-1)!.end;
-  it('clima por bloco: pergunta séria, blocos contemplativos alternando, esperança na conclusão', () => {
+  it('cristão: uma trilha só, consistente, que abre na conclusão (sem pular de música)', () => {
     const spans = musicSpans(b, cristao, end + 20);
-    expect(spans[0].mood).toBe('reflexao');
-    expect(spans.at(-1)!.mood).toBe('esperanca');
+    expect(spans.map((x) => x.mood)).toEqual(['contemplativa', 'esperanca']);
     expect(spans.at(-1)!.end).toBeCloseTo(end + 20, 1); // vai até o fim do vídeo
     for (let i = 1; i < spans.length; i++) expect(spans[i].start).toBeGreaterThanOrEqual(spans[i - 1].end - 0.01);
+  });
+  it('música escolhida no briefing vale para o vídeo inteiro; tom dramático muda a trilha', () => {
+    expect(new Set(musicSpans(b, applyTone(cristao, 'auto', 'epica'), end).map((x) => x.mood))).toEqual(new Set(['epica']));
+    expect(musicSpans(b, applyTone(cristao, 'auto', 'none'), end)).toEqual([]);
+    const dram = applyTone(cristao, 'dramatico');
+    expect(musicSpans(b, dram, end)[0].mood).toBe('tensao');
+    expect(dram.sound.sfx.chapter).toBe('riser');
+    expect(dram.transitions.allowed).toContain('dip-black');
+    expect(applyTone(cristao, 'energetico').punchEvery).toBeLessThan(cristao.punchEvery!);
   });
   it('podcast fica sem trilha', () => {
     expect(musicSpans(b, profileFor({ track: 'youtube', subtype: 'podcast' }), end)).toEqual([]);
   });
-  it('swell termina no corte de cada bloco; brilho nos títulos da IA; nada sobreposto', () => {
+  it('cristão: nenhum efeito sonoro gratuito; dramático: riser termina no corte de cada bloco, nada sobreposto', () => {
     let p: Project = createProject();
     const g = p.tracks.find((t) => t.kind === 'video')!.id;
     const title: Clip = { id: 'cT', assetId: NO_ASSET, trackId: g, start: 9, duration: 3, sourceIn: 0, volume: 0, speed: 1, fadeIn: 0, fadeOut: 0, transform: { ...DEFAULT_TRANSFORM }, title: { template: 'title', text: 'X', subtitle: '', fontFamily: '', color: '', accent: '', y: 0.5 }, origin: { by: 'ai', skill: 'motion-graphics-designer' } };
     p = { ...p, clips: { cT: title } };
-    const cues = sfxCues(p, b, cristao);
-    const swells = cues.filter((c) => c.id === 'swell');
+    expect(sfxCues(p, b, cristao)).toEqual([]);
+    const cues = sfxCues(p, b, applyTone(cristao, 'dramatico'));
+    expect(cues.some((c) => c.id === 'brilho' || c.id === 'pop')).toBe(false);
+    const swells = cues.filter((c) => c.id === 'riser');
     expect(swells.length).toBeGreaterThan(0);
     for (const s of swells) expect(b.sections.some((sec) => Math.abs(s.at + s.duration - sec.start) < 0.01)).toBe(true);
     for (let i = 1; i < cues.length; i++) expect(cues[i].at).toBeGreaterThanOrEqual(cues[i - 1].at + cues[i - 1].duration);
@@ -119,5 +133,51 @@ describe('Diretor pela conta: conversa em texto', () => {
     expect(text).toContain('(imagem vista num passo anterior)');
     expect(text).toContain('abra o arquivo quadros-1.jpg com Read');
     expect(images).toHaveLength(1);
+  });
+});
+
+describe('chamada para o canal na palavra da transcrição', () => {
+  const words = ['Mas', 'antes', 'de', 'continuar,', 'se', 'inscreve', 'aí', 'no', 'canal', 'e', 'compartilha', 'com', 'alguém.', 'O', 'link', 'está', 'na', 'descrição.'].map((t, i) => ({ text: t, start: i * 0.4 }));
+  it('acha inscrição e link na palavra exata (uma peça por vez)', () => {
+    const c = ctaCues(words);
+    expect(c[0]).toMatchObject({ kind: 'inscricao', at: 5 * 0.4 });
+    expect(c.find((x) => x.kind === 'link')?.at).toBeCloseTo(14 * 0.4);
+    // "compartilha" a 2 s do botão de inscrição não empilha outra peça
+    expect(c.some((x) => x.kind === 'compartilhar')).toBe(false);
+  });
+  it('botão de inscrição com cursor, acima da legenda', () => {
+    const e = ctaElement('inscricao');
+    expect(e.layers.some((l) => l.kind === 'text' && l.text === 'INSCREVA-SE')).toBe(true);
+    expect(e.layers.some((l) => l.kind === 'arrow')).toBe(true);
+    expect(e.layers.every((l) => l.y < 0.8)).toBe(true);
+    expect(new Set(e.layers.map((l) => l.id)).size).toBe(e.layers.length);
+  });
+});
+
+describe('ritmo de agência', () => {
+  const list = Array.from({ length: 12 }, (_, i) => ({ start: i * 3, end: i * 3 + 2.8, role: 'argument' }));
+  it('troca de enquadramento quando passa do limite sem mudança visual', () => {
+    const spans = punchSpans(list, [], 7);
+    expect(spans.length).toBeGreaterThan(2);
+    let last = 0;
+    for (const [a, z] of spans) {
+      expect(a - last).toBeGreaterThanOrEqual(7);
+      expect(z - a).toBeLessThanOrEqual(6);
+      last = z;
+    }
+  });
+  it('imagens e títulos já contam como mudança visual', () => {
+    expect(punchSpans(list, [0, 6, 12, 18, 24, 30], 7)).toEqual([]);
+  });
+  it('título entra na palavra que o chama', () => {
+    const ws = ['A', 'resposta', 'é', 'Este', 'mundo', 'é', 'passagem.'].map((t, i) => ({ text: t, start: 10 + i * 0.4, end: 10 + i * 0.4 + 0.35 }));
+    expect(wordStart(ws, { index: 0, text: '', start: 10, end: 13 }, 'Este mundo é passagem.')).toBeCloseTo(11.2 - 0.1);
+  });
+});
+
+describe('colorista: corrige, não estiliza', () => {
+  it('limites de segurança e "nada a fazer" quando a diferença não aparece', () => {
+    expect(safeCorrection({ exposure: 1.8, saturation: 0.9, temperature: -0.7 })).toMatchObject({ exposure: 0.6, saturation: 0.15, temperature: -0.25 });
+    expect(safeCorrection({ exposure: 0.05, contrast: 0.02 })).toBeNull();
   });
 });

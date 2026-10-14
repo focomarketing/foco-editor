@@ -221,14 +221,18 @@ describe('motion-graphics-designer', () => {
     ]);
   });
 
-  it('pela orquestração: títulos em Gráficos + zoom no rosto; desfazer depois de outras edições volta o zoom', async () => {
+  it('pela orquestração: lettering em Gráficos (palavra por palavra) + zoom ancorado no rosto; desfazer volta tudo', async () => {
     portFor(project(['motion-graphics-designer']));
     const r = await runStage(port, 'motion', deps(speak(SPEECH)), { autoApply: false });
     const op = r.op!;
-    const titles = op.commands.filter((c) => c.payload.title);
+    const titles = op.commands.filter((c) => c.payload.caption && c.payload.role === 'overlay');
     const zoom = op.commands.find((c) => c.type === 'add_effect');
     expect(titles.length).toBeGreaterThan(0);
+    // sem caixa, palavra por palavra, cada palavra no tempo da fala
+    expect(titles.every((t) => t.payload.caption!.style.background === null && t.payload.caption!.style.mode !== 'karaoke')).toBe(true);
     expect(zoom?.payload.clipId).toBe('cMain');
+    // zoom ancorado no rosto: escala e posição andam juntas
+    expect(zoom?.payload.keyframes?.x?.length).toBe(zoom?.payload.keyframes?.scale?.length);
     applyOperation(port, op.id, 'all');
     const p = store.getState().project;
     expect(p.tracks.find((t) => t.id === aiClips()[0].trackId)?.name).toBe('Gráficos');

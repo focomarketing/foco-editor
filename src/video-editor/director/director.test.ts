@@ -155,8 +155,16 @@ describe('ferramentas do Diretor', () => {
     const t = new DirectorTools(env(new Draft(project())));
     t.setPlan({ summary: 'aula curta', target_duration: 25, structure: [{ start: 0, end: 3, part: 'gancho' }, { start: 3, end: 25, part: 'conteúdo' }] });
     expect(t.state.plan?.structure).toHaveLength(2);
-    t.finish({ summary: 'pronto', changes: ['cortei pausas'], open_questions: ['manter a música?'] });
-    expect(t.state.finished).toMatchObject({ summary: 'pronto', changes: ['cortei pausas'], openQuestions: ['manter a música?'] });
+    // edição rala: o portão de qualidade barra a primeira entrega e diz o que falta
+    const first = t.finish({ summary: 'pronto', changes: ['cortei pausas'], open_questions: ['manter a música?'] });
+    expect(first.ok).toBe(false);
+    expect(first.text).toMatch(/PORTÃO DE QUALIDADE: reprovado/);
+    expect(t.state.finished).toBeUndefined();
+    // na segunda, entrega com as pendências declaradas para a pessoa
+    expect(t.finish({ summary: 'pronto', changes: ['cortei pausas'], open_questions: ['manter a música?'] }).ok).toBe(true);
+    expect(t.state.finished).toMatchObject({ summary: 'pronto', changes: ['cortei pausas'] });
+    expect(t.state.finished!.openQuestions[0]).toBe('manter a música?');
+    expect(t.state.finished!.openQuestions.some((q) => q.startsWith('Pendente:'))).toBe(true);
   });
 });
 
@@ -227,16 +235,18 @@ describe('loop do Diretor', () => {
       msg([use('u3', 'set_plan', { summary: 'aula', structure: [{ start: 0, end: 30, part: 'tudo' }] }), use('u4', 'edit_timeline', { edits: [{ action: 'title', start: 3, end: 6, text: 'frase1', reason: 'tese' }] })], 'tool_use'),
       msg([use('u5', 'verify', {})], 'tool_use'),
       msg([{ type: 'text', text: 'Pronto.' }, use('u6', 'finish', { summary: 'editei', changes: ['título na tese'] })], 'tool_use'),
+      // o portão barrou (vídeo de teste ralo): entrega de novo, com pendências declaradas
+      msg([use('u7', 'finish', { summary: 'editei', changes: ['título na tese'] })], 'tool_use'),
     ]);
     const events: string[] = [];
     const r = await runDirector({ settings, draft, tools, userText: 'briefing', budgetUsd: 5, maxTurns: 10, signal: new AbortController().signal, onEvent: (e) => events.push(e.type), create: s.create });
     expect(r.stopped).toBe('finished');
-    expect(r.turns).toBe(4);
-    expect(r.costUsd).toBeCloseTo(costOf('claude-opus-5-5', { input_tokens: 1000, output_tokens: 200 }) * 4, 6);
+    expect(r.turns).toBe(5);
+    expect(r.costUsd).toBeCloseTo(costOf('claude-opus-5-5', { input_tokens: 1000, output_tokens: 200 }) * 5, 6);
     expect(tools.state.finished?.summary).toBe('editei');
     expect(Object.values(draft.project.clips).some((c) => c.title?.text === 'frase1')).toBe(true);
     // alternância user/assistant e todos os resultados de um turno numa mensagem só
-    expect(r.conversation.map((m) => m.role)).toEqual(['user', 'assistant', 'user', 'assistant', 'user', 'assistant', 'user', 'assistant', 'user']);
+    expect(r.conversation.map((m) => m.role)).toEqual(['user', 'assistant', 'user', 'assistant', 'user', 'assistant', 'user', 'assistant', 'user', 'assistant', 'user']);
     const second = r.conversation[2].content as unknown as Block[];
     expect(second.filter((b) => b.type === 'tool_result')).toHaveLength(2);
     // thinking ecoado sem mudanças no turno seguinte

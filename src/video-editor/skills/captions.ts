@@ -47,6 +47,12 @@ export const captionDesignerSkill: Skill = {
       // palavras fora de qualquer frase do mapa continuam como foram ditas
       words = [...out, ...words.filter((w) => !taken.has(w))].sort((a, b) => a.start - b.start);
     }
+    // enquanto a frase está escrita grande na tela (lettering), a legenda de baixo sai (não repete o texto)
+    const gfx = new Set(p.tracks.filter((t) => t.name === 'Gráficos').map((t) => t.id));
+    const lettering = Object.values(p.clips).filter((c) => gfx.has(c.trackId) && c.caption).map((c) => [c.start, c.start + c.duration] as const);
+    const before = words.length;
+    if (lettering.length) words = words.filter((w) => !lettering.some(([a, b]) => (w.start + w.end) / 2 >= a && (w.start + w.end) / 2 <= b));
+    const hidden = before - words.length;
     const clips = buildCaptionClips(words, 'role:captions', presetId);
     const commands: EditCommand[] = clips.map((c) => ({
       id: newId('k'),
@@ -63,7 +69,7 @@ export const captionDesignerSkill: Skill = {
     }));
     return {
       commands,
-      notes: [`${commands.length} legendas no estilo "${getPreset(presetId).label}"${fixed ? `, ${fixed} palavra(s) corrigida(s) pelo roteiro` : ''}.`],
+      notes: [`${commands.length} legendas no estilo "${getPreset(presetId).label}"${fixed ? `, ${fixed} palavra(s) corrigida(s) pelo roteiro` : ''}${hidden ? `; ${hidden} palavra(s) ficam só no lettering` : ''}.`],
     };
   },
 };

@@ -2,6 +2,7 @@
 // mídias reais (quadros, níveis de áudio, transcrições, skills) e guarda o andamento para a tela.
 // A timeline real só muda em "Aplicar" (um passo de undo).
 
+import { primeSkills } from '../video-editor/knowledge/skills';
 import { CanvasSink } from 'mediabunny';
 import type { InputVideoTrack } from 'mediabunny';
 import { Cmd } from '../engine/commands/commands';
@@ -170,6 +171,7 @@ async function run(userText: string) {
     return;
   }
   if (!draft) return;
+  await primeSkills(); // as skills de vídeo da pessoa entram no sistema do Diretor
   abort = new AbortController();
   set({ status: 'running', stopped: undefined, message: undefined });
   const r = await runDirector({
@@ -200,7 +202,7 @@ export async function startAdjust(request: string) {
 }
 
 /** Começa uma edição nova a partir do projeto aberto. */
-export async function startDirector(brief: string, opts: { adjust?: boolean } = {}) {
+export async function startDirector(brief: string, opts: { adjust?: boolean; review?: boolean } = {}) {
   if (state.status === 'running') return;
   stopPreview();
   const live = store.getState();
@@ -229,6 +231,22 @@ export async function startDirector(brief: string, opts: { adjust?: boolean } = 
   conversation = [];
   set({ log: [], costUsd: 0, turns: 0, plan: undefined, finished: undefined, issues: undefined, hasDraft: false });
   log({ kind: 'info', text: opts.adjust ? `Ajuste pedido: ${brief.trim()}` : 'Diretor começou. A timeline só muda quando você aplicar.' });
+  if (opts.review) {
+    await run(
+      [
+        'REVISÃO DE EDITOR SÊNIOR. As etapas automáticas já editaram este vídeo (corte, cor, imagens, transições, motion, trilha e legendas estão na timeline). Agora deixe a edição com qualidade de agência, como um editor profissional faria olhando o resultado.',
+        brief.trim() ? `BRIEFING DA PESSOA: ${brief.trim()}` : '',
+        'Siga o CONHECIMENTO DAS SKILLS DA PESSOA (no seu sistema): elas mandam.',
+        '1. project_overview, list_clips e read_transcript para entender o que já está feito.',
+        '2. view_frames em momentos de cada bloco (gancho, aberturas de bloco, imagens, títulos, fechamento).',
+        '3. Eleve ao padrão de agência: cubra os trechos parados (find_image com imagens que mostram a ideia, edit_timeline lettering nas frases de impacto, zoom no rosto nas frases de peso, element com motivo); tire o que estiver feio, em cima do rosto, repetido ou fora de contexto.',
+        '4. quality_report até o portão passar; não refaça o que já está bom. Entregue com finish listando as melhorias.',
+      ]
+        .filter(Boolean)
+        .join('\n'),
+    );
+    return;
+  }
   if (opts.adjust) {
     await run(
       `A EDIÇÃO DESTE VÍDEO JÁ FOI FEITA (corte, imagens, transições, motion, trilha e legendas estão na timeline).\nPEDIDO DE AJUSTE DA PESSOA: ${brief.trim()}\n\nFaça só o que foi pedido, sem refazer o resto (use list_clips e read_transcript para achar os pontos certos). Confira com view_frames/verify e entregue com finish.`,

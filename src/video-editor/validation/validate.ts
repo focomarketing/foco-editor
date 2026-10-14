@@ -37,7 +37,7 @@ export function validateCommand(cmd: EditCommand, p: Project, occupied: Map<stri
     case 'add_sound_effect':
     case 'add_caption': {
       if (!num(cmd.start) || !num(cmd.end) || cmd.start! < -EPS || cmd.end! <= cmd.start! + 0.05) return 'tempo inválido';
-      const isGraphic = !!pl.title || !!pl.caption;
+      const isGraphic = !!pl.title || !!pl.caption || !!pl.element;
       if (!isGraphic && (!pl.assetId || !p.assets[pl.assetId])) return 'mídia inexistente no projeto';
       if (cmd.trackId) {
         const t = p.tracks.find((x) => x.id === cmd.trackId);

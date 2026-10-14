@@ -40,10 +40,8 @@ export const PROJECT_PRESETS: ProjectPreset[] = [
     aspectRatio: '16:9',
     modes: ['audio-led', 'script-led'],
     defaultMode: 'audio-led',
-    enabledSkills: [
-      'media-analysis', 'transcription', 'editorial-director', 'edit-interview-with-broll', 'edit-script-to-video',
-      'broll-selector', 'professional-transition-designer', 'motion-graphics-designer', 'audio-designer', 'caption-designer', 'chapter-generator', 'quality-control',
-    ],
+    // só skills registradas (src/video-editor/skills); o mapa narrativo, o colorista e a revisão do Diretor sempre rodam
+    enabledSkills: ['transcription', 'edit-interview-with-broll', 'edit-script-to-video', 'broll-selector', 'professional-transition-designer', 'motion-graphics-designer', 'audio-designer', 'caption-designer'],
     defaultSettings: { pacing: 'natural', captionStyle: 'youtube', musicLevel: 0.12, cutStyle: 'dynamic' },
   },
   {
@@ -54,11 +52,8 @@ export const PROJECT_PRESETS: ProjectPreset[] = [
     aspectRatio: '9:16',
     modes: ['audio-led', 'script-led'],
     defaultMode: 'audio-led',
-    enabledSkills: [
-      'media-analysis', 'transcription', 'hook-generator', 'aggressive-cut', 'edit-interview-with-broll',
-      'edit-script-to-video', 'broll-selector', 'professional-transition-designer', 'caption-designer', 'motion-graphics-designer', 'trend-adapter',
-      'audio-designer', 'platform-adapter', 'quality-control',
-    ],
+    // aggressive-cut é a chave do corte seco dos curtos (não é uma skill à parte)
+    enabledSkills: ['transcription', 'aggressive-cut', 'edit-interview-with-broll', 'edit-script-to-video', 'broll-selector', 'professional-transition-designer', 'caption-designer', 'motion-graphics-designer', 'audio-designer'],
     defaultSettings: { pacing: 'fast', captionStyle: 'shorts', musicLevel: 0.22, cutStyle: 'dry' },
   },
   {
@@ -80,7 +75,7 @@ export const PROJECT_PRESETS: ProjectPreset[] = [
     aspectRatio: 'custom',
     modes: ['manual-assisted'],
     defaultMode: 'manual-assisted',
-    enabledSkills: ['caption-designer', 'aggressive-cut', 'broll-selector', 'professional-transition-designer', 'audio-designer', 'motion-graphics-designer', 'platform-adapter', 'quality-control'],
+    enabledSkills: ['caption-designer', 'aggressive-cut', 'broll-selector', 'professional-transition-designer', 'audio-designer', 'motion-graphics-designer'],
     defaultSettings: { pacing: 'natural', captionStyle: 'minimal', musicLevel: 0.15, cutStyle: 'natural' },
   },
 ];
