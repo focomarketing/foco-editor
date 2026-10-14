@@ -165,8 +165,8 @@ function toolLabel(name: string, input: unknown): string {
 
 async function run(userText: string) {
   const settings = aiStore.get().settings;
-  if (settings.provider !== 'claude' || !settings.claudeKey || !settings.cloudConsent) {
-    notify('O Diretor usa o Claude: configure a chave e autorize o envio nas configurações de IA.', 'error', 8000);
+  if (settings.provider !== 'claude-code' && (settings.provider !== 'claude' || !settings.claudeKey || !settings.cloudConsent)) {
+    notify('O Diretor usa o Claude: escolha "Minha conta Claude" (ou configure a chave da API) nas configurações de IA.', 'error', 8000);
     return;
   }
   if (!draft) return;
@@ -193,8 +193,14 @@ async function run(userText: string) {
   else if (r.message) notify(r.message, r.stopped === 'error' || r.stopped === 'refusal' ? 'error' : 'info', 7000);
 }
 
+/** Ajuste pedido depois da edição automática: o Diretor parte do que está na timeline e faz só isso. */
+export async function startAdjust(request: string) {
+  if (!request.trim()) return;
+  await startDirector(request, { adjust: true });
+}
+
 /** Começa uma edição nova a partir do projeto aberto. */
-export async function startDirector(brief: string) {
+export async function startDirector(brief: string, opts: { adjust?: boolean } = {}) {
   if (state.status === 'running') return;
   stopPreview();
   const live = store.getState();
@@ -222,7 +228,13 @@ export async function startDirector(brief: string) {
   });
   conversation = [];
   set({ log: [], costUsd: 0, turns: 0, plan: undefined, finished: undefined, issues: undefined, hasDraft: false });
-  log({ kind: 'info', text: 'Diretor começou. A timeline só muda quando você aplicar.' });
+  log({ kind: 'info', text: opts.adjust ? `Ajuste pedido: ${brief.trim()}` : 'Diretor começou. A timeline só muda quando você aplicar.' });
+  if (opts.adjust) {
+    await run(
+      `A EDIÇÃO DESTE VÍDEO JÁ FOI FEITA (corte, imagens, transições, motion, trilha e legendas estão na timeline).\nPEDIDO DE AJUSTE DA PESSOA: ${brief.trim()}\n\nFaça só o que foi pedido, sem refazer o resto (use list_clips e read_transcript para achar os pontos certos). Confira com view_frames/verify e entregue com finish.`,
+    );
+    return;
+  }
   await run(`BRIEFING DA PESSOA:\n${brief.trim() || '(sem briefing: siga o método do formato)'}\n\nEdite o projeto seguindo o seu processo e entregue com finish.`);
 }
 

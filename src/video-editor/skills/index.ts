@@ -8,8 +8,10 @@ import { interviewBrollSkill } from './interview';
 import { scriptToVideoSkill } from './script';
 import { motionDesignerSkill } from './motion';
 import { transitionDesignerSkill } from './transitions';
+import { audioDesignerSkill } from './audio';
+import { captionDesignerSkill } from './captions';
 
 export function registerAllSkills() {
-  for (const s of [transcriptionSkill, roughCutSkill, interviewBrollSkill, scriptToVideoSkill, brollSelectorSkill, transitionDesignerSkill, motionDesignerSkill]) registerSkill(s);
+  for (const s of [transcriptionSkill, roughCutSkill, interviewBrollSkill, scriptToVideoSkill, brollSelectorSkill, transitionDesignerSkill, motionDesignerSkill, audioDesignerSkill, captionDesignerSkill]) registerSkill(s);
 }
 registerAllSkills();

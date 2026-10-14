@@ -45,6 +45,8 @@ export interface SkillServices {
   frames?(assetId: string, times: number[]): Promise<string[]>;
   /** Pixels RGBA de um quadro (largura pedida): análise de movimento e cor das transições. */
   pixels?(assetId: string, time: number, width: number): Promise<{ data: Uint8ClampedArray; width: number; height: number } | null>;
+  /** Som da biblioteca do FOCO (trilha, efeito, ambiente) como arquivo WAV. */
+  sound?(id: string, opts: { duration?: number }): Promise<File>;
 }
 
 export interface SkillOutput {

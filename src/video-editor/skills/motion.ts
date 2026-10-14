@@ -240,7 +240,11 @@ Escolha até ${limit} frases que carregam o vídeo e a sua estrutura. Para cada 
       // identidade do canal: fonte, cor e destaque do perfil
       const look = profile.motion;
       const title = { ...defaultTitle(template, short || look.upper ? pk.text.toUpperCase() : pk.text), fontFamily: template === 'title' ? look.titleFont : look.bodyFont, color: look.color, accent: look.accent };
-      if (template === 'lowerThird') title.subtitle = '';
+      if (template === 'lowerThird') {
+        title.subtitle = '';
+        // com legenda na base, o lower third sobe para não ficar por baixo dela
+        if (ctx.workflow?.phases.includes('captions')) title.y = 0.7;
+      }
       commands.push({
         id: newId('k'),
         projectId: p.id,

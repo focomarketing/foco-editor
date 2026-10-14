@@ -1,7 +1,7 @@
 {
   "name": "foco-editor",
   "private": true,
-  "version": "1.0.10",
+  "version": "1.0.11",
   "description": "FOCO Editor — editor de vídeo com IA",
   "productName": "FOCO Editor",
   "author": "FOCO Marketing",
@@ -29,7 +29,9 @@
     "app:build": "node scripts/build-desktop.mjs",
     "test:e2e:desktop": "node scripts/build-desktop.mjs --no-web --prepare && node scripts/e2e-desktop.mjs",
     "build:web": "vite build",
-    "dist": "vite build && electron-builder --win --publish never"
+    "dist": "vite build && electron-builder --win --publish never",
+    "test:e2e:sound": "node scripts/e2e-sound.mjs",
+    "test:e2e:full": "node scripts/e2e-full.mjs"
   },
   "dependencies": {
     "electron-updater": "^6.8.9"

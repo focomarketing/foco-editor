@@ -4,7 +4,9 @@
 
 import { useState, useSyncExternalStore } from 'react';
 import { Check, Clapperboard, Eye, EyeOff, Play, Square, Trash2, Wand2 } from 'lucide-react';
-import { adjustDirector, applyDirector, cancelDirector, directorBudget, directorStore, discardDirector, previewDraft, startDirector, stopPreview } from '../app/director';
+import { adjustDirector, applyDirector, cancelDirector, directorBudget, directorStore, discardDirector, previewDraft, startAdjust, startDirector, stopPreview } from '../app/director';
+import { useEditor } from './hooks';
+import { readOperations } from '../video-editor/history/operations';
 import type { LogEntry } from '../app/director';
 import { aiStore } from '../app/aiEditor';
 
@@ -18,11 +20,32 @@ export function DirectorPanel() {
   const [adjust, setAdjust] = useState('');
   const [budget, setBudget] = useState(directorBudget.get());
   const ai = aiStore.get().settings;
-  const ready = ai.provider === 'claude' && !!ai.claudeKey && ai.cloudConsent;
+  const account = ai.provider === 'claude-code';
+  const ready = account || (ai.provider === 'claude' && !!ai.claudeKey && ai.cloudConsent);
   const running = d.status === 'running';
+  // já houve edição pela IA: o primeiro lugar do painel é o campo de ajustes
+  const { project } = useEditor();
+  const edited = readOperations(project).some((o) => o.status === 'applied');
 
   return (
     <div className="director" data-testid="director-panel">
+      {d.status === 'idle' && edited && (
+        <div className="director-adjust-first">
+          <label className="director-label">Pedir ajuste na edição</label>
+          <textarea
+            className="text-input area"
+            rows={4}
+            value={adjust}
+            onChange={(e) => setAdjust(e.target.value)}
+            placeholder={'Ex.: troque a imagem do bloco "Cura não é restauração" por uma de Jesus curando; a música está alta no começo; tire o título dos 3:28; legenda maior.'}
+            data-testid="adjust-first"
+          />
+          <button className="btn primary" disabled={!ready || !adjust.trim()} onClick={() => { void startAdjust(adjust); setAdjust(''); }} data-testid="adjust-first-send">
+            <Wand2 size={14} /> Fazer ajuste
+          </button>
+          <p className="note">O Diretor faz só o que você pediu, num rascunho; você vê no player e aplica. Pode pedir quantos ajustes quiser.</p>
+        </div>
+      )}
       {d.status === 'idle' && (
         <>
           <p className="note">
@@ -37,29 +60,23 @@ export function DirectorPanel() {
             placeholder={'Ex.: vídeo para o YouTube sobre fé e ansiedade, público de 25–40 anos, tom acolhedor, ~8 min. Manter as pausas de ênfase, destacar os versículos citados, B-roll de natureza.'}
             data-testid="director-brief"
           />
-          <div className="field">
+          {!account && <div className="field">
             <label>Limite de gasto</label>
             <input type="number" min={0.5} max={20} step={0.5} value={budget} onChange={(e) => { const v = Number(e.target.value); setBudget(v); if (v > 0) directorBudget.set(v); }} />
             <span className="ro">US$</span>
-          </div>
-          {!ready && (
-            <p className="note bad">
-              {ai.provider === 'claude-code'
-                ? 'O Diretor (agente com ferramentas) ainda precisa da chave da API. Com "Minha conta Claude", use as etapas guiadas (Corte, Imagens, Transições, Motion): elas já usam a sua conta.'
-                : 'O Diretor usa o Claude: configure a chave da API e autorize o envio na aba IA → configurações.'}
-            </p>
-          )}
+          </div>}
+          {!ready && <p className="note bad">O Diretor usa o Claude: escolha "Minha conta Claude" (ou configure a chave da API) em IA → configurações.</p>}
           <button className="btn primary" disabled={!ready} onClick={() => void startDirector(brief)} data-testid="director-start">
             <Clapperboard size={14} /> Editar com o Diretor
           </button>
-          <p className="note">Modelo: {ai.claudeModel}. Para gastar menos, troque para o Sonnet nas configurações de IA.</p>
+          <p className="note">{account ? `Usa a sua conta Claude (${ai.claudeModel}), sem chave de API. Cada passo leva alguns segundos.` : `Modelo: ${ai.claudeModel}. Para gastar menos, troque para o Sonnet nas configurações de IA.`}</p>
         </>
       )}
 
       {d.status !== 'idle' && (
         <>
           <div className="row-between director-meta">
-            <span className="muted">{running ? 'Trabalhando…' : d.stopped === 'finished' ? 'Entregue' : 'Parado'} · {d.turns} passo(s) · {usd(d.costUsd)}</span>
+            <span className="muted">{running ? 'Trabalhando…' : d.stopped === 'finished' ? 'Entregue' : 'Parado'} · {d.turns} passo(s) · {account ? 'na sua conta Claude' : usd(d.costUsd)}</span>
             {running && <button className="btn sm" onClick={cancelDirector} data-testid="director-cancel"><Square size={11} /> Parar</button>}
           </div>
           {running && <div className="progress"><div className="indeterminate" /></div>}

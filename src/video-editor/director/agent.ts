@@ -8,6 +8,7 @@ import type { AISettings } from '../../engine/ai/providers';
 import { readWorkflow } from '../../core/workflow';
 import { formatFor, FORMAT_RULES } from '../transitions/director';
 import { methodFor, methodText } from './methods';
+import { claudeCodeCreate } from './claudeCode';
 import { profileFor } from '../narrative/profiles';
 import { DIRECTOR_TOOLS } from './tools';
 import type { DirectorTools } from './tools';
@@ -108,6 +109,7 @@ function withRollingCache(messages: MessageParam[]): MessageParam[] {
 }
 
 export function defaultCreate(s: AISettings): CreateMessage {
+  if (s.provider === 'claude-code') return claudeCodeCreate(s); // conta da pessoa, sem chave
   const client = new Anthropic({ apiKey: s.claudeKey, dangerouslyAllowBrowser: true, maxRetries: 2 });
   return (params, signal) => client.beta.messages.create(params, { signal });
 }

@@ -95,8 +95,8 @@ export const DIRECTOR_TOOLS: Anthropic.Beta.Messages.BetaTool[] = [
   },
   {
     name: 'run_skill',
-    description: 'Roda uma skill especializada do FOCO no rascunho e devolve as sugestões dela (sem aplicar): cut = corte de pausas/erros/tomadas pela onda do áudio (cut_mode natural|dynamic|dry); images = takes de apoio e imagens de acervo pela fala; transitions = transições por análise de movimento/cor/batida; motion = títulos animados e zoom. Depois use accept_suggestions com os ids que fizerem sentido.',
-    input_schema: obj({ stage: { type: 'string', enum: ['cut', 'images', 'transitions', 'motion'] }, cut_mode: { type: 'string', enum: ['natural', 'dynamic', 'dry'] } }, ['stage']),
+    description: 'Roda uma skill especializada do FOCO no rascunho e devolve as sugestões dela (sem aplicar): cut = corte de pausas/erros/tomadas pela onda do áudio (cut_mode natural|dynamic|dry); images = takes de apoio e imagens de acervo pela fala; transitions = transições por análise de movimento/cor/batida; motion = títulos animados e zoom; audio = trilha por bloco e efeitos sonoros (biblioteca do FOCO); captions = legendas no estilo do canal. Depois use accept_suggestions com os ids que fizerem sentido.',
+    input_schema: obj({ stage: { type: 'string', enum: ['cut', 'images', 'transitions', 'motion', 'audio', 'captions'] }, cut_mode: { type: 'string', enum: ['natural', 'dynamic', 'dry'] } }, ['stage']),
   },
   {
     name: 'accept_suggestions',
@@ -345,7 +345,7 @@ export class DirectorTools {
   // --- skills -----------------------------------------------------------------------------------
 
   async skill(stage: string, cutMode?: CutMode): Promise<string> {
-    if (!['cut', 'images', 'transitions', 'motion'].includes(stage)) return `Etapa inválida: ${stage}`;
+    if (!['cut', 'images', 'transitions', 'motion', 'audio', 'captions'].includes(stage)) return `Etapa inválida: ${stage}`;
     if (cutMode) this.env.setCutMode?.(cutMode);
     const env = this.env;
     const draft = env.draft;

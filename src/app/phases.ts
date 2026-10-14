@@ -21,6 +21,7 @@ import { notify } from './notify';
 import { timelineSpeech } from './smartCut';
 import { currentWorkflow, finishPhase, markRan, setPhase } from './workflow';
 import { blobToBase64, framePixels, grabFramesBase64 } from '../engine/media/generators';
+import { soundFile } from '../engine/audio/soundLibrary';
 
 export interface PhaseRun {
   phase: PhaseId;
@@ -51,7 +52,7 @@ export const phaseRunStore = {
 };
 
 /** Fases que a IA executa sozinha ao entrar nelas. */
-export const AUTO_PHASES: PhaseId[] = ['cut', 'images', 'transitions', 'motion'];
+export const AUTO_PHASES: PhaseId[] = ['cut', 'images', 'transitions', 'motion', 'audio', 'captions'];
 
 // --- ponte entre o orquestrador e o editor ----------------------------------------------------
 
@@ -115,6 +116,7 @@ export const skillServices: SkillServices = {
     const track = await media.getInput(id)?.getPrimaryVideoTrack();
     return track ? grabFramesBase64(track, times) : [];
   },
+  sound: (id, opts) => soundFile(id, opts),
   async pixels(id, time, width) {
     const entry = media.get(id);
     if (entry?.image) {
@@ -161,8 +163,14 @@ export async function runAll() {
       }
       finishPhase('done');
     }
+    // no fim abre o Diretor: o campo de ajustes fica à mão para os próximos pedidos
+    try {
+      localStorage.setItem('foco.sidebar', 'director');
+    } catch {
+      /* sem armazenamento: abre na ferramenta padrão */
+    }
     setPhase('editor');
-    notify('Vídeo editado do início ao fim. Revise na timeline (cada etapa pode ser desfeita).', 'info', 8000);
+    notify('Vídeo editado do início ao fim. Revise na timeline e peça ajustes no painel do Diretor.', 'info', 9000);
   } finally {
     batch = null;
     for (const l of listeners) l();

@@ -52,10 +52,19 @@ export async function claudeCodeStatus(): Promise<ClaudeCodeStatus> {
 }
 
 /** Pergunta estruturada pela conta da pessoa (o editor roda o Claude Code isolado, sem ferramentas). */
-export async function askClaudeCode(s: AISettings, system: string, user: string, schema: Record<string, unknown>, signal?: AbortSignal, effort: 'low' | 'medium' | 'high' = 'medium'): Promise<{ data: unknown; model: string }> {
+export async function askClaudeCode(
+  s: AISettings,
+  system: string,
+  user: string,
+  schema: Record<string, unknown>,
+  signal?: AbortSignal,
+  effort: 'low' | 'medium' | 'high' = 'medium',
+  /** Imagens (JPEG/PNG em base64) que o Claude abre com Read: os quadros do vídeo. */
+  images: { name: string; base64: string }[] = [],
+): Promise<{ data: unknown; model: string }> {
   let res: Response;
   try {
-    res = await fetch(`${CLAUDE_LOCAL}/ask`, { method: 'POST', headers: LOCAL_HEADERS, signal, body: JSON.stringify({ system, user, schema, model: s.claudeModel, effort }) });
+    res = await fetch(`${CLAUDE_LOCAL}/ask`, { method: 'POST', headers: LOCAL_HEADERS, signal, body: JSON.stringify({ system, user, schema, model: s.claudeModel, effort, images }) });
   } catch (e) {
     if (e instanceof DOMException && e.name === 'AbortError') throw e;
     throw new Error('Não consegui falar com o Claude Code deste computador (o editor está rodando pelo app ou pelo npm run dev?).');

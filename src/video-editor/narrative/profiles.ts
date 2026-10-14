@@ -43,6 +43,10 @@ export interface EditorialProfile {
     /** Caixa alta nos textos. */
     upper: boolean;
   };
+  /** Trilha e efeitos sonoros (fase Música e efeitos). */
+  sound: SoundStyle;
+  /** Preset de legenda do canal (sem: o padrão do tipo de vídeo). */
+  captionPreset?: string;
   transitions: {
     /** Abertura de um bloco/capítulo. */
     chapter: string;
@@ -53,6 +57,16 @@ export interface EditorialProfile {
     /** Só estes presets entram (os outros viram corte seco). */
     allowed: string[];
   };
+}
+
+export interface SoundStyle {
+  /** Clima da trilha por tipo de bloco (ids da biblioteca de sons); lista = alterna entre os blocos; null = sem música. */
+  music: Partial<Record<'abertura' | 'bloco' | 'conclusao' | 'cta', string | string[] | null>>;
+  /** Volume da trilha sob a voz (0..1). */
+  level: number;
+  /** Efeito na abertura de cada bloco, na entrada de título e na entrada de imagem (null = nenhum). */
+  sfx: { chapter: string | null; title: string | null; broll: string | null };
+  sfxLevel: number;
 }
 
 // Imagem de banco e acervo que nunca serve a nenhum canal: ícone, logo, diagrama, política
@@ -104,6 +118,9 @@ const christian: EditorialProfile = {
   // contemplativo: a imagem respira (4–8 s) e não atropela a fala
   brollPace: { min: 4, max: 8, every: 40 },
   motion: { titleFont: '"Playfair Display", Georgia, serif', bodyFont: '"Playfair Display", Georgia, serif', color: '#f5efe3', accent: '#d4a85a', callouts: true, upper: false },
+  // trilha discreta: séria na pergunta, contemplativa nos blocos, esperança na conclusão
+  sound: { music: { abertura: 'reflexao', cta: 'contemplativa', bloco: ['contemplativa', 'reflexao'], conclusao: 'esperanca' }, level: 0.1, sfx: { chapter: 'swell', title: 'brilho', broll: null }, sfxLevel: 0.3 },
+  captionPreset: 'reflexao',
   transitions: { chapter: 'cinematic-dissolve', outro: 'dip-black', jumpCut: 'punch-enfase', allowed: ['punch-in', 'cross-dissolve', 'cinematic-dissolve', 'dip-black', 'chapter-transition', 'broll-bridge', 'seamless-cut', 'focus-transition', 'rack-focus', 'clean-dissolve'] },
 };
 
@@ -131,10 +148,12 @@ const documentary: EditorialProfile = {
   // a imagem é a espinha do ensaio: mais imagens, mais longas
   brollPace: { min: 4, max: 9, every: 22 },
   motion: { titleFont: '"Playfair Display", Georgia, serif', bodyFont: 'Georgia, "Times New Roman", serif', color: '#f0f0f0', accent: '#c9a96e', callouts: false, upper: false },
+  sound: { music: { abertura: 'tensao', cta: 'reflexao', bloco: ['epica', 'reflexao'], conclusao: 'esperanca' }, level: 0.14, sfx: { chapter: 'whoosh-suave', title: null, broll: 'whoosh-suave' }, sfxLevel: 0.25 },
+  captionPreset: 'cinema',
   transitions: { chapter: 'cinematic-dissolve', outro: 'dip-black', jumpCut: 'seco', allowed: ['cross-dissolve', 'cinematic-dissolve', 'dip-black', 'chapter-transition', 'broll-bridge', 'seamless-cut', 'focus-transition', 'rack-focus'] },
 };
 
-const dark: EditorialProfile = { ...documentary, id: 'dark', label: 'Dark / narrado', voice: 'Canal narrado sem rosto: mistério, suspense e revelação; a imagem carrega o vídeo inteiro.', motion: { ...documentary.motion, accent: '#b3261e', titleFont: '"Cinzel", Georgia, serif', upper: true } };
+const dark: EditorialProfile = { ...documentary, id: 'dark', label: 'Dark / narrado', voice: 'Canal narrado sem rosto: mistério, suspense e revelação; a imagem carrega o vídeo inteiro.', motion: { ...documentary.motion, accent: '#b3261e', titleFont: '"Cinzel", Georgia, serif', upper: true }, sound: { music: { abertura: 'tensao', cta: 'tensao', bloco: 'tensao', conclusao: 'epica' }, level: 0.16, sfx: { chapter: 'riser', title: 'sub-drop', broll: 'whoosh-suave' }, sfxLevel: 0.3 } };
 
 // --- Educativo / opinião / podcast ------------------------------------------------------
 
@@ -156,11 +175,12 @@ const educational: EditorialProfile = {
   forbidden: forbidden(),
   brollRoles: ['example', 'argument', 'scripture', 'chapter', 'thesis'],
   motion: { titleFont: '"Arial Black", "Segoe UI Black", sans-serif', bodyFont: '"Segoe UI", Arial, sans-serif', color: '#ffffff', accent: '#4f8cff', callouts: true, upper: false },
+  sound: { music: { abertura: 'lofi', cta: 'lofi', bloco: 'lofi', conclusao: 'lofi' }, level: 0.1, sfx: { chapter: 'whoosh', title: 'pop', broll: 'whoosh-suave' }, sfxLevel: 0.3 },
   transitions: { chapter: 'chapter-transition', outro: 'dip-black', jumpCut: 'punch-alternado', allowed: ['punch-in', 'cross-dissolve', 'chapter-transition', 'broll-bridge', 'seamless-cut', 'subtle-push', 'zoom-clean', 'dip-black', 'animated-wipe'] },
 };
 
 const opinion: EditorialProfile = { ...educational, id: 'opiniao', label: 'Opinião / comentário', voice: 'Pessoa falando para a câmera com opinião forte: o rosto é o centro; imagem só quando prova o que é dito.', brollRoles: ['example', 'argument'] };
-const podcast: EditorialProfile = { ...educational, id: 'podcast', label: 'Podcast / conversa', voice: 'Conversa: as pessoas são o vídeo; quase nada por cima da fala.', brollRoles: ['example'], transitions: { ...educational.transitions, jumpCut: 'seco', allowed: ['clean-dissolve', 'seamless-cut', 'dip-black', 'cross-dissolve'] } };
+const podcast: EditorialProfile = { ...educational, id: 'podcast', label: 'Podcast / conversa', voice: 'Conversa: as pessoas são o vídeo; quase nada por cima da fala.', brollRoles: ['example'], sound: { music: {}, level: 0, sfx: { chapter: null, title: null, broll: null }, sfxLevel: 0 }, transitions: { ...educational.transitions, jumpCut: 'seco', allowed: ['clean-dissolve', 'seamless-cut', 'dip-black', 'cross-dissolve'] } };
 
 // --- Curtos -------------------------------------------------------------------------------
 
@@ -174,6 +194,7 @@ const short: EditorialProfile = {
   forbidden: forbidden(),
   brollRoles: ALL_ROLES.filter((r) => r !== 'cta'),
   motion: { titleFont: '"Arial Black", "Segoe UI Black", sans-serif', bodyFont: '"Arial Black", "Segoe UI Black", sans-serif', color: '#ffffff', accent: '#ffd400', callouts: true, upper: true },
+  sound: { music: { abertura: 'energia', cta: 'energia', bloco: 'energia', conclusao: 'energia' }, level: 0.2, sfx: { chapter: 'whoosh', title: 'pop', broll: 'whoosh' }, sfxLevel: 0.35 },
   transitions: { chapter: 'zoom-clean', outro: 'cta-reveal', jumpCut: 'punch-alternado', allowed: [] },
 };
 
@@ -186,7 +207,7 @@ export function profileFor(wf: Pick<Workflow, 'track' | 'subtype'> | null | unde
   if (wf?.subtype && PROFILES[wf.subtype]) {
     const p = PROFILES[wf.subtype];
     // o mesmo tipo num curto mantém tema e imagens, mas com o ritmo e a letra do curto
-    return wf.track === 'short' ? { ...p, motion: { ...short.motion, accent: p.motion.accent }, transitions: short.transitions } : p;
+    return wf.track === 'short' ? { ...p, motion: { ...short.motion, accent: p.motion.accent }, transitions: short.transitions, sound: { ...short.sound, music: p.sound.level ? short.sound.music : {} } } : p;
   }
   return wf?.track === 'short' ? short : generic;
 }

@@ -10,6 +10,7 @@ import { finishPhase, markRan, setPhase } from '../app/workflow';
 import { AUTO_PHASES, runPhase } from '../app/phases';
 import { PhaseRunCard } from './PhaseRun';
 import { BriefingCard } from './BriefingCard';
+import { SoundLibrary } from './SoundLibrary';
 import { TransitionLibrary } from './TransitionsPanel';
 import { AudioLines, Blend, Captions, Clapperboard, Film, LayoutTemplate, Scissors, Shapes, Sparkles, Type, Wand } from 'lucide-react';
 import { DirectorPanel } from './DirectorPanel';
@@ -68,6 +69,7 @@ function PhasePanel({ wf }: { wf: Workflow }) {
         {auto && <BriefingCard wf={wf} hasMedia={hasMedia} />}
         {auto && <PhaseRunCard phase={wf.current} />}
         {wf.current === 'transitions' && <TransitionLibrary />}
+        {wf.current === 'audio' && <SoundLibrary />}
         {wf.current === 'cut' ? (
           <CutPanel />
         ) : def.ready ? null : (
@@ -155,7 +157,12 @@ function ToolSidebar() {
             <div className="panel-body"><CutPanel /></div>
           </section>
         )}
-        {tool === 'audio' && <MediaBin only={['audio']} title="Áudio" />}
+        {tool === 'audio' && (
+          <>
+            <SoundLibrary />
+            <MediaBin only={['audio']} title="Seus áudios" />
+          </>
+        )}
         {tool === 'text' && <TextPanel />}
         {tool === 'effects' && <EffectsPanel />}
         {tool === 'elements' && <ElementsPanel />}

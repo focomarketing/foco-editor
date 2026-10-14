@@ -25,8 +25,8 @@ export const PHASES: PhaseDef[] = [
   { id: 'images', label: 'Imagens', hint: 'imagens e B-roll na fala certa', ready: true },
   { id: 'transitions', label: 'Transições', hint: 'só onde o assunto muda', ready: true },
   { id: 'motion', label: 'Efeitos e motion', hint: 'zoom, textos animados, motion', ready: true },
-  { id: 'audio', label: 'Música e efeitos', hint: 'trilha e efeitos sonoros', ready: false },
-  { id: 'captions', label: 'Legenda', hint: 'legenda e estilo', ready: false },
+  { id: 'audio', label: 'Música e efeitos', hint: 'trilha e efeitos sonoros', ready: true },
+  { id: 'captions', label: 'Legenda', hint: 'legenda e estilo', ready: true },
   { id: 'editor', label: 'Editor', hint: 'timeline completa para finalizar', ready: true },
 ];
 

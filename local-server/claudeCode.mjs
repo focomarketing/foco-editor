@@ -61,13 +61,19 @@ function workDir() {
  * Uma pergunta estruturada: system + user (texto) → objeto do schema.
  * `signal` cancela (o processo é encerrado).
  */
-export function askClaude({ system, user, schema, model, effort = 'medium' }, signal) {
+export function askClaude({ system, user, schema, model, effort = 'medium', images = [] }, signal) {
   const bin = findClaude();
   if (!bin) return Promise.reject(new Error('Claude Code não encontrado neste computador. Instale o Claude Code e faça login com a sua conta.'));
-  const dir = workDir();
-  const sysFile = path.join(dir, `sys-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}.txt`);
+  // cada pergunta numa pasta própria: as imagens (quadros do vídeo) ficam ali e só ali o Claude lê
+  const dir = path.join(workDir(), `q-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  fs.mkdirSync(dir, { recursive: true });
+  const sysFile = path.join(dir, 'system.txt');
   fs.writeFileSync(sysFile, system ?? '', 'utf8');
-  const args = ['-p', '--output-format', 'json', '--system-prompt-file', sysFile, '--tools', '', '--no-session-persistence', '--strict-mcp-config', '--disable-slash-commands', '--setting-sources', '', '--effort', effort];
+  const pics = (Array.isArray(images) ? images : []).filter((im) => im && /^[\w.-]+\.(jpg|jpeg|png)$/i.test(im.name ?? '') && typeof im.base64 === 'string');
+  for (const im of pics) fs.writeFileSync(path.join(dir, im.name), Buffer.from(im.base64, 'base64'));
+  // sem imagens, nenhuma ferramenta; com imagens, só a leitura de arquivos (dentro desta pasta)
+  const tools = pics.length ? 'Read' : '';
+  const args = ['-p', '--output-format', 'json', '--system-prompt-file', sysFile, '--tools', tools, ...(pics.length ? ['--allowedTools', 'Read'] : []), '--no-session-persistence', '--strict-mcp-config', '--disable-slash-commands', '--setting-sources', '', '--effort', effort];
   if (schema) args.push('--json-schema', JSON.stringify(schema));
   if (model) args.push('--model', model);
   // a cobrança vai para a assinatura: nenhuma chave de API herdada do ambiente
@@ -84,7 +90,7 @@ export function askClaude({ system, user, schema, model, effort = 'medium' }, si
       done = true;
       clearTimeout(timer);
       signal?.removeEventListener?.('abort', onAbort);
-      fs.rm(sysFile, { force: true }, () => {});
+      fs.rm(dir, { recursive: true, force: true }, () => {});
       fn();
     };
     const onAbort = () => finish(() => {

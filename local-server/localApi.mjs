@@ -189,7 +189,7 @@ export async function handleLocal(req, res, url, opts = {}) {
         const abort = new AbortController();
         res.on('close', () => !res.writableFinished && abort.abort()); // o editor cancelou
         try {
-          return json(res, 200, await askClaude({ system: data.system, user: data.user, schema: data.schema, model: data.model, effort: data.effort }, abort.signal));
+          return json(res, 200, await askClaude({ system: data.system, user: data.user, schema: data.schema, model: data.model, effort: data.effort, images: data.images }, abort.signal));
         } catch (e) {
           return json(res, e?.name === 'AbortError' ? 499 : 502, { error: e instanceof Error ? e.message : String(e) });
         }

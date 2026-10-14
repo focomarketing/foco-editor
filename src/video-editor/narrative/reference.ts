@@ -168,3 +168,50 @@ export function inputsKey(...parts: (string | undefined)[]): string {
   }
   return h.toString(36);
 }
+
+/**
+ * Corrige as palavras de uma frase pela redação do roteiro, só onde é seguro: entre palavras
+ * iguais (âncoras), um trecho diferente de até 3 palavras com no máximo 1 de diferença no
+ * tamanho ("Vem ser" → "Vencer", "lásar," → "Lázaro,"). Trechos maiores ficam como foram ditos.
+ * Palavras que sobram somem; os tempos ficam os da fala.
+ */
+export function fixWords<W extends { text: string; start: number; end: number }>(words: W[], script: string): W[] {
+  const target = script.replace(/[“”"]/g, '').split(/\s+/).filter(Boolean);
+  const key = (w: string) => toks(w).join('');
+  const a = words.map((w) => key(w.text));
+  const b = target.map(key);
+  // maior subsequência comum: palavras iguais viram âncoras
+  const dp = Array.from({ length: a.length + 1 }, () => new Array<number>(b.length + 1).fill(0));
+  for (let i = a.length - 1; i >= 0; i--) for (let j = b.length - 1; j >= 0; j--) dp[i][j] = a[i] && a[i] === b[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+  const anchors: [number, number][] = [];
+  for (let i = 0, j = 0; i < a.length && j < b.length; ) {
+    if (a[i] && a[i] === b[j]) {
+      anchors.push([i, j]);
+      i++;
+      j++;
+    } else if (dp[i + 1][j] >= dp[i][j + 1]) i++;
+    else j++;
+  }
+  const out = words.map((w) => ({ ...w }));
+  const drop = new Set<number>();
+  let pi = -1;
+  let pj = -1;
+  for (const [ai, bj] of [...anchors, [a.length, b.length] as [number, number]]) {
+    const gi = ai - pi - 1;
+    const gj = bj - pj - 1;
+    // no fim, só se a frase do roteiro também acabou (senão ela continua em outra frase da fala)
+    const closed = ai < a.length || bj === b.length;
+    if (closed && gi >= 1 && gj >= 1 && gi <= 3 && gj <= 3 && Math.abs(gi - gj) <= 1) {
+      for (let k = 0; k < gi; k++) {
+        const idx = pi + 1 + k;
+        if (k < gj) out[idx].text = k === gi - 1 ? target.slice(pj + 1 + k, bj).join(' ') : target[pj + 1 + k];
+        else drop.add(idx);
+      }
+    }
+    // a âncora leva a grafia e a pontuação do roteiro ("Lázaro," "guerras?")
+    if (ai < a.length && bj < b.length) out[ai].text = target[bj];
+    pi = ai;
+    pj = bj;
+  }
+  return out.filter((_, i) => !drop.has(i));
+}
