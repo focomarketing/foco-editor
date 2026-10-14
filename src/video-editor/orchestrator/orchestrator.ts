@@ -122,8 +122,12 @@ export async function runStage(port: EditorPort, stage: PhaseId, deps: Omit<Skil
         profile,
         kind: `${wf?.track === 'short' || vertical ? 'vídeo curto vertical' : 'vídeo longo de YouTube'} · ${profile.label}`,
         ai: deps.ai,
-        llm: llmAvailable(deps.ai),
+        // ler o vídeo inteiro pede um modelo grande: o Ollama local (modelo pequeno) travava
+        // a fase por minutos; com ele o mapa vem das regras e as skills seguem
+        llm: llmAvailable(deps.ai) && deps.ai.provider !== 'ollama',
         stored: p.metadata?.narrative as StoredNarrative | undefined,
+        // no modo pelo roteiro, o próprio roteiro é a referência
+        inputs: { briefing: wf?.brief, reference: wf?.reference || wf?.script },
         signal: deps.signal,
         log,
         progress: (step) => deps.progress(step),

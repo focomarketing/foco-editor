@@ -256,7 +256,7 @@ export class DirectorTools {
     if (!words.length) lines.push('', 'Atenção: a fala ainda não foi transcrita (run_skill cut transcreve).');
     else {
       const profile = profileFor(wf);
-      lines.push('', 'MAPA NARRATIVO (siga esta linha em cada corte, imagem, transição e título):', briefText(quickBrief(words, profile, p.metadata?.narrative as StoredNarrative | undefined), profile));
+      lines.push('', 'MAPA NARRATIVO (siga esta linha em cada corte, imagem, transição e título):', briefText(quickBrief(words, profile, p.metadata?.narrative as StoredNarrative | undefined, { briefing: wf?.brief, reference: wf?.reference || wf?.script }), profile));
     }
     return lines.join('\n');
   }
@@ -267,7 +267,8 @@ export class DirectorTools {
     const list = sentences(words);
     // papel de cada frase na narrativa (o mapa olha o vídeo inteiro, não só o trecho pedido)
     const all = this.env.words(this.p);
-    const brief = quickBrief(all, profileFor(readWorkflow(this.p.metadata)), this.p.metadata?.narrative as StoredNarrative | undefined);
+    const wf = readWorkflow(this.p.metadata);
+    const brief = quickBrief(all, profileFor(wf), this.p.metadata?.narrative as StoredNarrative | undefined, { briefing: wf?.brief, reference: wf?.reference || wf?.script });
     const tag = (t: number) => {
       const b = brief.sentences.find((x) => Math.abs(x.start - t) < 0.05);
       return b ? ` (bloco ${b.section} · ${b.role}${b.themes.length ? ` · ${b.themes.slice(0, 2).join(', ')}` : ''})` : '';

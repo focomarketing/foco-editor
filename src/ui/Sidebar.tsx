@@ -9,6 +9,7 @@ import type { Workflow } from '../core/workflow';
 import { finishPhase, markRan, setPhase } from '../app/workflow';
 import { AUTO_PHASES, runPhase } from '../app/phases';
 import { PhaseRunCard } from './PhaseRun';
+import { BriefingCard } from './BriefingCard';
 import { TransitionLibrary } from './TransitionsPanel';
 import { AudioLines, Blend, Captions, Clapperboard, Film, LayoutTemplate, Scissors, Shapes, Sparkles, Type, Wand } from 'lucide-react';
 import { DirectorPanel } from './DirectorPanel';
@@ -64,6 +65,7 @@ function PhasePanel({ wf }: { wf: Workflow }) {
       </div>
       <div className="panel-body">
         <MediaReconnectBanner />
+        {auto && <BriefingCard wf={wf} hasMedia={hasMedia} />}
         {auto && <PhaseRunCard phase={wf.current} />}
         {wf.current === 'transitions' && <TransitionLibrary />}
         {wf.current === 'cut' ? (

@@ -116,6 +116,10 @@ export interface Workflow {
   enabledSkills?: string[];
   /** Roteiro/narração (modo script-led). */
   script?: string;
+  /** Briefing da pessoa para a edição automática (tom, público, objetivo, estilo). */
+  brief?: string;
+  /** Roteiro de referência no modo pela fala: o texto gravado (títulos em caixa alta = blocos). */
+  reference?: string;
 }
 
 export function createWorkflow(track: TrackId, subtype: string | null, opts: { mode?: EditMode; script?: string } = {}): Workflow {

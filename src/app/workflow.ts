@@ -91,6 +91,14 @@ export function finishPhase(how: 'done' | 'skipped' = 'done') {
   void persist();
 }
 
+/** Briefing e roteiro de referência da edição automática (vazio apaga). O mapa narrativo é refeito. */
+export function setBriefing(brief: string, reference: string) {
+  const wf = currentWorkflow();
+  if (!wf) return;
+  setWorkflow({ ...wf, brief: brief.trim() || undefined, reference: reference.trim() || undefined });
+  void persist();
+}
+
 /** Marca que a IA já executou esta fase (para não repetir sozinha ao reabrir). */
 export function markRan(phase: PhaseId) {
   const wf = currentWorkflow();

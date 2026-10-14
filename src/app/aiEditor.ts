@@ -10,7 +10,7 @@ import { notify } from './notify';
 import type { AICommand, AspectRatio } from '../engine/ai/commands';
 import { COMMAND_DOCS, describeCommand, validateCommands } from '../engine/ai/commands';
 import type { AISettings, ChatTurn } from '../engine/ai/providers';
-import { DEFAULT_AI_SETTINGS, planWithClaude, planWithClaudeCode, planWithOllama } from '../engine/ai/providers';
+import { DEFAULT_AI_SETTINGS, claudeCodeStatus, planWithClaude, planWithClaudeCode, planWithOllama } from '../engine/ai/providers';
 import { CUT_KIND_LABEL, suggestCuts, summarize } from '../engine/analysis/cuts';
 import type { CutKind } from '../engine/analysis/cuts';
 import { smartZoomKeyframes, sentencesOf } from '../engine/analysis/zoom';
@@ -104,6 +104,36 @@ export function saveSettings(patch: Partial<AISettings>) {
   }
   set({ settings });
 }
+
+// --- vínculo com a conta Claude ---------------------------------------------------------
+
+const LINKED_KEY = 'foco.ai.claudeLinked';
+
+/**
+ * Ao abrir: se o Claude Code está instalado e logado neste computador, o editor passa a usar
+ * a conta da pessoa (uma vez; se depois ela escolher outro provedor, a escolha fica). Quem
+ * configurou a chave da API de propósito continua na API.
+ */
+export async function linkClaudeAccount(): Promise<boolean> {
+  const s = state.settings;
+  if (s.provider === 'claude-code') return true;
+  if (s.provider === 'claude' && s.claudeKey) return false;
+  try {
+    if (localStorage.getItem(LINKED_KEY)) return false;
+  } catch {
+    return false;
+  }
+  const st = await claudeCodeStatus();
+  if (!st.available || !st.loggedIn) return false;
+  saveSettings({ provider: 'claude-code' });
+  try {
+    localStorage.setItem(LINKED_KEY, new Date().toISOString());
+  } catch {
+    /* modo privado */
+  }
+  return true;
+}
+if (typeof window !== 'undefined') void linkClaudeAccount();
 
 // --- contexto enviado ao modelo -----------------------------------------------------
 

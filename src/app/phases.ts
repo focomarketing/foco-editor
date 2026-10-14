@@ -19,6 +19,7 @@ import { Cmd } from '../engine/commands/commands';
 import { actions, media, store, transcripts } from './editor';
 import { notify } from './notify';
 import { timelineSpeech } from './smartCut';
+import { currentWorkflow, finishPhase, markRan, setPhase } from './workflow';
 import { blobToBase64, framePixels, grabFramesBase64 } from '../engine/media/generators';
 
 export interface PhaseRun {
@@ -133,10 +134,46 @@ export function cancelPhase() {
   abort?.abort();
 }
 
+/** "Editar vídeo inteiro" em andamento: etapa atual e total (vai no texto do progresso). */
+let batch: { index: number; total: number } | null = null;
+export const runningAll = () => !!batch;
+
+/**
+ * Edita o vídeo inteiro: Corte → Imagens → Transições → Efeitos e motion, em sequência, cada
+ * etapa aplicada (o que a IA fez antes nesta etapa é refeito; o que a pessoa fez fica). O mapa
+ * narrativo é montado na primeira etapa e reaproveitado nas outras. Para no primeiro erro ou
+ * cancelamento; no fim abre a timeline para revisar.
+ */
+export async function runAll() {
+  if (state?.running || batch) return;
+  const wf = currentWorkflow();
+  if (!wf) return;
+  const steps = AUTO_PHASES.filter((p) => wf.phases.includes(p));
+  try {
+    for (const [i, phase] of steps.entries()) {
+      batch = { index: i + 1, total: steps.length };
+      markRan(phase); // a fase não roda de novo sozinha ao abrir
+      setPhase(phase);
+      await runPhase(phase, { regenerate: true });
+      if (state?.error) {
+        notify(`Edição parou em ${phase}: ${state.error}`, 'error', 8000);
+        return;
+      }
+      finishPhase('done');
+    }
+    setPhase('editor');
+    notify('Vídeo editado do início ao fim. Revise na timeline (cada etapa pode ser desfeita).', 'info', 8000);
+  } finally {
+    batch = null;
+    for (const l of listeners) l();
+  }
+}
+
 export async function runPhase(phase: PhaseId, opts: { regenerate?: boolean; autoApply?: boolean } = {}) {
   if (state?.running) return;
   abort = new AbortController();
-  state = { phase, running: true, step: 'Começando…', done: 0, total: 0, error: null, summary: null, opId: null };
+  const tag = () => (batch ? `Etapa ${batch.index} de ${batch.total} · ` : '');
+  state = { phase, running: true, step: `${tag()}Começando…`, done: 0, total: 0, error: null, summary: null, opId: null };
   for (const l of listeners) l();
   try {
     const r = await runStage(
@@ -145,7 +182,7 @@ export async function runPhase(phase: PhaseId, opts: { regenerate?: boolean; aut
       {
         ai: aiStore.get().settings,
         signal: abort.signal,
-        progress: (step, done = 0, total = 0) => set({ step, done, total }),
+        progress: (step, done = 0, total = 0) => set({ step: `${tag()}${step}`, done, total }),
         words: () => timelineSpeech(store.getState().project).words,
         services: skillServices,
       },

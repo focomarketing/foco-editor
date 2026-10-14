@@ -13,6 +13,7 @@ import { isParallel as parallelTokens } from '../../engine/cut/smartCut';
 import { sentences } from '../skills/common';
 import type { Sentence } from '../skills/common';
 import { plain, themesOf } from './profiles';
+import { applyReference, inputsKey, parseReference } from './reference';
 import type { BeatRole, EditorialProfile } from './profiles';
 
 export type SectionKind = 'abertura' | 'bloco' | 'conclusao' | 'cta';
@@ -26,6 +27,8 @@ export interface BriefSentence extends Sentence {
   /** O que a imagem deveria mostrar e a busca (diretor de IA). */
   visual?: string;
   query?: string;
+  /** A mesma frase como está no roteiro de referência (corrige erros da transcrição). */
+  script?: string;
 }
 
 export interface BriefSection {
@@ -36,6 +39,8 @@ export interface BriefSection {
   end: number;
   /** Índice da frase que abre o bloco. */
   first: number;
+  /** Título tirado do roteiro de referência. */
+  scripted?: boolean;
 }
 
 export interface NarrativeBrief {
@@ -49,6 +54,8 @@ export interface NarrativeBrief {
   sections: BriefSection[];
   /** Repetições intencionais (anáfora, enumeração, paralelismo): o corte não mexe nelas. */
   rhetoric: { start: number; end: number; why: string }[];
+  /** Briefing da pessoa (tom, público, objetivo), quando houver. */
+  briefing?: string;
 }
 
 /** O que fica guardado no projeto (metadata.narrative): preso ao texto, não ao tempo. */
@@ -65,6 +72,24 @@ export interface StoredNarrative {
   beats: Record<string, { role: BeatRole; visual?: string; query?: string }>;
   sections: { key: string; kind: SectionKind; title: string }[];
   rhetoric: { keys: string[]; why: string }[];
+  /** Hash do briefing + roteiro usados (mudou, refaz o mapa). */
+  inputs?: string;
+}
+
+/** Briefing e roteiro de referência da pessoa (workflow do projeto). */
+export interface BriefInputs {
+  briefing?: string;
+  reference?: string;
+}
+
+/** Chave das entradas: vazia quando não há briefing nem roteiro. */
+export const keyOf = (i: BriefInputs = {}) => (i.briefing?.trim() || i.reference?.trim() ? inputsKey(i.briefing, i.reference) : '');
+
+/** Aplica o roteiro (se houver) e anexa o briefing ao mapa. */
+function withInputs(b: NarrativeBrief, i: BriefInputs = {}): NarrativeBrief {
+  const ref = i.reference?.trim() ? parseReference(i.reference) : null;
+  const out = ref ? applyReference(b, ref) : b;
+  return i.briefing?.trim() ? { ...out, briefing: i.briefing.trim() } : out;
 }
 
 type Words = { text: string; start: number; end: number }[];
@@ -262,8 +287,14 @@ export const BRIEF_SCHEMA = {
   },
 } as const;
 
-export function briefPrompt(profile: EditorialProfile, kind: string): string {
-  return `Você é o diretor editorial de um editor de vídeo profissional. Antes de qualquer corte, imagem, transição ou título, você lê o vídeo INTEIRO e entrega o mapa narrativo que todas as outras áreas vão seguir.
+export function briefPrompt(profile: EditorialProfile, kind: string, inputs: BriefInputs = {}): string {
+  const extra = [
+    inputs.briefing?.trim() ? `\nBRIEFING DA PESSOA (manda no tom, no público e no objetivo):\n${inputs.briefing.trim()}` : '',
+    inputs.reference?.trim()
+      ? `\nROTEIRO DE REFERÊNCIA (o texto que foi gravado; os títulos em CAIXA ALTA são os blocos do vídeo). Use os blocos e os títulos dele em "sections" (título em frase normal), e use a redação dele quando a transcrição tiver errado uma palavra:\n${inputs.reference.trim().slice(0, 40_000)}`
+      : '',
+  ].join('\n');
+  return `${extra ? `${extra.trim()}\n\n` : ''}Você é o diretor editorial de um editor de vídeo profissional. Antes de qualquer corte, imagem, transição ou título, você lê o vídeo INTEIRO e entrega o mapa narrativo que todas as outras áreas vão seguir.
 
 Canal: ${profile.voice}
 Tipo de vídeo: ${kind}.
@@ -307,8 +338,9 @@ export function storeFromLlm(raw: unknown, list: Sentence[], profile: EditorialP
 }
 
 /** O mapa guardado ainda vale para a fala atual? (os cortes só tiram frases; o texto fica) */
-export function storedFits(stored: StoredNarrative | null | undefined, list: Sentence[], profileId: string): stored is StoredNarrative {
+export function storedFits(stored: StoredNarrative | null | undefined, list: Sentence[], profileId: string, inputs = ''): stored is StoredNarrative {
   if (!stored || stored.version !== 1 || stored.profile !== profileId || !list.length) return false;
+  if ((stored.inputs ?? '') !== inputs) return false; // briefing ou roteiro mudou
   const known = new Set(stored.keys);
   return list.filter((s) => known.has(sentenceKey(s.text))).length / list.length >= 0.85;
 }
@@ -358,6 +390,8 @@ export interface BriefDeps {
   ai: AISettings;
   llm: boolean;
   stored: StoredNarrative | null | undefined;
+  /** Briefing e roteiro de referência (opcionais). */
+  inputs?: BriefInputs;
   signal: AbortSignal;
   log(msg: string): void;
   progress(step: string): void;
@@ -366,25 +400,30 @@ export interface BriefDeps {
 /** Mapa narrativo da fala atual: reaproveita o do projeto, pede ao diretor de IA ou usa as regras. */
 export async function buildBrief(d: BriefDeps): Promise<{ brief: NarrativeBrief; store: StoredNarrative | null }> {
   const list = sentences(d.words);
-  if (storedFits(d.stored, list, d.profile.id)) return { brief: resolveStored(d.stored, d.words, d.profile), store: null };
+  const key = keyOf(d.inputs);
+  if (storedFits(d.stored, list, d.profile.id, key)) return { brief: withInputs(resolveStored(d.stored, d.words, d.profile), d.inputs), store: null };
   if (d.llm && list.length) {
     try {
-      d.progress('O diretor editorial está lendo o vídeo inteiro (narrativa, blocos e tese)…');
-      const raw = await askJson(d.ai, briefPrompt(d.profile, d.kind), list.map((s) => `${s.index} [${s.start.toFixed(1)}] ${s.text}`).join('\n'), BRIEF_SCHEMA as unknown as Record<string, unknown>, d.signal);
-      const store = storeFromLlm(raw, list, d.profile);
-      if (store) return { brief: resolveStored(store, d.words, d.profile), store };
+      d.progress(`O diretor editorial está lendo o vídeo inteiro${d.ai.provider === 'claude-code' ? ' com a sua conta Claude' : ''} (narrativa, blocos e tese; cerca de 1 minuto)…`);
+      const raw = await askJson(d.ai, briefPrompt(d.profile, d.kind, d.inputs), list.map((s) => `${s.index} [${s.start.toFixed(1)}] ${s.text}`).join('\n'), BRIEF_SCHEMA as unknown as Record<string, unknown>, d.signal);
+      const stored = storeFromLlm(raw, list, d.profile);
+      if (stored) {
+        const store = { ...stored, ...(key ? { inputs: key } : {}) };
+        return { brief: withInputs(resolveStored(store, d.words, d.profile), d.inputs), store };
+      }
       d.log('diretor editorial devolveu um mapa vazio: usando as regras locais');
     } catch (e) {
       if (e instanceof DOMException && e.name === 'AbortError') throw e;
       d.log(`diretor editorial indisponível: ${e instanceof Error ? e.message : e}`);
     }
   }
-  return { brief: heuristicBrief(d.words, d.profile), store: null };
+  return { brief: withInputs(heuristicBrief(d.words, d.profile), d.inputs), store: null };
 }
 
 /** Mapa sem chamar a IA: o guardado no projeto (se ainda vale) ou o das regras. */
-export function quickBrief(words: Words, profile: EditorialProfile, stored: StoredNarrative | null | undefined): NarrativeBrief {
-  return storedFits(stored, sentences(words), profile.id) ? resolveStored(stored, words, profile) : heuristicBrief(words, profile);
+export function quickBrief(words: Words, profile: EditorialProfile, stored: StoredNarrative | null | undefined, inputs: BriefInputs = {}): NarrativeBrief {
+  const base = storedFits(stored, sentences(words), profile.id, keyOf(inputs)) ? resolveStored(stored, words, profile) : heuristicBrief(words, profile);
+  return withInputs(base, inputs);
 }
 
 // --- consulta pelas skills ---------------------------------------------------------------
@@ -398,6 +437,7 @@ export const sectionStartNear = (b: NarrativeBrief, t: number, tol = 1.5) => b.s
 /** Texto curto do mapa para os prompts das skills e do Diretor. */
 export function briefText(b: NarrativeBrief, profile: EditorialProfile): string {
   const lines = [`CANAL: ${profile.voice}`];
+  if (b.briefing) lines.push(`BRIEFING: ${b.briefing.slice(0, 1500)}`);
   if (b.summary) lines.push(`RESUMO: ${b.summary}`);
   if (b.centralQuestion) lines.push(`PERGUNTA CENTRAL: ${b.centralQuestion}`);
   if (b.thesis) lines.push(`TESE: ${b.thesis}`);

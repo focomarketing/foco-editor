@@ -36,7 +36,7 @@ export function speechLines(words: { text: string; start: number; end: number }[
 
 /** Frases do mapa com o bloco e o papel (o diretor vê onde cada fala está na narrativa). */
 export function briefLines(b: NarrativeBrief): string[] {
-  return b.sentences.map((s) => `[${s.start.toFixed(1)}–${s.end.toFixed(1)}] (bloco ${s.section} · ${s.role}) ${s.text}`);
+  return b.sentences.map((s) => `[${s.start.toFixed(1)}–${s.end.toFixed(1)}] (bloco ${s.section} · ${s.role}) ${s.script ?? s.text}`);
 }
 
 export const ARCHIVE_SUBTYPES = ['cristao', 'documentario', 'dark'];

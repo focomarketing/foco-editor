@@ -7,7 +7,8 @@ import { briefPicks, motionStyle, titleText } from '../skills/motion';
 import { cutNarrative } from '../skills/transitions';
 import { decide, newDirectorState } from '../transitions/director';
 import type { CutFeatures } from '../transitions/director';
-import { heuristicBrief, isParallel, resolveStored, storeFromLlm, storedFits } from './brief';
+import { heuristicBrief, isParallel, keyOf, quickBrief, resolveStored, storeFromLlm, storedFits } from './brief';
+import { parseReference, sentenceCase } from './reference';
 import { imageAllowed, profileFor, themesOf } from './profiles';
 import { sentences } from '../skills/common';
 
@@ -212,5 +213,75 @@ describe('transições pela narrativa', () => {
   });
   it('titleText tira o conectivo do começo', () => {
     expect(titleText('Então por que Jesus não curou todo mundo?')).toBe('Por que Jesus não curou todo mundo?');
+  });
+});
+
+describe('roteiro de referência e briefing', () => {
+  const REF = `SE DEUS PODE TUDO?
+INTRODUÇÃO
+Se Deus realmente pode fazer tudo, por que Ele deixa crianças morrer em guerras?
+E antes que você venha com "livre-arbítrio"… não.
+CTA
+Antes de continuar, se inscreve no canal.
+O MUNDO QUE DEUS CRIOU NÃO É O MUNDO QUE CONHECEMOS
+A criação começa como algo bom. Depois existe uma rebelião no mundo espiritual.
+O homem cai e a experiência humana muda completamente.
+CURA NÃO É A MESMA COISA QUE RESTAURAÇÃO
+Até Lázaro, que foi ressuscitado por Jesus, não permaneceu eternamente naquele corpo.
+Os milagres eram sinais do Reino de Deus.
+CONCLUSÃO
+Vencer aquilo que torna a morte definitiva.
+Este mundo é passagem.`;
+  const SPOKEN = [
+    'Se Deus realmente pode fazer tudo, por que Ele deixa crianças morrer em guerras?',
+    'E antes que você venha com o papo de Líverbítrio, não.',
+    'Antes de continuar, se inscreve no canal.',
+    'A criação começa como algo bom.',
+    'Depois existe uma rebelião no mundo espiritual.',
+    'O homem cai e a experiência humana muda completamente.',
+    'Cura não é a mesma coisa que restauração.',
+    'Até lásar, o que foi ressuscitado por Jesus, não permaneceu eternamente naquele corpo.',
+    'Os milagres eram sinais do Reino de Deus.',
+    'Vem ser aquilo que torna a morte definitiva.',
+    'Este mundo é passagem.',
+  ];
+  const words = speak(SPOKEN);
+
+  it('lê o roteiro: título do vídeo, blocos pelos títulos em caixa alta', () => {
+    const r = parseReference(REF);
+    expect(r.title).toBe('SE DEUS PODE TUDO?');
+    expect(r.sections.map((s) => s.kind)).toEqual(['abertura', 'cta', 'bloco', 'bloco', 'conclusao']);
+    expect(r.sections[2].title).toBe('O mundo que Deus criou não é o mundo que conhecemos');
+    expect(sentenceCase('JESUS NÃO FUGIU DO MUNDO CORROMPIDO')).toBe('Jesus não fugiu do mundo corrompido');
+  });
+  it('sem IA: os blocos seguem o roteiro, nos tempos da fala (inclusive o título dito em voz alta)', () => {
+    const b = quickBrief(words, cristao, null, { reference: REF });
+    expect(b.sections.map((s) => s.title)).toEqual(['Introdução', 'Chamada', 'O mundo que Deus criou não é o mundo que conhecemos', 'Cura não é a mesma coisa que restauração', 'Conclusão']);
+    const cura = b.sections[3];
+    expect(b.sentences[cura.first].text).toBe('Cura não é a mesma coisa que restauração.');
+    expect(b.sentences[cura.first].role).toBe('chapter');
+    expect(b.sentences.find((s) => s.text.startsWith('Antes de continuar'))!.role).toBe('cta');
+  });
+  it('a redação do roteiro corrige a transcrição', () => {
+    const b = quickBrief(words, cristao, null, { reference: REF });
+    const fix = (start: string) => b.sentences.find((s) => s.text.startsWith(start))!.script;
+    expect(fix('Vem ser')).toBe('Vencer aquilo que torna a morte definitiva.');
+    expect(fix('Até lásar')).toMatch(/^Até Lázaro/);
+    expect(fix('E antes que você venha')).toMatch(/livre-arbítrio/);
+  });
+  it('lower third com o título do roteiro; tese com a redação do roteiro', () => {
+    const b = quickBrief(words, cristao, null, { reference: REF });
+    const picks = briefPicks(b, { ...motionStyle(false), every: 1 }, 300, cristao);
+    expect(picks.find((p) => p.kind === 'lowerThird' && p.text === 'O mundo que Deus criou não é o mundo que conhecemos')).toBeTruthy();
+    expect(picks.some((p) => /Vem ser/.test(p.text))).toBe(false);
+  });
+  it('mudar o briefing ou o roteiro invalida o mapa guardado', () => {
+    const list = sentences(words);
+    const raw = { summary: 's', centralQuestion: '', thesis: '', tone: '', sections: [{ sentence: 0, kind: 'abertura', title: 'A' }], beats: [], rhetoric: [] };
+    const stored = { ...storeFromLlm(raw, list, cristao)!, inputs: keyOf({ briefing: 'canal cristão' }) };
+    expect(storedFits(stored, list, 'cristao', keyOf({ briefing: 'canal cristão' }))).toBe(true);
+    expect(storedFits(stored, list, 'cristao', keyOf({ briefing: 'canal cristão moderno' }))).toBe(false);
+    expect(storedFits(stored, list, 'cristao', keyOf({ briefing: 'canal cristão', reference: REF }))).toBe(false);
+    expect(keyOf({})).toBe('');
   });
 });

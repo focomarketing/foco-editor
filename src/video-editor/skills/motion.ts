@@ -40,7 +40,7 @@ export interface MotionStyle {
 }
 
 export const motionStyle = (short: boolean): MotionStyle =>
-  short ? { every: 8, max: 8, zoom: 1.12, punch: true, accent: '#ffd400', maxWords: 5 } : { every: 50, max: 8, zoom: 1.06, punch: false, accent: '#4f8cff', maxWords: 7 };
+  short ? { every: 8, max: 8, zoom: 1.12, punch: true, accent: '#ffd400', maxWords: 5 } : { every: 50, max: 12, zoom: 1.06, punch: false, accent: '#4f8cff', maxWords: 7 };
 
 /** O texto do gráfico tem de sair da frase: ao menos 80% das palavras dele estão nela. */
 export function textFromSpeech(text: string, sentence: string): boolean {
@@ -91,7 +91,13 @@ export function briefPicks(b: NarrativeBrief, style: MotionStyle, duration: numb
   const fits = (t: string, extra = 0) => wordCount(t) >= 2 && wordCount(t) <= style.maxWords + extra;
   for (const s of b.sentences) {
     if (s.role === 'cta' || s.end - s.start < 1.2) continue;
-    const text = titleText(s.text);
+    const text = titleText(s.script ?? s.text);
+    // bloco com título do roteiro: o lower third mostra o título que a pessoa escreveu
+    const sec = b.sections[s.section];
+    if (s.role === 'chapter' && sec?.scripted && sec.first === s.index && fits(sec.title, 6)) {
+      cands.push({ sentence: s, kind: 'lowerThird', text: sec.title, why: `tema do bloco ${s.section} (roteiro)`, by: 'heuristic', prio: 3 });
+      continue;
+    }
     if (s.role === 'chapter' && !isMetaTransition(s.text) && fits(text, 2)) cands.push({ sentence: s, kind: 'lowerThird', text: trimText(text, style.maxWords + 2), why: `tema do bloco ${s.section}`, by: 'heuristic', prio: 3 });
     else if ((s.role === 'thesis' || s.role === 'climax') && fits(text, 1)) cands.push({ sentence: s, kind: 'title', text: trimText(text, style.maxWords + 1), why: s.role === 'climax' ? 'a resposta do vídeo' : 'afirmação central do bloco', by: 'heuristic', prio: s.role === 'climax' ? 2.5 : 2 });
     else if (profile.motion.callouts && s.role === 'question' && b.centralQuestion === s.text && fits(text)) cands.push({ sentence: s, kind: 'callout', text: trimText(text, style.maxWords), why: 'a pergunta que move o vídeo', by: 'heuristic', prio: 2.8 });
@@ -184,7 +190,7 @@ export const motionDesignerSkill: Skill = {
     const style = motionStyle(short);
     const brief = await ctx.brief();
     const profile = ctx.profile;
-    const list: (Sentence & { role?: string; section?: number })[] = brief?.sentences ?? sentences(words);
+    const list: (Sentence & { role?: string; section?: number; script?: string })[] = brief?.sentences ?? sentences(words);
     const duration = Math.max(...words.map((w) => w.end));
     let picks: MotionPick[] = [];
     if (llmReady(ctx.ai)) {
@@ -195,7 +201,7 @@ export const motionDesignerSkill: Skill = {
           ctx.ai,
           `Você é motion designer de ${short ? 'vídeos curtos (estilo forte, ritmo rápido)' : 'vídeos longos de YouTube (estilo discreto, elegante)'}.${brief ? `\n\nMAPA NARRATIVO (os gráficos marcam a estrutura do vídeo):\n${briefText(brief, profile)}\n` : ''}
 Escolha até ${limit} frases que carregam o vídeo e a sua estrutura. Para cada uma: kind (title = tese ou virada no centro; callout = a pergunta central ou um número; lowerThird = o TEMA de um bloco quando ele começa, ou a referência bíblica/fonte citada; nunca um pedaço solto de frase), e text com no máximo ${style.maxWords} palavras COPIADAS da própria frase, formando uma ideia completa (não reescreva, não invente, não corte no meio da ideia). Nunca em chamada para ação (inscrição, compartilhar, link). Responda só o JSON.`,
-          list.map((s) => `${s.index} [${s.start.toFixed(1)}–${s.end.toFixed(1)}]${s.role ? ` (bloco ${s.section} · ${s.role})` : ''} ${s.text}`).join('\n'),
+          list.map((s) => `${s.index} [${s.start.toFixed(1)}–${s.end.toFixed(1)}]${s.role ? ` (bloco ${s.section} · ${s.role})` : ''} ${s.script ?? s.text}`).join('\n'),
           PICK_SCHEMA as unknown as Record<string, unknown>,
           ctx.signal,
         )) as { picks?: { sentence: number; kind: string; text: string; why: string }[] };
@@ -204,7 +210,10 @@ Escolha até ${limit} frases que carregam o vídeo e a sua estrutura. Para cada 
           const s = list.find((x) => x.index === r.sentence);
           const kind = (['title', 'callout', 'lowerThird'] as const).find((k) => k === r.kind);
           const text = trimText(String(r.text ?? ''), style.maxWords);
-          if (!s || !kind || !textFromSpeech(text, s.text)) continue; // texto inventado: fora
+          // o texto sai da fala, da redação do roteiro ou do título do bloco no roteiro; inventado fica fora
+          const sec = brief && s?.section !== undefined ? brief.sections[s.section] : undefined;
+          const fromScript = !!s && ((!!s.script && textFromSpeech(text, s.script)) || (!!sec?.scripted && textFromSpeech(text, sec.title)));
+          if (!s || !kind || !(textFromSpeech(text, s.text) || fromScript)) continue;
           if (s.role === 'cta') continue; // chamada para ação não vira título
           valid.push({ sentence: s, kind, text, why: String(r.why ?? '').slice(0, 140), by: 'llm' });
         }
